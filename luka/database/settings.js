@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS = {
     PREFIX: ".",
     OWNER_NAME: "Lukabrand",
     OWNER_NUMBER: "255768619068",
-    BOT_NAME: "LUKA",
+    BOT_NAME: "LUKA-XMD",
     FOOTER: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ",
     CAPTION: "⚡ LUKA-XMD Premium | Ultra Fast | Ultra Secure",
     BOT_PIC: "https://i.imgur.com/9VP31oG.png",
