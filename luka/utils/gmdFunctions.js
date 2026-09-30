@@ -1,7 +1,7 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  ⚡  BLACK PANTHER MD  —  gmdFunctions.js  (Core Utilities)
-//  👑  Owner : Koyoteh  |  📞 +254105521300
+//  ⚡  LUKA-XMD  —  gmdFunctions.js  (Core Utilities)
+//  👑  Owner : Lukabrand  |  📞 +255768619068
 //  🔧  Rich formatting · Media tools · Upload helpers
 // ╚══════════════════════════════════════════════════════════════╝
 
