@@ -1,7 +1,7 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Connection Handler (Baileys v7)
-//  Owner : Koyoteh  |  +254105521300
+//  🐾  LUKA-XMDD  —  Connection Handler (Baileys v7)
+//  Owner : Lukabrand  |  +255768619068
 //  • Auto-update from GitHub on every restart
 //  • Auto-follow CHANNEL_JID newsletter on connect
 //  • Auto-join groups from AUTO_JOIN_GROUPS env
@@ -196,7 +196,7 @@ async function startBot() {
         },
         logger:                         silentLogger,
         printQRInTerminal:              false,
-        browser:                        ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
+        browser:                        ['LUKA-XMD', 'Chrome', '121.0.0'],
         markOnlineOnConnect:            true,
         syncFullHistory:                false,
         shouldSyncHistoryMessage:       () => false,
@@ -281,17 +281,18 @@ async function startBot() {
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
             const startText =
-`⚡ ──「 *${config.BOT_NAME} ┃ ᴹᴰ* 」──
-▢ 🟢 Status  : ✅ ONLINE
-▢ 👑 Owner   : ${config.OWNER_NAME}
-▢ 📞 Phone   : +${config.OWNER_NUMBER}
-▢ 📌 Prefix  : ${config.BOT_PREFIX}
-▢ 🌐 Mode    : ${config.MODE.toUpperCase()}
-▢ 🖥️ Host    : ${logger.PLATFORM}
-▢ 🏷️ Version : ${config.BOT_VERSION}
-▢ 🕐 Time    : ${now}
-▢ 📅 Date    : ${today}
-└──✦ _Powered by GuruTech_ ✦──
+
+    `╭⟮ *${config.BOT_NAME} ┃ -XMD* ⟯╮`,
+    `│ 🟢 Status  : *ONLINE*`,
+    `│ 👑 Owner   : ${config.OWNER_NAME}`,
+    `│ 📞 Phone   : +${config.OWNER_NUMBER}`,
+    `│ 📌 Prefix  : ${config.BOT_PREFIX}`,
+    `│ 🌐 Mode    : ${config.MODE.toUpperCase()}`,
+    `│ 🖥️ Host    : ${logger.PLATFORM}`,
+    `│ 🏷️ Version : ${config.BOT_VERSION}`,
+    `│ 🕐 Time    : ${now}`,
+    `│ 📅 Date    : ${today}`,
+    `╰⟮ ✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦ ⟯╯
 
 > © ${config.BOT_NAME} is awesome 🔥`;
 
