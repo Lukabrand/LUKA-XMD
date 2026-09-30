@@ -1,19 +1,19 @@
 'use strict';
 // ╭─────────────────────────────────────────────────────────────╮
-//   BLACK PANTHER MD  ·  guruh/botname.js
+//   LUKA-XMD  ·  lukah/botname.js
 //   Provides getBotName() helper used by plugins that need the
 //   bot's display name without a circular import back into the
 //   full config tree.
-// └──𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ────────────────────────────────────────────────╯
+// └──𝐋𝐔𝐊𝐀-𝐗𝐌𝐃────────────────────────────────────────────────╯
 
-const config = require('../guru/config/settings');
+const config = require('../luka/config/settings');
 
 /**
  * Returns the bot's current display name.
  * Falls back to 'BLACK PANTHER MD' if config hasn't loaded yet.
  */
 function getBotName() {
-    return (config && config.BOT_NAME) || process.env.BOT_NAME || 'BLACK PANTHER MD';
+    return (config && config.BOT_NAME) || process.env.BOT_NAME || 'LUKA-XMD';
 }
 
 module.exports = { getBotName };
