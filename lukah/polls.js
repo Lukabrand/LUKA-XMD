@@ -1,4 +1,4 @@
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const Database = require("better-sqlite3");
 const path     = require("path");
 const fs       = require("fs-extra");
@@ -9,7 +9,7 @@ const fs       = require("fs-extra");
 //  duplicate-vote protection and ASCII bar-chart results.
 // ═══════════════════════════════════════════════════════════════════
 
-const DB_DIR = path.join(__dirname, "../guru/database");
+const DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(DB_DIR);
 
 const db = new Database(path.join(DB_DIR, "polls.db"));
