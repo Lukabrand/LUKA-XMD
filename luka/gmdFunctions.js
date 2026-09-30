@@ -75,7 +75,7 @@ async function loadSession() {
                 console.error("╔══════════════════════════════════════════════════════════╗");
                 console.error("║  ❌  SESSION_ID is not set!                              ║");
                 console.error("║  Add SESSION_ID to your platform's environment variables.║");
-                console.error("║  Format:  SESSION_ID=PANTHER~xxxx... or GURU~xxxx...        ║");
+                console.error("║  Format:  SESSION_ID=LUKA~xxxx... or LUKA~xxxx...        ║");
                 console.error("╚══════════════════════════════════════════════════════════╝");
                 if (hostEnv === 'replit') {
                     // On Replit, keep the web server alive so the dashboard is accessible
@@ -89,10 +89,10 @@ async function loadSession() {
                 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
                 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
-║           📱  BLACK PANTHER MD — SESSION SETUP                  ║
+║           📱  LUKA-XMD — SESSION SETUP                  ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Paste your SESSION_ID below and press Enter.                ║
-║  Format:  PANTHER~xxxxxxxx... or GURU~xxxxxxxx...               ║
+║  Format:  LUKA~xxxxxxxx... or LUKA~xxxxxxxx...               ║
 ╚══════════════════════════════════════════════════════════════╝`);
                 sessionId = await new Promise((resolve) => {
                     rl.question('\n> SESSION_ID: ', (answer) => {
@@ -163,11 +163,11 @@ function validateCreds(credsPath) {
 
 async function processSessionId(sessionId) {
     try {
-        // PANTHER~ and GURU~ formats are supported
-        const isValidFormat = sessionId.startsWith('PANTHER~') || sessionId.startsWith('GURU~');
+        // LUKA~ and LUKA~ formats are supported
+        const isValidFormat = sessionId.startsWith('LUKA~') || sessionId.startsWith('LUKA~');
 
         if (!isValidFormat) {
-            throw new Error("❌ Invalid session format. Expected 'PANTHER~.....' or 'GURU~.....'");
+            throw new Error("❌ Invalid session format. Expected 'LUKA~.....' or 'LUKA~.....'");
         }
 
         const [header, b64data] = sessionId.split('~');
