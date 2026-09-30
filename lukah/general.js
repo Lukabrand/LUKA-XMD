@@ -67,7 +67,7 @@ gmd(
 > │ _${cmds.length} command${cmds.length !== 1 ? 's' : ''} available_
 > │
 ${cmdList}
-> ╰⊷ ✨ _${botFooter || "Powered by GURUTECH"}_`;
+> ╰⊷ ✨ _${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}_`;
 
         const picUrl = await getMenuPicUrl(Guru, botId);
         const contextInfo = {
