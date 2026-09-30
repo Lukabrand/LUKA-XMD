@@ -272,15 +272,13 @@ async function sendStartupMessage(socket, s) {
         const expLine        = await expiryLine().catch(() => "✅ Active");
 
 const msg = [
-    `╭━━━━━━━⟮ *${botName}* ⟯━━━━━━━━╮`,
-    `┃`,
-    `┃  🟢 *STATUS*   › *ONLINE*`,
-    `┃  📊 *PLUGINS*  › *${totalCommands}*`,
-    `┃  📌 *PREFIX*   › *${s.PREFIX || d.PREFIX}*`,
-    `┃  🌐 *MODE*     › *${modeLabel}*`,
-    `┃  ⏳ *LICENCE*  › *${expLine}*`,
-    `┃`,
-    `╰━━━━━━⟮ ✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦ ⟯━━━━━━━━╯`,
+    `╭╴「 *${botName} ┃ -XMD* 」╶╮`,
+    `│ 🟢 Status  : *ONLINE*`,
+    `│ 📊 Plugins : *${totalCommands}*`,
+    `│ 📌 Prefix  : *${s.PREFIX || d.PREFIX}*`,
+    `│ 🌐 Mode    : *${modeLabel}*`,
+    `│ ⏳ Licence : *${expLine}*`,
+    `╰╴✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦╶╯`,
     ``,
     `> _Allow a few seconds to sync._`,
 ].join("\n");
