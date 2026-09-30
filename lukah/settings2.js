@@ -1,19 +1,19 @@
 
-const { gmd } = require("../guru/gmdCmds");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka/gmdCmds");
+const { getSetting, setSetting } = require("../luka/database/settings");
 const {
   getGroupSetting,
   setGroupSetting,
   resetAllGroupSettings,
   getAllGroupSettings,
-} = require("../guru/database/groupSettings");
-const { clearAllSudo, getSudoNumbers } = require("../guru/database/sudo");
+} = require("../luka/database/groupSettings");
+const { clearAllSudo, getSudoNumbers } = require("../luka/database/sudo");
 const {
   getAllUsersNotes,
   deleteNoteById,
   updateNoteById,
   deleteAllNotes,
-} = require("../guru/database/notes");
+} = require("../luka/database/notes");
 
 function parseBooleanInput(input) {
   if (!input) return null;
@@ -449,7 +449,7 @@ gmd(
     const { reply, react, botName, botFooter } = conText;
     await react("🔗");
     try {
-      const BOT_GITHUB = "https://github.com/koyoteh/BLACK-PANTHER-";
+      const BOT_GITHUB = "https://github.com/Lukabrand/LUKA-XMD";
       // Use DB only if owner explicitly changed it via .setbotrepo, otherwise hardcoded
       let repoUrl = (await getSetting("BOT_REPO")) || BOT_GITHUB;
       if (!repoUrl.startsWith("http")) repoUrl = `https://github.com/${repoUrl}`;
@@ -792,7 +792,7 @@ gmd(
       const {
         getBadWords,
         DEFAULT_BAD_WORDS,
-      } = require("../guru/database/groupSettings");
+      } = require("../luka/database/groupSettings");
       const settings = await getAllGroupSettings(from);
 
       const welcomeStatus = isSettingEnabled(settings.WELCOME_MESSAGE)
@@ -959,7 +959,7 @@ gmd(
       const {
         GroupSettingsDB,
         AntilinkWarningsDB,
-      } = require("../guru/database/groupSettings");
+      } = require("../luka/database/groupSettings");
       await GroupSettingsDB.destroy({ where: {} });
       await AntilinkWarningsDB.destroy({ where: {} });
       await react("✅");
