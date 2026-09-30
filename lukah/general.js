@@ -1,6 +1,6 @@
 "use strict";
 
-const { gmd }          = require("../guru");
+const { gmd }          = require("../luka");
 const moment           = require("moment-timezone");
 
 const {
@@ -134,12 +134,12 @@ gmd(
 
         const buildMsg = () => {
             const alive = getAliveCount();
-            return `╭─⌈ 🏓 *${botName || "ULTRA GURU"}* ⌋
-│ Status  : ✅ Online & Ready
-│ Ping    : *${ping}ms*
-│ Alive   : *${alive}*
-│ Prefix  : *${botPrefix || "."}*
-╰⊷ _counting live..._ ⏱️`;
+    return `╭╴⟮ 🏓 *PING* ⟯╶╮
+│ 🟢 *ONLINE*
+│ 📶 Ping   › *${ping}ms*
+│ ⏱️ Alive  › *${alive}*
+│ 📌 Prefix › *${botPrefix || "."}*
+╰╴⟮ ✦ *${botName || "LUKA-XMD"}* ✦ ⟯╶╯`;
         };
 
         // Send the first message
@@ -160,7 +160,7 @@ gmd(
                 // Final edit — remove the "counting live" footer
                 try {
                     await Guru.sendMessage(from, {
-                        text: buildMsg().replace('_counting live..._ ⏱️', `*${botName || "ULTRA GURU"}*`),
+                        text: buildMsg().replace('_counting live..._ ⏱️', `*${botName || "LUKA-XMD"}*`),
                         edit: sent.key,
                     });
                 } catch (_) {}
@@ -184,7 +184,7 @@ gmd(
         await react("⏱️");
 
         const tz = timeZone || process.env.TIME_ZONE || "Africa/Nairobi";
-        const bn = botName || "ULTRA GURU";
+        const bn = botName || "LUKA-XMD";
 
         const buildMsg = () => {
             const t     = moment().tz(tz);
@@ -196,13 +196,13 @@ gmd(
             const m     = Math.floor((total % 3600) / 60);
             const s     = total % 60;
             const parts = [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean);
-            return (
-`╭─⌈ ⏱️ *${bn}* ⌋
-│ Uptime  : *${parts.join(' : ')}*
-│ Time    : ${time}
-│ Date    : ${date}
-╰⊷ *${bn}* _counting live..._ ⏱️`
-            );
+        return (
+`╭╴⟮ ⏱️ *${bn}* ⟯╶╮
+│ ⏱️ Uptime › *${parts.join(' : ')}*
+│ 🕐 Time   › *${time}*
+│ 📅 Date   › *${date}*
+╰╴⟮ ✦ *${bn}* _counting live..._ ⏱️ ⟯╶╯`
+         );
         };
 
         const sent = await Guru.sendMessage(from, { text: buildMsg() }, { quoted: mek });
@@ -248,16 +248,17 @@ gmd(
         const h  = Math.floor(up / 3600);
         const m  = Math.floor((up % 3600) / 60);
 
-        await reply(
-`╭─⌈ 🤖 *${botName || "ULTRA GURU"}* ⌋
-│ Version   : *v${botVersion || "5.0.0"}*
-│ Prefix    : *${botPrefix || "."}*
-│ Mode      : *${(botMode || "public").toUpperCase()}*
-│ Commands  : *${totalCmds}*
-│ Uptime    : *${h}h ${m}m*
-│ Owner     : *${ownerName || "GuruTech"}*
-│ Library   : Baileys
-╰⊷ *${botName || "ULTRA GURU"}*`
+       await reply(
+`╭╴⟮ 🤖 *${botName || "LUKA-XMD"}* ⟯╶╮
+│ 🏷️ Version  › *v${botVersion || "5.0.0"}*
+│ 📌 Prefix   › *${botPrefix || "."}*
+│ 🌐 Mode     › *${(botMode || "public").toUpperCase()}*
+│ 📦 Commands › *${totalCmds}*
+│ ⏱️ Uptime   › *${h}h ${m}m*
+│ 👑 Owner    › *${ownerName || "Lukabrand"}*
+│ 📚 Library  › *Baileys*
+╰╴⟮ ✦ *${botName || "LUKA-XMD"}* ✦ ⟯╶╯`
+       );
         );
     }
 );
