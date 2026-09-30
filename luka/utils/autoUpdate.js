@@ -1,6 +1,6 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Auto-Updater
+//  🐾  LUKA-XMD  —  Auto-Updater
 //  Pulls latest commits from origin/main on every restart.
 //  Uses GITHUB_PERSONAL_ACCESS_TOKEN for authenticated access.
 //
