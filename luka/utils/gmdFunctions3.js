@@ -1,7 +1,7 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  gmdFunctions3.js  (Search & APIs)
-//  👑  Owner : Koyoteh  |  📞 +254105521300
+//  🐾  LUKA-XMD  —  gmdFunctions3.js  (Search & APIs)
+//  👑  Owner : Lukabrand  |  📞 +255768619068
 //  🔍  Weather · News · Currency · Crypto · Dictionary · Lyrics
 //  🎬  Movie · Sports · Anime · GitHub · Color · Font · More
 // ╚══════════════════════════════════════════════════════════════╝
