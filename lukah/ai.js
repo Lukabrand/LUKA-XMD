@@ -1,5 +1,5 @@
 
-const { gmd, toPtt } = require("../guru");
+const { gmd, toPtt } = require("../luka");
 const axios = require("axios");
 const googleTTS = require("google-tts-api");
 const Database = require("better-sqlite3");
@@ -7,7 +7,7 @@ const path = require("path");
 const fs = require("fs-extra");
 
 // ── Persistent Meta AI memory (SQLite) ──────────────────────────────────────
-const AI_DB_DIR = path.join(__dirname, "../guru/database");
+const AI_DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(AI_DB_DIR);
 const _aiDb = new Database(path.join(AI_DB_DIR, "ai_memory.db"));
 _aiDb.pragma("journal_mode = WAL");
@@ -84,7 +84,7 @@ async function queryAI(endpoint, query, conText, pollinationsModel = "openai") {
 
     if (isIdentityQuestion(query)) {
         if (react) await react("🤖");
-        const botN = botName || "BLACK PANTHER MD";
+        const botN = botName || "LUKA-XMD";
         return reply(`🤖 *${botN}* — AI WhatsApp Bot\n\n◈ 👤 *Creator*    ⤳ Koyoteh\n◈ 🌐 *Owner*      ⤳ Koyoteh\n◈ 🛠️ *Built By*   ⤳ Koyoteh\n◈ 📦 *Platform*   ⤳ WhatsApp Multi-Device\n◈ ⚡ *Engine*     ⤳ Multi-AI (GPT, Gemini, Llama, Claude & more)\n◈ 🎯 *Purpose*    ⤳ AI, Tools, Downloads, Group Management & more\n\nI am _not_ ChatGPT, Gemini, or any other AI product. I am *${botN}*, exclusively created and owned by *Koyoteh*.\n\nType *.menu* to explore all my features! ✨${footer}`);
     }
 
@@ -128,7 +128,7 @@ async function pollinationsCmd(query, model, conText, reactEmoji = "🤖") {
 
     if (isIdentityQuestion(query)) {
         if (react) await react("🤖");
-        const botN = botName || "BLACK PANTHER MD";
+        const botN = botName || "LUKA-XMD";
         return reply(`🤖 I am *${botN}*, an AI WhatsApp Bot created and owned by *Koyoteh*.\n\nType *.menu* to explore all my features! ✨${footer}`);
     }
 
@@ -149,7 +149,7 @@ gmd(
         pattern: "guruai",
         aliases: ["ai"],
         react: "🤖",
-        description: "Chat with BLACK PANTHER AI assistant",
+        description: "Chat with LUKA AI assistant",
         category: "ai",
     },
     async (from, Guru, conText) => {
