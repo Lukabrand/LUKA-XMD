@@ -1,5 +1,5 @@
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const {
     createGame,
     joinGame,
@@ -8,7 +8,7 @@ const {
     makeMove,
     endGame,
     initGamesDB,
-} = require("../guru/database/games");
+} = require("../luka/database/games");
 
 const {
     createWcgGame,
@@ -20,7 +20,7 @@ const {
     eliminatePlayer,
     endWcgGame,
     initWcgDB,
-} = require("../guru/database/wcgGame");
+} = require("../luka/database/wcgGame");
 
 const {
     createDiceGame,
@@ -30,7 +30,7 @@ const {
     playerRoll,
     endDiceGame,
     initDiceDB,
-} = require("../guru/database/diceGame");
+} = require("../luka/database/diceGame");
 
 const { 
     clearGameTimeout, 
@@ -45,7 +45,7 @@ const {
     handleAiDiceRoll,
     gameTimeouts,
     diceTimeouts,
-} = require("../guru/gameHandler");
+} = require("../luka/gameHandler");
 
 const {
     wcgTimeouts,
@@ -54,7 +54,7 @@ const {
     setWcgJoinTimeout,
     formatScores,
     getDiceEmoji,
-} = require("../guru/wcg");
+} = require("../luka/wcg");
 
 
 const {
@@ -62,7 +62,7 @@ const {
     rollDice: aiRollDice,
     findBestTttMove,
     BOT_JID,
-} = require("../guru/gameAI");
+} = require("../luka/gameAI");
 
 initGamesDB();
 initWcgDB();
