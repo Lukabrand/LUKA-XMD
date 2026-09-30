@@ -1,7 +1,7 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  ⚡  BLACK PANTHER MD  —  gmdFunctions2.js  (Auto Features)
-//  👑  Owner : Koyoteh  |  📞 +254105521300
+//  ⚡  LUKA-XMD  —  gmdFunctions2.js  (Auto Features)
+//  👑  Owner : Lukabrand  |  📞 +255768619068
 //  🛡️  AntiLink · AntiSpam · AntiCall · AutoBio · AutoReact
 //  💬  ChatBot · Presence · AntiDelete · AntiEdit · AntiViewOnce
 //  📢  Channel forwardedNewsletterMessageInfo tag on every response
@@ -287,7 +287,7 @@ const BIO_TEMPLATES = [
     () => `🌐 Powered by GuruTech | ${new Date().toLocaleDateString('en-KE')}`,
     () => `🔥 ${config.BOT_NAME} is live! | +${config.OWNER_NUMBER}`,
     () => `⚡ Serving users 24/7`,
-    () => `⚡ ${config.BOT_NAME} | Koyoteh 🚀`,
+    () => `⚡ ${config.BOT_NAME} | Lukabrand 🚀`,
 ];
 
 async function PantherAutoBio(sock) {
