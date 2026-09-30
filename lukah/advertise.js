@@ -5,13 +5,13 @@
 
 "use strict";
 
-const { gmd }    = require("../guru");
+const { gmd }    = require("../luka");
 const Database   = require("better-sqlite3");
 const path       = require("path");
 const fs         = require("fs-extra");
 
 // ─── Database Setup ──────────────────────────────────────────────────────────
-const DB_DIR = path.join(__dirname, "../guru/database");
+const DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(DB_DIR);
 
 const db = new Database(path.join(DB_DIR, "advertise.db"));
@@ -184,7 +184,7 @@ gmd(
                 `\`\`\`${p}setad Business Name | Description | Contact | Location | Working Hours | Website\`\`\`\n\n` +
                 `*Example:*\n` +
                 `\`\`\`${p}setad Koyoteh Shop | Phone repairs & accessories | +254700000000 | Nairobi CBD | Mon-Sat 8am-6pm | koyoteh.co.ke\`\`\`\n\n` +
-                `> _${botFooter || "BLACK PANTHER MD"}_`
+                `> _${botFooter || "LUKA-XMD"}_`
             );
         }
 
@@ -218,7 +218,7 @@ gmd(
             `${website ? `🌐 ${website}\n` : ""}` +
             `\nType *${p}postad* to post your ad in any chat.\n` +
             `Type *${p}myad* to preview your full ad.\n\n` +
-            `> _${botFooter || "BLACK PANTHER MD"}_`
+            `> _${botFooter || "LUKA-XMD"}_`
         );
     }
 );
