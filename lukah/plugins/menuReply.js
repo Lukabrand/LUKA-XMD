@@ -5,7 +5,7 @@
 //  Uses dynamic categories from getSortedCategories() so it always
 //  matches whatever the main menu displays — no hardcoded lists.
 // ─────────────────────────────────────────────────────────────────
-const { addTrigger }                    = require('../../guru/handlers/loader');
+const { addTrigger }                    = require('../../luka/handlers/loader');
 const { getMenuState, clearMenuState }  = require('../lib/menuState.cjs');
 const { getSortedCategories, CAT_ICONS } = require('../design');
 
