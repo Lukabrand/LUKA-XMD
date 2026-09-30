@@ -1,16 +1,16 @@
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const Database = require("better-sqlite3");
 const path     = require("path");
 const fs       = require("fs-extra");
 
 // ═══════════════════════════════════════════════════════════════════
-//  SMART REMINDER ENGINE  ·  BLACK PANTHER MD
+//  SMART REMINDER ENGINE  ·  LUKA-XMD
 //  Natural-language time parsing, per-user reminders,
 //  background delivery, snooze, and full management commands.
 //  Supports: "in 30m", "in 2h", "in 1d", "at 15:30", "tomorrow 9am"
 // ═══════════════════════════════════════════════════════════════════
 
-const DB_DIR = path.join(__dirname, "../guru/database");
+const DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(DB_DIR);
 
 const db = new Database(path.join(DB_DIR, "reminders.db"));
