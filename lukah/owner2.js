@@ -1,5 +1,5 @@
 
-const { gmd, commands, getSetting } = require("../guru");
+const { gmd, commands, getSetting } = require("../luka");
 const fs = require("fs").promises;
 const fsA = require("node:fs");
 const { S_WHATSAPP_NET } = require("@whiskeysockets/baileys");
@@ -10,7 +10,7 @@ const {
   groupCache,
   getGroupMetadata,
   cachedGroupMetadata,
-} = require("../guru/connection/groupCache");
+} = require("../luka/connection/groupCache");
 
 const { exec: _shellExec } = require("child_process");
 
@@ -136,8 +136,8 @@ gmd(
       await reply("🔄 *Checking for updates before restart...*");
 
       try {
-        const { runUpdate } = require("../guru/autoUpdater");
-        const { getSetting } = require("../guru/database/settings");
+        const { runUpdate } = require("../luka/autoUpdater");
+        const { getSetting } = require("../luka/database/settings");
 
         const rawRepo = await getSetting("BOT_REPO");
         const match = String(rawRepo || "").match(/github\.com\/([^/\s]+\/[^/\s]+)/);
@@ -349,7 +349,7 @@ gmd(
     }
 
     const commitMsg = args.join(" ").trim() || `bot: auto-push ${new Date().toISOString()}`;
-    const remoteUrl = `https://x-access-token:${token}@github.com/koyoteh/BLACK-PANTHER-`;
+    const remoteUrl = `https://x-access-token:${token}@github.com/Lukabrand/LUKA-XMD`;
 
     await react("⏳");
     await reply("⏳ Staging and pushing to GitHub...");
@@ -372,7 +372,7 @@ gmd(
             `✅ *Successfully pushed to GitHub!*\n\n` +
             `📝 Commit: _${commitMsg}_\n\n` +
             `📌 *Latest commits:*\n\`\`\`\n${(log || "").trim()}\n\`\`\`\n\n` +
-            `🔗 https://github.com/koyoteh/BLACK-PANTHER-`
+            `🔗 https://github.com/Lukabrand/LUKA-XMD`
           );
         });
       }
