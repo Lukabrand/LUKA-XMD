@@ -11,7 +11,7 @@ export default async (context) => {
 
     const fmtMsg = (msg) =>
       `⚡ ──「 AUTOLIKE 」──
-▢ ${msg}\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`;
+▢ ${msg}\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──`;
 
     try {
       const settings = await getSettings();
