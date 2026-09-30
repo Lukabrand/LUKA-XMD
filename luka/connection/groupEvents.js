@@ -18,7 +18,7 @@ const isSuperUser = async (jid, Guru) => {
     return sudoNumbers.includes(num);
 };
 
-const DEFAULT_PLACEHOLDER = "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg";
+const DEFAULT_PLACEHOLDER = "https://i.imgur.com/9VP31oG.png";
 
 const getProfilePic = async (Guru, jid) => {
     try {
@@ -172,7 +172,7 @@ const setupGroupEventsListeners = (Guru) => {
 
             const timeZone =
                 (await getSetting("TIME_ZONE")) || "Africa/Nairobi";
-            const botName = (await getSetting("BOT_NAME")) || "BLACK PANTHER";
+            const botName = (await getSetting("BOT_NAME")) || "LUKA-XMD";
             const botFooter =
                 (await getSetting("FOOTER")) || "Powered by GuruTech";
             const newsletterJid = (await getSetting("NEWSLETTER_JID")) || "";
