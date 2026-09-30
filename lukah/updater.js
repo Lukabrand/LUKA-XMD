@@ -1,12 +1,12 @@
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
-const { getSetting } = require("../guru/database/settings");
-const { getCommitHash } = require("../guru/database/autoUpdate");
-const { runUpdate } = require("../guru/autoUpdater");
+const { getSetting } = require("../luka/database/settings");
+const { getCommitHash } = require("../luka/database/autoUpdate");
+const { runUpdate } = require("../luka/autoUpdater");
 
 const getRepo = async (guruRepo) => {
-    const raw = guruRepo || (await getSetting("BOT_REPO")) || "koyoteh/BLACK-PANTHER-";
+    const raw = guruRepo || (await getSetting("BOT_REPO")) || "Lukabrand/LUKA-XMD";
     const match = String(raw).match(/github\.com\/([^/\s]+\/[^/\s]+)/);
     return match ? match[1].replace(/\.git$/, "").replace(/\/*$/, "") : String(raw).trim();
 };
@@ -121,7 +121,7 @@ gmd(
                     headers: {
                         "Accept": "application/vnd.github.v3+json",
                         "Cache-Control": "no-cache",
-                        "User-Agent": "BLACK-PANTHER-Bot",
+                        "User-Agent": "LUKA-XMD-Bot",
                     },
                 }
             );
@@ -167,7 +167,7 @@ gmd(
         }
 
         try {
-            const { setCommitHash } = require("../guru/database/autoUpdate");
+            const { setCommitHash } = require("../luka/database/autoUpdate");
             await setCommitHash("unknown");
             await react("✅");
             await reply(
