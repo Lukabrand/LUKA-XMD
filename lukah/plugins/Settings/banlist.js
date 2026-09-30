@@ -17,7 +17,7 @@ export default async (context) => {
 ` +
                 `▢ \n` +
                 `▢ There are no banned users at the moment.\n` +
-                `└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──\n` +
+                `└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──\n` +
                 ``
             );
         }
@@ -29,7 +29,7 @@ export default async (context) => {
 ` +
             `▢ \n` +
             `${list}\n` +
-            `└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──\n` +
+            `└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──\n` +
             ``
         );
         await client.sendMessage(m.chat, { react: { text: '✅', key: m.reactKey } });
