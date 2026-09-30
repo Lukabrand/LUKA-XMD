@@ -1,4 +1,4 @@
-const { gmd, gmdSticker } = require("../guru"),
+const { gmd, gmdSticker } = require("../luka"),
   fs = require("fs").promises,
   fss = require("fs"),
   os = require("os"),
@@ -295,7 +295,7 @@ gmd(
       const results = res.data.results.slice(0, 5);
 
       const defaultImg =
-        "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg";
+        "https://i.imgur.com/9VP31oG.png";
 
       const cards = await Promise.all(
         results.map(async (result) => ({
