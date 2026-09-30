@@ -1,6 +1,6 @@
 "use strict";
 
-const { evt } = require("../guru/gmdCmds");
+const { evt } = require("../luka/gmdCmds");
 
 // ─── LEVENSHTEIN DISTANCE ─────────────────────────────────────────────────────
 
