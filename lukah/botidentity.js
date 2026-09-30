@@ -1,4 +1,4 @@
-const { gmd, getSetting, setSetting } = require("../guru");
+const { gmd, getSetting, setSetting } = require("../luka");
 
 // ═══════════════════════════════════════════════════════════════════
 //  BOT IDENTITY SUITE
@@ -72,7 +72,7 @@ gmd({
         getSetting("BOT_BIO").catch(() => ""),
     ]);
 
-    const botName    = name    || "BLACK PANTHER MD";
+    const botName    = name    || "LUKA-XMD";
     const picUrl     = pic     || "";
     const watermark  = wmOn === "true";
     const wmLabel    = wmText  || `_Powered by ${botName}_`;
@@ -277,7 +277,7 @@ gmd({
     react:       "✍️",
     category:    "owner",
     description: "Set the watermark text appended to bot messages",
-    usage:       ".setwm Powered by BLACK PANTHER MD",
+    usage:       ".setwm Powered by LUKA-XMD",
 }, async (from, Guru, conText) => {
     const { q, reply, react, isSuperUser } = conText;
     if (!isSuperUser) { await react("❌"); return reply("❌ Owner only."); }
@@ -287,7 +287,7 @@ gmd({
         return reply(
             `*✍️ Watermark Text*\n\n` +
             `Current: _${cur}_\n\n` +
-            `Usage: \`.setwm Powered by GURU BOT\`\n\n` +
+            `Usage: \`.setwm Powered by LUKA BOT\`\n\n` +
             `_Use \`.wmtoggle\` to turn it on/off_`
         );
     }
@@ -349,7 +349,7 @@ gmd({
         getSetting("WATERMARK_TEXT").catch(() => ""),
     ]);
 
-    const botName   = name   || "BLACK PANTHER MD";
+    const botName   = name   || "LUKA-XMD";
     const picUrl    = pic    || "";
     const watermark = wmOn === "true";
     const wm        = wmText || `_Powered by ${botName}_`;
