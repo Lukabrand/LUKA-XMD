@@ -9,8 +9,8 @@ const si = (str) => [...(str || '')].map(c => {
 }).join('');
 // ───────────────────────────────────────────────────────────────────────────
 
-const { gmd } = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
 
 const OWNER_ONLY = true;
 
@@ -503,11 +503,11 @@ gmd(
         const { totalmem, freemem } = require("os");
         const { formatBytes } = require("../guru");
 
-        const botName    = (await getSetting("BOT_NAME"))    || "BLACK PANTHER MD";
+        const botName    = (await getSetting("BOT_NAME"))    || "LUKA-XMD";
         const botVersion = (await getSetting("BOT_VERSION")) || "5.0.0";
         const botMode    = (await getSetting("MODE"))        || "Public";
         const botLang    = (await getSetting("BOT_LANG"))    || "en";
-        const botRepo    = (await getSetting("BOT_REPO"))    || "koyoteh/BLACK-PANTHER-";
+        const botRepo    = (await getSetting("BOT_REPO"))    || "Lukabrand/LUKA-XMD";
         const botPrefix  = (await getSetting("PREFIX"))      || ".";
         const warnLimit  = (await getSetting("WARN_LIMIT"))  || "3";
 
@@ -537,11 +537,11 @@ gmd(
         await react("🤖");
         reply(
 `◢◣◢◣◢◣◢ *𝘉𝘖𝘛 𝘐𝘕𝘍𝘖𝘙𝘔𝘈𝘛𝘐𝘖𝘕* ◢◣◢◣◢◣◢
-     ⋄ _𝘗𝘖𝘞𝘌𝘙𝘌𝘋 𝘉𝘠 𝘎𝘜𝘙𝘜𝘛𝘌𝘊𝘏_ ⋄
+     ⋄ _ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_ ⋄
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
 ◈ 🤖 *𝘉𝘰𝘵 𝘕𝘢𝘮𝘦*    ⤳ ${botName}
-◈ 👤 *𝘊𝘳𝘦𝘢𝘵𝘰𝘳*     ⤳ Koyoteh
+◈ 👤 *𝘊𝘳𝘦𝘢𝘵𝘰𝘳*     ⤳ Lukabrand
 ◈ 🏷️ *𝘝𝘦𝘳𝘴𝘪𝘰𝘯*     ⤳ v${botVersion}
 ◈ 📱 *𝘔𝘰𝘥𝘦*        ⤳ ${botMode}
 ◈ 🌍 *𝘓𝘢𝘯𝘨𝘶𝘢𝘨𝘦*    ⤳ ${botLang.toUpperCase()}
@@ -556,7 +556,7 @@ gmd(
 
 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 
-> _BLACK PANTHER MD — built by Koyoteh. All rights reserved._`
+> _LUKA-XMD — built by Koyoteh. All rights reserved._`
         );
     },
 );
