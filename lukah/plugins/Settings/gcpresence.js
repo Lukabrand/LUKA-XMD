@@ -4,7 +4,7 @@ import ownerMiddleware from '../../utils/botUtil/Ownermiddleware.js';
 import { getDeviceMode } from '../../lib/deviceMode.js';
 import { sendInteractive } from '../../lib/sendInteractive.js';
 
-const fmt = (message) => `▢ ${message}\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`;
+const fmt = (message) => `▢ ${message}\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──`;
 
 export default async (context) => {
     await ownerMiddleware(context, async () => {
