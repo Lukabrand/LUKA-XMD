@@ -10,7 +10,7 @@ export default async (context) => {
         await client.sendMessage(m.chat, { react: { text: '⌛', key: m.reactKey } });
 
         const fmt = (title, msg) =>
-            `⚡ ──「 ${title} 」──\n▢ ${msg}\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`;
+            `⚡ ──「 ${title} 」──\n▢ ${msg}\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──`;
 
         try {
             const settings = await getSettings();
