@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  BLACK PANTHER MD — Bot Entry Point
-//  by Koyoteh | github.com/koyoteh
+//  LUKA-XMD — Bot Entry Point
+//  by Lukabrand | github.com/Lukabrand
 // ════════════════════════════════════════════════════════════════════════════
 
 "use strict";
