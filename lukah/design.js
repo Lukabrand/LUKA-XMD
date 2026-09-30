@@ -356,23 +356,19 @@ ${catLines}
         render({ botName, botPrefix, botVersion, botMode, botFooter,
                   uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
             return (
-`> 🌸 *${botName.toUpperCase()}* 🌸
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌷 Hi *${pushName}*  ╰(✿◕‿◕✿)╯
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌻  Cmds     »  *${totalCmds}*
-> 🌻  Uptime   »  *${uptime}*
-> 🌻  Prefix   »  *${botPrefix}*
-> 🌻  Mode     »  *${botMode.toUpperCase()}*
-> 🌻  Version  »  *v${botVersion}*
-> 🌻  Licence  »  ${expiryLine}
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌷 *CATEGORIES*
-> _Reply a number  ·  1–${numCats}_
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
+`╭╴⟮ 🌸 *${botName.toUpperCase()}* ⟯╶╮
+│ 🌷 Hi *${pushName}* ╰(✿◕‿◕✿)╯
+│ 🌻 Cmds    › *${totalCmds}*
+│ 🌻 Uptime  › *${uptime}*
+│ 🌻 Prefix  › *${botPrefix}*
+│ 🌻 Mode    › *${botMode.toUpperCase()}*
+│ 🌻 Version › *v${botVersion}*
+│ 🌻 Licence › ${expiryLine}
+╰╴⟮ ✦ *${botFooter}* ✦ ⟯╶╯
+
+╭╴⟮ 🌷 *CATEGORIES* ⟯╶╮
 ${catLines}
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌸 _${botFooter}_`
+╰╴⟮ ✦ *Reply 1–${numCats}* ✦ ⟯╶╯`
             );
         },
     },
@@ -383,23 +379,19 @@ ${catLines}
         render({ botName, botPrefix, botVersion, botMode, botFooter,
                   uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
             return (
-`> 🔥 *${botName.toUpperCase()}* 🔥
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 💥 *${pushName}*, you're on fire!
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥  Cmds     ⟩  *${totalCmds}*
-> 🔥  Uptime   ⟩  *${uptime}*
-> 🔥  Prefix   ⟩  *${botPrefix}*
-> 🔥  Mode     ⟩  *${botMode.toUpperCase()}*
-> 🔥  Version  ⟩  *v${botVersion}*
-> 🔥  Licence  ⟩  ${expiryLine}
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥 *COMMAND CATEGORIES*
-> 🌶️ _Reply a number to ignite  ·  1–${numCats}_
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
+`╭╴⟮ 🔥 *${botName.toUpperCase()}* ⟯╶╮
+│ 💥 *${pushName}*, you're on fire!
+│ 🔥 Cmds    › *${totalCmds}*
+│ 🔥 Uptime  › *${uptime}*
+│ 🔥 Prefix  › *${botPrefix}*
+│ 🔥 Mode    › *${botMode.toUpperCase()}*
+│ 🔥 Version › *v${botVersion}*
+│ 🔥 Licence › ${expiryLine}
+╰╴⟮ ✦ *${botFooter}* ✦ ⟯╶╯
+
+╭╴⟮ 🔥 *COMMAND CATEGORIES* ⟯╶╮
 ${catLines}
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥 _${botFooter}_`
+╰╴⟮ ✦ *Reply 1–${numCats}* ✦ ⟯╶╯`
             );
         },
     },
@@ -410,23 +402,19 @@ ${catLines}
         render({ botName, botPrefix, botVersion, botMode, botFooter,
                   uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
             return (
-`> 🌊 *${botName.toUpperCase()}* 🌊
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🐚 Riding the wave, *${pushName}*
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🐠  Commands  ›  *${totalCmds}*
-> 🐠  Uptime    ›  *${uptime}*
-> 🐠  Prefix    ›  *${botPrefix}*
-> 🐠  Mode      ›  *${botMode.toUpperCase()}*
-> 🐠  Version   ›  *v${botVersion}*
-> 🐠  Licence   ›  ${expiryLine}
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🌊 *COMMAND CATEGORIES*
-> ↯ _Reply a number  ·  1–${numCats}_
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
+`╭╴⟮ 🌊 *${botName.toUpperCase()}* ⟯╶╮
+│ 🐚 Riding the wave, *${pushName}*
+│ 🐠 Commands › *${totalCmds}*
+│ 🐠 Uptime   › *${uptime}*
+│ 🐠 Prefix   › *${botPrefix}*
+│ 🐠 Mode     › *${botMode.toUpperCase()}*
+│ 🐠 Version  › *v${botVersion}*
+│ 🐠 Licence  › ${expiryLine}
+╰╴⟮ ✦ *${botFooter}* ✦ ⟯╶╯
+
+╭╴⟮ 🌊 *COMMAND CATEGORIES* ⟯╶╮
 ${catLines}
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🌊 _${botFooter}_`
+╰╴⟮ ✦ *Reply 1–${numCats}* ✦ ⟯╶╯`
             );
         },
     },
@@ -437,24 +425,21 @@ ${catLines}
         render({ botName, botPrefix, botVersion, botMode, botFooter,
                   uptime, totalCmds, catLines, expiryLine, sender, memBar, numCats }) {
             return (
-`> 💻 *${botName.toUpperCase()}*
-> ══════════════════════════════
-> ⌨️  INIT_USER  ::  ${sender.split("@")[0]}
-> ✅  SYS_BOOT   ::  COMPLETE
-> ══════════════════════════════
-> 💬  CMDS       ::  *${totalCmds}*
-> ⏱️   UPTIME     ::  *${uptime}*
-> 🔑  PREFIX     ::  *${botPrefix}*
-> 🛠️  MODE       ::  *${botMode.toUpperCase()}*
-> 📦  VERSION    ::  *v${botVersion}*
-> 💾  RAM        ::  ${memBar}
-> 🔒  LICENCE    ::  ${expiryLine}
-> ══════════════════════════════
-> 🔎 SELECT_MODULE  ::  _reply 1–${numCats}_
-> ══════════════════════════════
+`╭╴⟮ 💻 *${botName.toUpperCase()}* ⟯╶╮
+│ ⌨️ User    › ${sender.split("@")[0]}
+│ ✅ System  › *ONLINE*
+│ 💬 Cmds    › *${totalCmds}*
+│ ⏱️ Uptime  › *${uptime}*
+│ 🔑 Prefix  › *${botPrefix}*
+│ 🛠️ Mode    › *${botMode.toUpperCase()}*
+│ 📦 Version › *v${botVersion}*
+│ 💾 RAM     › ${memBar}
+│ 🔒 Licence › ${expiryLine}
+╰╴⟮ ✦ *${botFooter}* ✦ ⟯╶╯
+
+╭╴⟮ 🔎 *SELECT MODULE* ⟯╶╮
 ${catLines}
-> ══════════════════════════════
-> 💻 _${botFooter}_`
+╰╴⟮ ✦ *Reply 1–${numCats}* ✦ ⟯╶╯`
             );
         },
     },
