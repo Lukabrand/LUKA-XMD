@@ -31,12 +31,12 @@ const SettingsDB = DATABASE.define(
 
 const DEFAULT_SETTINGS = {
     PREFIX: ".",
-    OWNER_NAME: "Koyoteh",
-    OWNER_NUMBER: "254105521300",
-    BOT_NAME: "BLACK PANTHER",
-    FOOTER: "Powered by GuruTech",
-    CAPTION: "⚡ BLACK PANTHER Premium | Ultra Fast | Ultra Secure",
-    BOT_PIC: "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg",
+    OWNER_NAME: "Lukabrand",
+    OWNER_NUMBER: "255768619068",
+    BOT_NAME: "LUKA",
+    FOOTER: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ",
+    CAPTION: "⚡ LUKA-XMD Premium | Ultra Fast | Ultra Secure",
+    BOT_PIC: "https://i.imgur.com/9VP31oG.png",
     VERSION: packageJson.version || "2.0.0",
     MODE: config.MODE || "public",
     WARN_COUNT: "3",  // legacy alias — WARN_LIMIT (in extended settings) is the canonical key
@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
     ANTICALL_MSG: "*_📞 Auto Call Reject Mode Active. 📵 No Calls Allowed!_*",
     AUTO_LIKE_STATUS: config.AUTO_LIKE_STATUS || "true",
     AUTO_READ_STATUS: config.AUTO_READ_STATUS || "true",
-    STATUS_LIKE_EMOJIS: "🥼,🏅,🎖️,🧧,🎐,🏅,🏆,🥇,🥈,🏆",
+    STATUS_LIKE_EMOJIS: "💚,💜,💙,❤️,💛,🤍",
     AUTO_REPLY_STATUS: "false",
     STATUS_REPLY_TEXT: "*✨ Your status viewed successfully! ✨*",
     AUTO_REACT: "off",
@@ -61,14 +61,14 @@ const DEFAULT_SETTINGS = {
     AUTO_BIO: "true",
     AUTO_BLOCK: "",
     AUTO_JOIN: "true",  // Added auto join setting
-    YT: "youtube.com/@koyoteh",
+    YT: "youtube.com/@lucvoice",
     NEWSLETTER_JID: "120363406649804510@newsletter",
     GC_JID: "Cp6waPAdT3hLVcbdfBeV61",  // Updated group invite code
-    NEWSLETTER_URL: "https://whatsapp.com/channel/0029Vb7jauLHLHQbkcbcHi0e",
-    BOT_REPO: "koyoteh/BLACK-PANTHER",
+    NEWSLETTER_URL: "https://whatsapp.com/channel/002LHLHQbkcbcHi0e",
+    BOT_REPO: "Lukabrand/LUKA-XMD",
     AUTO_UPDATE: "true",
-    PACK_NAME: "BLACK PANTHER",
-    PACK_AUTHOR: "KOYOTEH 🐾",
+    PACK_NAME: "LUKA XMD",
+    PACK_AUTHOR: "LUKABRAND 🐾",
     SUDO_NUMBERS: "",
     PM_PERMIT: "false",
     GREETINGS_ENABLED: "false",
@@ -86,7 +86,7 @@ const DEFAULT_SETTINGS = {
     TAG_PROTECT: "false",
     GLOBAL_SPAM_FILTER: "false",
     BOT_PREFIX: ".",
-    BOT_BIO: "Powered by GuruTech 🚀",
+    BOT_BIO: "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ 🚀",
     BOT_VERSION: packageJson.version || "5.0.0",
     MENU_THEME: "ultra",
     // Anti-viewonce / VV tracker
@@ -143,7 +143,7 @@ async function initializeSettings() {
     }
 
     initialized = true;
-    console.log("✅ BLACK PANTHER Settings Initialized");
+    console.log("✅ LUKA XMD Settings Initialized");
 }
 
 async function getSetting(key) {
