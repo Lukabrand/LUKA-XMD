@@ -1,6 +1,6 @@
 "use strict";
 
-const { gmd }          = require("../guru");
+const { gmd }          = require("../luka");
 const moment           = require("moment-timezone");
 
 const {
@@ -99,7 +99,7 @@ gmd(
 ▢ 📶 Ping    : *${ping}ms*
 ▢ ⏱️ Alive   : *${alive}*
 ▢ 📌 Prefix  : *${botPrefix || "."}*
-└──✦ _${botName || "BLACK PANTHER"} ┃ ᴹᴰ_ ✦──`;
+└──✦ _${botName || "LUKA-XMD"} _ ✦──`;
         };
 
         // Send the first message
@@ -120,7 +120,7 @@ gmd(
                 // Final edit — remove the "counting live" footer
                 try {
                     await Guru.sendMessage(from, {
-                        text: buildMsg().replace(`_${botName || "BLACK PANTHER"} ┃ ᴹᴰ_ ✦──`, `*${botName || "BLACK PANTHER"} ┃ ᴹᴰ* ✦──`),
+                        text: buildMsg().replace(`_${botName || "LUKA-XMD"} _ ✦──`, `*${botName || "LUKA-XMD"} * ✦──`),
                         edit: sent.key,
                     });
                 } catch (_) {}
@@ -144,7 +144,7 @@ gmd(
         await react("⏱️");
 
         const tz = timeZone || process.env.TIME_ZONE || "Africa/Nairobi";
-        const bn = botName || "BLACK PANTHER";
+        const bn = botName || "LUKA-XMD";
 
         const buildMsg = () => {
             const t     = moment().tz(tz);
@@ -161,7 +161,7 @@ gmd(
 ▢ ⏱️ Alive   : *${parts.join(' : ')}*
 ▢ 🕐 Time    : ${time}
 ▢ 📅 Date    : ${date}
-└──✦ _${bn} ┃ ᴹᴰ_ ✦──`
+└──✦ _${bn} ┃ XMD_ ✦──`
             );
         };
 
@@ -177,7 +177,7 @@ gmd(
                 clearInterval(timer);
                 try {
                     await Guru.sendMessage(from, {
-                        text: buildMsg().replace(`_${bn} ┃ ᴹᴰ_ ✦──`, `*${bn} ┃ ᴹᴰ* ✦──`),
+                        text: buildMsg().replace(`_${bn} ┃ XMD_ ✦──`, `*${bn} ┃ XMD* ✦──`),
                         edit: sent.key,
                     });
                 } catch (_) {}
@@ -215,9 +215,9 @@ gmd(
 ▢ 🌐 Mode     : *${(botMode || "public").toUpperCase()}*
 ▢ 📚 Commands : *${totalCmds}*
 ▢ ⏱️ Uptime   : *${h}h ${m}m*
-▢ 👑 Owner    : *${ownerName || "Koyoteh"}*
+▢ 👑 Owner    : *${ownerName || "Lukabrand"}*
 ▢ 📦 Library  : Baileys
-└──✦ _${botName || "BLACK PANTHER"} ┃ ᴹᴰ_ ✦──`
+└──✦ _${botName || "LUKA-XMD"} _ ✦──`
         );
     }
 );
