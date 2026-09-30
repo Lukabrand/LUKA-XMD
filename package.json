@@ -1,7 +1,7 @@
 {
-  "name": "black-panther-md",
+  "name": "luka-xd",
   "version": "5.0.0",
-  "description": "KOYOTEH 🐾 - Ultimate WhatsApp Bot by Koyoteh",
+  "description": "LUKA XMD 🐾 - Ultimate WhatsApp Bot by Lukabrand",
   "main": "./index.js",
   "type": "commonjs",
   "engines": {
@@ -21,7 +21,7 @@
     "whatsapp-bot",
     "whatsapp-md-bot"
   ],
-  "author": "KOYOTEH 🐾",
+  "author": "LUKABRAND 🐾",
   "license": "MIT",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
