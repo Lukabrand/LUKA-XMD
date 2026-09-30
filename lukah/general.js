@@ -94,12 +94,12 @@ gmd(
 
         const buildMsg = () => {
             const alive = getAliveCount();
-            return `⚡ ──「 🏓 *PING* 」──
-▢ 🟢 Status  : ✅ Online
-▢ 📶 Ping    : *${ping}ms*
-▢ ⏱️ Alive   : *${alive}*
-▢ 📌 Prefix  : *${botPrefix || "."}*
-└──✦ _${botName || "LUKA-XMD"} _ ✦──`;
+            return `╭╴⟮ 🏓 *PING* ⟯╶╮
+│ 🟢 *ONLINE*
+│ 📶 Ping   › *${ping}ms*
+│ ⏱️ Alive  › *${alive}*
+│ 📌 Prefix › *${botPrefix || "."}*
+╰╴⟮ ✦ *${botName || "LUKA-XMD"}* ✦ ⟯╶╯`;
         };
 
         // Send the first message
@@ -156,13 +156,13 @@ gmd(
             const m     = Math.floor((total % 3600) / 60);
             const s     = total % 60;
             const parts = [d && `${d}d`, h && `${h}h`, m && `${m}m`, `${s}s`].filter(Boolean);
-            return (
-`⚡ ──「 ⏱️ *UPTIME* 」──
-▢ ⏱️ Alive   : *${parts.join(' : ')}*
-▢ 🕐 Time    : ${time}
-▢ 📅 Date    : ${date}
-└──✦ _${bn} ┃ XMD_ ✦──`
-            );
+      return (
+`╭⟮ ⏱️ *UPTIME* ⟯╮
+│ ⏱️ Alive : *${parts.join(' : ')}*
+│ 🕐 Time  : *${time}*
+│ 📅 Date  : *${date}*
+╰⟮ ✦ _${bn} ┃ XMD_ ✦ ⟯╯`
+        );
         };
 
         const sent = await Guru.sendMessage(from, { text: buildMsg() }, { quoted: mek });
@@ -208,17 +208,17 @@ gmd(
         const h  = Math.floor(up / 3600);
         const m  = Math.floor((up % 3600) / 60);
 
-        await reply(
-`⚡ ──「 🤖 *BOT INFO* 」──
-▢ 🏷️ Version  : *v${botVersion || "5.0.0"}*
-▢ 📌 Prefix   : *${botPrefix || "."}*
-▢ 🌐 Mode     : *${(botMode || "public").toUpperCase()}*
-▢ 📚 Commands : *${totalCmds}*
-▢ ⏱️ Uptime   : *${h}h ${m}m*
-▢ 👑 Owner    : *${ownerName || "Lukabrand"}*
-▢ 📦 Library  : Baileys
-└──✦ _${botName || "LUKA-XMD"} _ ✦──`
-        );
+    await reply(
+`╭╴⟮ 🤖 *BOT INFO* ⟯╶╮
+│ 🏷️ Version  › *v${botVersion || "5.0.0"}*
+│ 📌 Prefix   › *${botPrefix || "."}*
+│ 🌐 Mode     › *${(botMode || "public").toUpperCase()}*
+│ 📚 Commands › *${totalCmds}*
+│ ⏱️ Uptime   › *${h}h ${m}m*
+│ 👑 Owner    › *${ownerName || "Lukabrand"}*
+│ 📦 Library  › *Baileys*
+╰╴⟮ ✦ *${botName || "LUKA-XMD"}* ✦ ⟯╶╯`
+      );
     }
 );
 
