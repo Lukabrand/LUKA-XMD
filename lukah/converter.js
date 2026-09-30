@@ -1,5 +1,5 @@
 
-const { gmd, toAudio, toVideo, toPtt, stickerToImage, gmdFancy, gmdRandom, getSetting, runFFmpeg, getVideoDuration, gmdSticker } = require("../guru");
+const { gmd, toAudio, toVideo, toPtt, stickerToImage, gmdFancy, gmdRandom, getSetting, runFFmpeg, getVideoDuration, gmdSticker } = require("../luka");
 const fs = require("fs").promises;
 const { StickerTypes } = require("wa-sticker-formatter");
 const { exec, execSync } = require("child_process");
@@ -101,8 +101,8 @@ gmd({
                 }
 
                 const stickerBuffer = await gmdSticker(mediaFile, {
-                    pack: packName || "BLACK PANTHER", 
-                    author: packAuthor || "GURU-TECH",
+                    pack: packName || "LUKA-XMD", 
+                    author: packAuthor || "LUKA-TECH",
                     type: q.includes("--crop") || q.includes("-c") ? StickerTypes.CROPPED : StickerTypes.FULL,
                     categories: ["🤩", "🎉"],
                     id: "12345",
@@ -122,8 +122,8 @@ gmd({
                 await fs.writeFile(stickerFile, stickerData);
 
                 const newStickerBuffer = await gmdSticker(stickerFile, {
-                    pack: packName || "BLACK PANTHER", 
-                    author: packAuthor || "GURU-TECH",
+                    pack: packName || "LUKA-XMD", 
+                    author: packAuthor || "LUKA-TECH",
                     type: q.includes("--crop") || q.includes("-c") ? StickerTypes.CROPPED : StickerTypes.FULL,
                     categories: ["🤩", "🎉"],
                     id: "12345",
@@ -583,8 +583,8 @@ gmd({
         await fs.writeFile(tempPng, pngBuffer);
 
         const stickerBuffer = await gmdSticker(tempPng, {
-            pack:   packName   || "BLACK PANTHER",
-            author: packAuthor || "GURU-TECH",
+            pack:   packName   || "LUKA-XMD",
+            author: packAuthor || "LUKA-TECH",
             type:   StickerTypes.FULL,
             categories: ["🤩", "🎉"],
             id:     "12345",
