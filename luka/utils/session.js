@@ -11,14 +11,14 @@ async function resolveSession() {
     const sid = (process.env.SESSION_ID || '').trim();
 
     if (!sid) {
-        console.log('\n⚡ BLACK PANTHER MD — Session Setup\n');
+        console.log('\n⚡ LUKA-XMD — Session Setup\n');
         console.log('No SESSION_ID found in environment.');
-        console.log('Get one from: https://pantherr-session.onrender.com\n');
+        console.log('Get one from: https://lukapair.onrender.com/pair\n');
         return;
     }
 
-    if (!sid.startsWith('PANTHER~')) {
-        console.error('[SESSION] SESSION_ID must start with "PANTHER~". Got:', JSON.stringify(sid.slice(0, 30) + '...'));
+    if (!sid.startsWith('LUKA~')) {
+        console.error('[SESSION] SESSION_ID must start with "LUKA~". Got:', JSON.stringify(sid.slice(0, 30) + '...'));
         process.exit(1);
     }
 
@@ -30,7 +30,7 @@ async function resolveSession() {
     }
 
     try {
-        const b64  = sid.slice('PANTHER~'.length);
+        const b64  = sid.slice('LUKA~'.length);
         const buf  = Buffer.from(b64, 'base64');
         let decompressed;
 
