@@ -1,7 +1,7 @@
 /**
  * KEITH-INSPIRED FEATURES - FIXED v2
  * New commands ported/inspired from kkeizza/Keith bot
- * Added to BLACK-PANTHER-ULTIMATE by Guru
+ * Added to LUKA-XMD-ULTIMATE by Lukabrand
  *
  * Bugs fixed vs v1:
  *  - Removed duplicates: hidetag, unsplash, define, npm, online (already exist)
@@ -19,7 +19,7 @@
  *   Utility:    remindme, lyrics, geoip, pinterest, github2
  */
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 
 // ─────────────────────────────────────────────
@@ -669,7 +669,7 @@ gmd(
     await react("⏳");
     try {
       const res = await axios.get(`https://api.github.com/users/${q.trim()}`, {
-        headers: { "User-Agent": "BLACK-PANTHER-MD" },
+        headers: { "User-Agent": "LUKA-XMD" },
         timeout: 10000,
       });
       const u = res.data;
