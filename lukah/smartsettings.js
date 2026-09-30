@@ -1,9 +1,9 @@
-const { gmd }               = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
-const { sendGreeting, sendWellness } = require("../guru/scheduler");
+const { gmd }               = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
+const { sendGreeting, sendWellness } = require("../luka/scheduler");
 
 // ═══════════════════════════════════════════════════════════════════
-//  SMART SETTINGS PANEL  ·  BLACK PANTHER MD
+//  SMART SETTINGS PANEL  ·  LUKA-XMD
 //  Unique, highly useful settings — Daily Wellness, Auto-Status
 //  Watermark, Smart Broadcast, Bot Bio updater, Message Counter,
 //  Flood-guard config, and a rich settings dashboard.
@@ -42,7 +42,7 @@ gmd({
     const wellness     = await get("DAILY_WELLNESS",   "false");
     const wellnessTime = await get("WELLNESS_TIME",    "10:00");
     const watermark    = await get("MSG_WATERMARK",    "false");
-    const watermarkTxt = await get("WATERMARK_TEXT",   "BLACK PANTHER MD");
+    const watermarkTxt = await get("WATERMARK_TEXT",   "LUKA-XMD");
     const antiflood    = await get("ANTIFLOOD",        "false");
     const floodCount   = await get("FLOOD_COUNT",      "7");
     const floodAction  = await get("FLOOD_ACTION",     "warn");
@@ -612,7 +612,7 @@ if (!global.__autoBioInterval) {
                 const customBio = await getSetting("BOT_BIO").catch(() => "");
                 const bio = customBio && customBio.trim()
                     ? customBio.trim()
-                    : `⚡ BLACK PANTHER MD | Up ${upH}h${upM}m | ${new Date().toLocaleDateString()} | Always Online 🤖`;
+                    : `⚡ LUKA-XMD | Up ${upH}h${upM}m | ${new Date().toLocaleDateString()} | Always Online 🤖`;
                 await sock.updateProfileStatus(bio);
             } catch (_) {}
         }, 30 * 60_000);
@@ -625,7 +625,7 @@ if (!global.__autoBioInterval) {
                 const customBio = await getSetting("BOT_BIO").catch(() => "");
                 const bio = customBio && customBio.trim()
                     ? customBio.trim()
-                    : `⚡ BLACK PANTHER MD | Online & Ready | ${new Date().toLocaleDateString()} | Always Active 🤖`;
+                    : `⚡ LUKA-XMD | Online & Ready | ${new Date().toLocaleDateString()} | Always Active 🤖`;
                 await sock.updateProfileStatus(bio);
             } catch (_) {}
         }, 10_000);
