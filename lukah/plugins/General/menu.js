@@ -34,13 +34,15 @@ export default {
 
         // ── Header ────────────────────────────────────────────────────────────
         const headerText =
-`⚡ ──「 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ 」──
-▢ 👤 𝐔𝐬𝐞𝐫    : @${m.sender.split('@')[0].split(':')[0]}
-▢ 🤖 𝐁𝐨𝐭     : ${botname || 'BLACK-PANTHER-MD'}
-▢ 📌 𝐏𝐫𝐞𝐟𝐢𝐱  : ${prefix}
-▢ 🌐 𝐌𝐨𝐝𝐞    : ${mode}
-${expiryLine}
-└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`;
+`╭─❮ ⚡ *𝐋𝐔𝐊𝐀-𝐗𝐌𝐃* ❯─╮
+│
+│ 👤 *𝐔𝐬𝐞𝐫*   • @${m.sender.split('@')[0].split(':')[0]}
+│ 🤖 *𝐁𝐨𝐭*    • ${botname || 'LUKA-XMD'}
+│ 📌 *𝐏𝐫𝐞𝐟𝐢𝐱* • ${prefix}
+│ 🌐 *𝐌𝐨𝐝𝐞*   • ${mode}
+${expiryLine ? `│ ⏳ *𝐋𝐢𝐜𝐞𝐧𝐜𝐞* • ${expiryLine.replace(/^.*?:\s*/, '')}` : ''}
+│
+╰─❮ ✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦ ❯─╯`
 
         // ── Dynamic category list (same order as getSortedCategories / menuReply) ─
         const sorted = getSortedCategories();
@@ -55,7 +57,7 @@ ${expiryLine}
         const categoryText =
 `⚡ ──「 Sᴇʟᴇᴄᴛ Cᴀᴛᴇɢᴏʀʏ 」──
 ${catLines.trimEnd()}
-└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──
+└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──
 
 > *Reply with a number to view that category*`;
 
@@ -73,9 +75,9 @@ ${catLines.trimEnd()}
         // Play a random menu audio if available — optional, never fails the command
         try {
             const xhClintonPaths = [
-                path.join(__dirname, 'Koyoteh'),
-                path.join(process.cwd(), 'Koyoteh'),
-                path.join(__dirname, '..', 'Koyoteh')
+                path.join(__dirname, 'Lukabrand'),
+                path.join(process.cwd(), 'Lukabrand'),
+                path.join(__dirname, '..', 'Lukabrand')
             ];
             let audioFolder = null;
             for (const folderPath of xhClintonPaths) {
