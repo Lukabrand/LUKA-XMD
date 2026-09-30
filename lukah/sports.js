@@ -1,10 +1,10 @@
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 const {
   generateWAMessageContent,
   generateWAMessageFromContent,
 } = require("@whiskeysockets/baileys");
-const { getSetting } = require("../guru/database/settings");
+const { getSetting } = require("../luka/database/settings");
 
 const SPORTS_API_BASE = "https://apiskeith.top";
 
