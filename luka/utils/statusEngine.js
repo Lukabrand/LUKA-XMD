@@ -1,7 +1,7 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Status Engine
-//  👑  Owner : Koyoteh  |  📞 +254105521300
+//  🐾 LUKA-XMD  —  Status Engine
+//  👑  Owner : Lukabrand  |  📞 +255768619068
 // ─────────────────────────────────────────────────────────────
 //  Features:
 //  ✅  Queue-based — never drops a status even under high load
