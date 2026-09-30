@@ -20,12 +20,12 @@ const config = {
 
     // ── Channel (Koyoteh WhatsApp Channel) ───────────
     // https://whatsapp.com/channel/0029Vb7jauLHLHQbkcbcHi0e
-    CHANNEL_URL:        process.env.CHANNEL_URL  || 'https://whatsapp.com/channel/0029Vb7jauLHLHQbkcbcHi0e',
+    CHANNEL_URL:        process.env.CHANNEL_URL  || 'https://whatsapp.com/channel/0029Vb7jauLHLHQbkci0e',
     CHANNEL_NAME:       process.env.CHANNEL_NAME || 'BLACK PANTHER MD Channel',
     // Newsletter JID for the green "Forwarded from <channel>" chip on every reply.
     // Format: <id>@newsletter   (e.g. 120363401548261516@newsletter)
     CHANNEL_JID:        process.env.CHANNEL_JID  || '120363427012090993@newsletter',
-    CHANNEL_NEWSLETTER_NAME: process.env.CHANNEL_NEWSLETTER_NAME || '🐾『 BLACK PANTHER MD 』🐾',
+    CHANNEL_NEWSLETTER_NAME: process.env.CHANNEL_NEWSLETTER_NAME || '🐾『 LUKA-XMD 』🐾',
 
     // ── Connection ────────────────────────────────────
     SESSION_ID:     process.env.SESSION_ID   || '',
