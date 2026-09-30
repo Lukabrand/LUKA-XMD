@@ -6,9 +6,9 @@
 
 "use strict";
 
-const { gmd, commands }                          = require("../guru");
-const { getSetting, setSetting, resetSetting }   = require("../guru/database/settings");
-const { getExpiryStatus }                        = require("../guru/expiry");
+const { gmd, commands }                          = require("../luka");
+const { getSetting, setSetting, resetSetting }   = require("../luka/database/settings");
+const { getExpiryStatus }                        = require("../luka/expiry");
 const { Jimp }                                   = require("jimp");
 const { S_WHATSAPP_NET }                         = require("@whiskeysockets/baileys");
 const fs   = require("fs").promises;
@@ -132,11 +132,11 @@ async function buildMenuData(conText) {
     return {
         sender,
         pushName:   pushName   || "User",
-        botName:    botName    || "BLACK PANTHER",
+        botName:    botName    || "LUKA-XMD",
         botPrefix:  botPrefix  || ".",
         botVersion: botVersion || "5.0.0",
         botMode:    botMode    || "public",
-        botFooter:  botFooter  || "Powered by GuruTech",
+        botFooter:  botFooter  || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ",
         botCaption: botCaption || "",
         newsletterJid,
         uptime, totalCmds, catLines, catLinesGuruTech,
@@ -160,7 +160,7 @@ const THEMES = {
                   pushName, sender, numCats }) {
             const userNum = sender ? sender.split('@')[0].split(':')[0] : pushName;
             return (
-`⚡ ──「 *${botName} ┃ ᴹᴰ* 」──
+`⚡ ──「 *${botName} * 」──
 ▢ 👤 𝐔𝐬𝐞𝐫    : @${userNum}
 ▢ 🤖 𝐁𝐨𝐭     : ${botName}
 ▢ 📌 𝐏𝐫𝐞𝐟𝐢𝐱  : ${botPrefix}
@@ -168,7 +168,7 @@ const THEMES = {
 ▢ 📚 𝐂𝐦𝐝𝐬    : ${totalCmds}
 ▢ ⏱️ 𝐀𝐥𝐢𝐯𝐞   : ${uptime}
 ▢ ⏳ 𝐄𝐱𝐩𝐢𝐫𝐲  : ${expiryLine}
-└──✦ *${botName} ┃ ᴹᴰ* ✦──
+└──✦ *${botName} * ✦──
 
 ⚡ ──「 Sᴇʟᴇᴄᴛ Cᴀᴛᴇɢᴏʀʏ 」──
 ${catLinesGuruTech}
@@ -187,7 +187,7 @@ ${catLinesGuruTech}
                   pushName, sender, numCats }) {
             const userNum = sender ? sender.split('@')[0].split(':')[0] : pushName;
             return (
-`⚡ ──「 *${botName} ┃ ᴹᴰ* 」──
+`⚡ ──「 *${botName} * 」──
 ▢ 👤 𝐔𝐬𝐞𝐫    : @${userNum}
 ▢ 🤖 𝐁𝐨𝐭     : ${botName}
 ▢ 📌 𝐏𝐫𝐞𝐟𝐢𝐱  : ${botPrefix}
@@ -195,7 +195,7 @@ ${catLinesGuruTech}
 ▢ 📚 𝐂𝐦𝐝𝐬    : ${totalCmds}
 ▢ ⏱️ 𝐀𝐥𝐢𝐯𝐞   : ${uptime}
 ▢ ⏳ 𝐄𝐱𝐩𝐢𝐫𝐲  : ${expiryLine}
-└──✦ *${botName} ┃ ᴹᴰ* ✦──
+└──✦ *${botName} * ✦──
 
 ⚡ ──「 Sᴇʟᴇᴄᴛ Cᴀᴛᴇɢᴏʀʏ 」──
 ${catLinesGuruTech}
@@ -488,7 +488,7 @@ const THEME_KEYS = Object.keys(THEMES);
 
 // ─── shared send helper ───────────────────────────────────────────────────────
 
-const MENU_IMAGE_URL = "https://files.catbox.moe/9dmdu1.jpg";
+const MENU_IMAGE_URL = "https://i.imgur.com/9VP31oG.png";
 
 async function sendMenuMsg(Guru, from, text, conText) {
     const { mek, botName, newsletterJid, sender } = conText;
@@ -505,7 +505,7 @@ async function sendMenuMsg(Guru, from, text, conText) {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
                     newsletterJid: newsletterJid || "120363406649804510@newsletter",
-                    newsletterName: botName || "BLACK PANTHER",
+                    newsletterName: botName || "LUKA-XMD",
                     serverMessageId: 0,
                 },
             },
