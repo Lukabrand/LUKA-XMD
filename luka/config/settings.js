@@ -10,13 +10,13 @@ const bool = (key, def = true) => {
 
 const config = {
     // ── Bot Identity ──────────────────────────────────
-    BOT_NAME:       process.env.BOT_NAME     || 'BLACK PANTHER MD',
-    OWNER_NAME:     process.env.OWNER_NAME   || 'Koyoteh',
-    OWNER_NUMBER:   process.env.OWNER_NUMBER || '254116284050',
+    BOT_NAME:       process.env.BOT_NAME     || 'LUKA-XMD',
+    OWNER_NAME:     process.env.OWNER_NAME   || 'Lukabrand',
+    OWNER_NUMBER:   process.env.OWNER_NUMBER || '255768619068',
     BOT_PREFIX:     process.env.BOT_PREFIX   || '.',
     BOT_VERSION:    '1.0.0',
-    PACK_NAME:      process.env.BOT_NAME     || 'BLACK PANTHER MD',
-    PACK_AUTHOR:    process.env.OWNER_NAME   || 'Koyoteh',
+    PACK_NAME:      process.env.BOT_NAME     || 'LUKA-XMD',
+    PACK_AUTHOR:    process.env.OWNER_NAME   || 'Lukabrand',
 
     // ── Channel (Koyoteh WhatsApp Channel) ───────────
     // https://whatsapp.com/channel/0029Vb7jauLHLHQbkcbcHi0e
