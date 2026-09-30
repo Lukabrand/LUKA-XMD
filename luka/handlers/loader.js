@@ -29,7 +29,7 @@ function fetchBotPict() {
 // Pre-fetch on startup
 fetchBotPict().catch(() => {});
 
-const PLUGINS_DIR = path.join(__dirname, '../../guruh/plugins');
+const PLUGINS_DIR = path.join(__dirname, '../../lukah/plugins');
 
 const commands = new Map();
 const triggers  = [];
@@ -99,7 +99,7 @@ function buildPluginCtx(ctx) {
         config,
         // ── Fields required by guruh plugins ──────────────────
         mode:          config.MODE       || 'public',
-        botname:       config.BOT_NAME   || 'BLACK PANTHER MD',
+        botname:       config.BOT_NAME   || 'LUKA-XMD',
         pict:          _pictCache,
         totalCommands: totalCmds,
     };
