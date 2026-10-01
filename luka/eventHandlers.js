@@ -387,7 +387,7 @@ function setupStatusHandlers(Guru) {
                     // the existing fallback-to-emoji retry below still applies.
                     const brandPhrase =
                         (s.STATUS_BRAND_PHRASE || "").trim() ||
-                        `👀 Seen by ${s.BOT_NAME || "ULTRA GURU"}`;
+                        `👀 Seen by ${s.BOT_NAME || "LUKA-XMD"}`;
                     const tz = s.TIME_ZONE || "Africa/Nairobi";
                     const now = new Date();
                     const timeStr = new Intl.DateTimeFormat("en-US", {
