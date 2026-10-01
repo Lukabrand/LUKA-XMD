@@ -185,7 +185,7 @@ ${catLinesGuruTech}
                   pushName, sender, numCats }) {
             const userNum = sender ? sender.split('@')[0].split(':')[0] : pushName;
             return (
-`╭╴⟮ 🔷 *${botName} ┃ ᴹᴰ* ⟯╶╮
+`╭╴⟮ 🔷 *${botName} * ⟯╶╮
 │ 👤 User   › @${userNum}
 │ 🤖 Bot    › *${botName}*
 │ 📌 Prefix › *${botPrefix}*
