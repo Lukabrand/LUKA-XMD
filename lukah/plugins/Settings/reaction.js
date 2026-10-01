@@ -9,7 +9,7 @@ export default async (context) => {
     const { client, m, args, prefix } = context;
         await client.sendMessage(m.chat, { react: { text: '⌛', key: m.reactKey } });
 
-    const fmtMsg = (msg) => `▢ ${msg}\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`;
+    const fmtMsg = (msg) => `▢ ${msg}\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──`;
 
     try {
       const settings = await getSettings();
@@ -43,7 +43,7 @@ export default async (context) => {
       if (_devMode === 'ios') {
           await client.sendMessage(m.chat, { react: { text: '📋', key: m.reactKey } });
           await sendInteractive(client, m, `⚡ ──「 REACTION 」──
-▢ Status: ${settings.reaction ? 'ON ✅' : 'OFF ❌'}\n▢ \n▢ Options:\n▢ ${prefix}reaction random\n▢ ${prefix}reaction ❤️\n▢ ${prefix}reaction 🔥\n▢ ${prefix}reaction 😂\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──\n> 🌐 wa.me/254116284050`);
+▢ Status: ${settings.reaction ? 'ON ✅' : 'OFF ❌'}\n▢ \n▢ Options:\n▢ ${prefix}reaction random\n▢ ${prefix}reaction ❤️\n▢ ${prefix}reaction 🔥\n▢ ${prefix}reaction 😂\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──\n> 🌐 wa.me/255768619068`);
       } else {
     const _msg = generateWAMessageFromContent(
             m.chat,
