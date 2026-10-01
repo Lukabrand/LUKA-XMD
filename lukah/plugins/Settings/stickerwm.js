@@ -32,7 +32,7 @@ export default async (context) => {
                 await updateSetting('packname', newStickerWM);
                 await client.sendMessage(m.chat, { react: { text: '✅', key: m.reactKey } });
                 await sendInteractive(client, m, `⚡ ──「 STICKER WM 」──
-▢ Watermark updated to: ${newStickerWM}\n└──✦ 𝐁𝐋𝐀𝐂𝐊 𝐏𝐀𝐍𝐓𝐇𝐄𝐑 ┃ ᴹᴰ ✦──`);
+▢ Watermark updated to: ${newStickerWM}\n└──✦ 𝐋𝐔𝐊𝐀-𝐗𝐌𝐃 ✦──`);
             }
         } else {
             await sendInteractive(client, m, `⚡ ──「 STICKER WM 」──
