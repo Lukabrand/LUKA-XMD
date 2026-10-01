@@ -22,6 +22,9 @@ const {
     GuruAntiEdit,
     DEFAULT_SETTINGS,
 } = require(".");
+const { buildSuperUsers } = require("./connection/commandHandler");
+const { getSudoNumbers } = require("./database/sudo");
+const { standardizeJid } = require("./connection/serializer");
 
 const {
     findAntiDelete,
@@ -53,18 +56,27 @@ function setupAutoReact(Guru) {
     Guru.ev.on("messages.upsert", async (mek) => {
         try {
             const ms = mek.messages[0];
-            const s = await getAllSettings();
-            const autoReactMode = s.AUTO_REACT || "off";
-
-            if (
-                autoReactMode === "off" ||
-                autoReactMode === "false" ||
-                ms.key.fromMe ||
-                !ms.message
-            )
-                return;
+            if (!ms.message) return;
 
             const from = ms.key.remoteJid;
+            const isChannel = from?.endsWith("@newsletter");
+            const s = await getAllSettings();
+            const isMyChannel = isChannel && s.NEWSLETTER_JID && from === s.NEWSLETTER_JID;
+
+            // Channel reactions are always on and not controlled by
+            // AUTO_REACT / .setautoreact at all — this branch runs
+            // unconditionally for the configured channel.
+            if (isMyChannel) {
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                await GuruAutoReact(randomEmoji, ms, Guru);
+                return;
+            }
+
+            // Everything below is normal-chat behavior, gated by AUTO_REACT.
+            const autoReactMode = s.AUTO_REACT || "off";
+            if (autoReactMode === "off" || autoReactMode === "false" || ms.key.fromMe)
+                return;
+
             const isGroup = from?.endsWith("@g.us");
             const isDm = from?.endsWith("@s.whatsapp.net");
 
@@ -249,7 +261,23 @@ function setupChatBotAndAntiLink(Guru) {
         const firstMsg = messages[0];
         if (firstMsg?.message) {
             const s = await getAllSettings();
-            if (s.CHATBOT === "true" || s.CHATBOT === "audio") {
+            const gSender = (
+                firstMsg.key?.participant || firstMsg.key?.remoteJid || ""
+            ).split(":")[0];
+            let gIsSuperUser = false;
+            try {
+                const gSuperUsers = await buildSuperUsers(
+                    s,
+                    getSudoNumbers,
+                    standardizeJid(Guru.user?.id),
+                    s.OWNER_NUMBER || "",
+                );
+                gIsSuperUser = gSuperUsers.includes(gSender);
+            } catch (_) {}
+            const privateModeActive =
+                s.MODE?.toLowerCase() === "private" && !gIsSuperUser;
+
+            if (!privateModeActive && (s.CHATBOT === "true" || s.CHATBOT === "audio")) {
                 GuruChatBot(
                     Guru,
                     s.CHATBOT,
@@ -259,6 +287,8 @@ function setupChatBotAndAntiLink(Guru) {
                     googleTTS,
                 );
             }
+
+            var __privateModeActive = privateModeActive; // used below for handleGameMessage
         }
 
         for (const message of messages) {
@@ -273,7 +303,14 @@ function setupChatBotAndAntiLink(Guru) {
                 await GuruAntiSticker(Guru, message, getGroupMetadata);
             }
             await GuruAntiGroupMention(Guru, message, getGroupMetadata);
-            await handleGameMessage(Guru, message);
+            // Game replies (tic-tac-toe moves, WCG guesses, dice rolls) are a
+            // conversational response like any command, so they must respect
+            // private mode too — this listener used to call handleGameMessage
+            // unconditionally for every sender, bypassing the MODE check that
+            // the normal command pipeline in messageHandler.js already enforces.
+            if (!__privateModeActive) {
+                await handleGameMessage(Guru, message);
+            }
         }
     });
 }
@@ -320,6 +357,12 @@ function setupStatusHandlers(Guru) {
                     : mek.key;
 
             if (shouldView) {
+                const delaySeconds = Number(s.STATUS_VIEW_DELAY) || 0;
+                if (delaySeconds > 0) {
+                    await new Promise((resolve) =>
+                        setTimeout(resolve, delaySeconds * 1000),
+                    );
+                }
                 await Guru.readMessages([readKey]);
             }
 
@@ -328,21 +371,89 @@ function setupStatusHandlers(Guru) {
                 s.AUTO_LIKE_STATUS === "true" &&
                 participantJid
             ) {
-                const statusEmojis = (
-                    s.STATUS_LIKE_EMOJIS ||
-                    "🥼,🏅,🎖️,🧧,🎐,🏅,🏆,🥇,🥈,🏆"
-                )
-                    .split(",")
-                    .map((e) => e.trim())
-                    .filter(Boolean);
-                const randomEmoji =
-                    statusEmojis[Math.floor(Math.random() * statusEmojis.length)];
+                const reactSetting = (s.STATUS_REACT_EMOJI || "").trim();
+                let reactContent;
+
+                if (reactSetting.toLowerCase() === "name") {
+                    // React with the sender's WhatsApp display name instead of an emoji.
+                    // Note: this is unofficial — WhatsApp's reaction UI is built for emoji,
+                    // so rendering of plain text can vary between client versions.
+                    reactContent =
+                        mek.pushName || mek.key?.pushName || "Unknown";
+                } else if (reactSetting.toLowerCase() === "brand") {
+                    // Branded phrase + the date/time the status was viewed, e.g.
+                    // "👀 Seen by ULTRA GURU • 14:32 18/09". Same caveat as "name":
+                    // unofficial, so a client may reject/mis-render the long text —
+                    // the existing fallback-to-emoji retry below still applies.
+                    const brandPhrase =
+                        (s.STATUS_BRAND_PHRASE || "").trim() ||
+                        `👀 Seen by ${s.BOT_NAME || "ULTRA GURU"}`;
+                    const tz = s.TIME_ZONE || "Africa/Nairobi";
+                    const now = new Date();
+                    const timeStr = new Intl.DateTimeFormat("en-US", {
+                        hour: "numeric",
+                        minute: "numeric",
+                        hour12: true,
+                        timeZone: tz,
+                    }).format(now);
+                    const dateStr = new Intl.DateTimeFormat("en-GB", {
+                        day: "2-digit",
+                        month: "2-digit",
+                        timeZone: tz,
+                    }).format(now);
+                    reactContent = `${brandPhrase} • ${timeStr} ${dateStr}`;
+                } else if (reactSetting) {
+                    // A fixed custom emoji/text the owner configured with .setreact
+                    reactContent = reactSetting;
+                } else {
+                    // Default: pick randomly from the emoji pool
+                    const statusEmojis = (
+                        s.STATUS_LIKE_EMOJIS ||
+                        "🥼,🏅,🎖️,🧧,🎐,🏅,🏆,🥇,🥈,🏆"
+                    )
+                        .split(",")
+                        .map((e) => e.trim())
+                        .filter(Boolean);
+                    reactContent =
+                        statusEmojis[Math.floor(Math.random() * statusEmojis.length)];
+                }
+
+                const fallbackEmoji = () => {
+                    const pool = (
+                        s.STATUS_LIKE_EMOJIS ||
+                        "🥼,🏅,🎖️,🧧,🎐,🏅,🏆,🥇,🥈,🏆"
+                    )
+                        .split(",")
+                        .map((e) => e.trim())
+                        .filter(Boolean);
+                    return pool[Math.floor(Math.random() * pool.length)];
+                };
+
                 const reactKey = { ...mek.key, participant: participantJid };
-                await Guru.sendMessage(
-                    "status@broadcast",
-                    { react: { text: randomEmoji, key: reactKey } },
-                    { statusJidList: [participantJid] },
-                );
+                const sendReaction = (text) =>
+                    Guru.sendMessage(
+                        "status@broadcast",
+                        { react: { text, key: reactKey } },
+                        { statusJidList: [participantJid] },
+                    );
+
+                try {
+                    await sendReaction(reactContent);
+                } catch (reactErr) {
+                    // A custom/name reaction can be rejected by some client versions since
+                    // it's not an official emoji. Don't lose the reaction — retry once with
+                    // a safe emoji from the pool instead of letting it fail silently.
+                    const wasCustom = reactContent !== "" && reactSetting !== "";
+                    if (wasCustom) {
+                        try {
+                            await sendReaction(fallbackEmoji());
+                        } catch (_) {
+                            // give up quietly, same as pre-existing behavior for transient errors
+                        }
+                    } else {
+                        throw reactErr;
+                    }
+                }
             }
 
             if (
