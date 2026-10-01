@@ -1,6 +1,6 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-const _cfg = require('../../guru/config/settings.js');
+const _cfg = require('../../luka/config/settings.js');
 
 const _DEFAULTS = {
     device:        'default',
@@ -12,8 +12,8 @@ const _DEFAULTS = {
     antilink:      'off',
     antibot:       false,
     chatbotpm:     false,
-    packname:      _cfg.BOT_NAME      || 'BLACK PANTHER MD',
-    author:        _cfg.OWNER_NAME    || 'Koyoteh',
+    packname:      _cfg.BOT_NAME      || 'LUKA-XMD',
+    author:        _cfg.OWNER_NAME    || 'Lukabrand',
     multiprefix:   false,
     stealth:       false,
     startmessage:  true,
