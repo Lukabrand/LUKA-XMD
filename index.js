@@ -1,6 +1,6 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  LUKA-XMD — Bot Entry Point
-//  by Lukabrand | github.com/Lukabrand
+//  BLACK PANTHER MD — Bot Entry Point
+//  by Koyoteh | github.com/koyoteh
 // ════════════════════════════════════════════════════════════════════════════
 
 "use strict";
@@ -65,7 +65,7 @@ function startWebServer() {
     const app = express();
 
     app.use(express.json());
-    app.use(express.static("guru"));
+    app.use(express.static("luka"));
     app.get("/",       (_req, res) => res.sendFile(path.join(__dirname, "luka", "guru.html")));
     app.get("/pair",   (_req, res) => res.sendFile(path.join(__dirname, "luka", "pair.html")));
     app.get("/health", (_req, res) => res.status(200).json({ status: "alive", uptime: process.uptime() }));
@@ -271,14 +271,14 @@ async function sendStartupMessage(socket, s) {
         const { expiryLine } = require("./luka/expiry");
         const expLine        = await expiryLine().catch(() => "✅ Active");
 
-const msg = [
-    `╭╴「 *${botName}* 」╶╮`,
-    `│ 🟢 Status  : *ONLINE*`,
-    `│ 📊 Plugins : *${totalCommands}*`,
-    `│ 📌 Prefix  : *${s.PREFIX || d.PREFIX}*`,
-    `│ 🌐 Mode    : *${modeLabel}*`,
-    `│ ⏳ Licence : *${expLine}*`,
-    `╰╴✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦╶╯`,
+        const msg = [
+    `╭━━⟮ ⚡ ${botName} ⟯━━┈⊷`,
+    `┃ 🟢 Status  : ✅ ONLINE`,
+    `┃ 📊 Plugins : ${totalCommands}`,
+    `┃ 📌 Prefix  : ${s.PREFIX || d.PREFIX}`,
+    `┃ 🌐 Mode    : ${modeLabel}`,
+    `┃ ⏳ Licence : ${expLine}`,
+    `╰━━⟮ ✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦ ⟯━━┈⊷`,
     ``,
     `> _Allow a few seconds to sync._`,
 ].join("\n");
