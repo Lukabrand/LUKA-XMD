@@ -98,7 +98,6 @@ gmd(
 │ 🟢 *ONLINE*
 │ 📶 Ping   › *${ping}ms*
 │ ⏱️ Alive  › *${alive}*
-│ 📌 Prefix › *${botPrefix || "."}*
 ╰╴⟮ ✦ *${botName || "LUKA-XMD"}* ✦ ⟯╶╯`;
         };
 
@@ -161,7 +160,7 @@ gmd(
 │ ⏱️ Alive : *${parts.join(' : ')}*
 │ 🕐 Time  : *${time}*
 │ 📅 Date  : *${date}*
-╰⟮ ✦ _${bn} ┃ XMD_ ✦ ⟯╯`
+╰⟮ ✦ _${bn} _ ✦ ⟯╯`
         );
         };
 
