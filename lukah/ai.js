@@ -1,5 +1,5 @@
 
-const { gmd, toPtt } = require("../guru");
+const { gmd, toPtt } = require("../luka");
 const axios = require("axios");
 const googleTTS = require("google-tts-api");
 const Database = require("better-sqlite3");
@@ -7,7 +7,7 @@ const path = require("path");
 const fs = require("fs-extra");
 
 // ── Persistent Meta AI memory (SQLite) ──────────────────────────────────────
-const AI_DB_DIR = path.join(__dirname, "../guru/database");
+const AI_DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(AI_DB_DIR);
 const _aiDb = new Database(path.join(AI_DB_DIR, "ai_memory.db"));
 _aiDb.pragma("journal_mode = WAL");
@@ -84,7 +84,7 @@ async function queryAI(endpoint, query, conText, pollinationsModel = "openai") {
 
     if (isIdentityQuestion(query)) {
         if (react) await react("🤖");
-        const botN = botName || "ULTRA GURU MD";
+        const botN = botName || "LUKA-XMD";
         return reply(`🤖 *${botN}* — AI WhatsApp Bot\n\n◈ 👤 *Creator*    ⤳ GuruTech\n◈ 🌐 *Owner*      ⤳ GuruTech\n◈ 🛠️ *Built By*   ⤳ GuruTech\n◈ 📦 *Platform*   ⤳ WhatsApp Multi-Device\n◈ ⚡ *Engine*     ⤳ Multi-AI (GPT, Gemini, Llama, Claude & more)\n◈ 🎯 *Purpose*    ⤳ AI, Tools, Downloads, Group Management & more\n\nI am _not_ ChatGPT, Gemini, or any other AI product. I am *${botN}*, exclusively created and owned by *GuruTech*.\n\nType *.menu* to explore all my features! ✨${footer}`);
     }
 
@@ -128,7 +128,7 @@ async function pollinationsCmd(query, model, conText, reactEmoji = "🤖") {
 
     if (isIdentityQuestion(query)) {
         if (react) await react("🤖");
-        const botN = botName || "ULTRA GURU MD";
+        const botN = botName || "LUKA-XMD";
         return reply(`🤖 I am *${botN}*, an AI WhatsApp Bot created and owned by *GuruTech*.\n\nType *.menu* to explore all my features! ✨${footer}`);
     }
 
@@ -149,7 +149,7 @@ gmd(
         pattern: "guruai",
         aliases: ["ai"],
         react: "🤖",
-        description: "Chat with ULTRA GURU AI assistant",
+        description: "Chat with LUKA AI assistant",
         category: "ai",
     },
     async (from, Guru, conText) => {
@@ -395,7 +395,7 @@ gmd(
     async (from, Guru, conText) => {
         const { reply, react, botFooter, botName } = conText;
         const footer = buildFooter(botFooter, botName);
-        const botN = botName || "ULTRA GURU MD";
+        const botN = botName || "LUKA-XMD";
 
         if (react) await react("🤖");
 
@@ -434,7 +434,7 @@ gmd(
     async (from, Guru, conText) => {
         const { reply, react, botFooter, botName } = conText;
         const footer = buildFooter(botFooter, botName);
-        const botN = botName || "ULTRA GURU MD";
+        const botN = botName || "LUKA-XMD";
 
         if (react) await react("🤖");
         await reply(`🤖 *${botN}* — AI WhatsApp Bot\n\n◈ 👤 *Creator*    ⤳ GuruTech\n◈ 🌐 *Owner*      ⤳ GuruTech\n◈ 🛠️ *Built By*   ⤳ GuruTech\n◈ 📦 *Platform*   ⤳ WhatsApp Multi-Device\n◈ ⚡ *Engine*     ⤳ Multi-AI (GPT, Gemini, Llama, Claude & more)\n◈ 🎯 *Purpose*    ⤳ AI, Tools, Downloads, Group Management & more\n\nI am _not_ ChatGPT, Gemini, or any other AI product. I am *${botN}*, exclusively created and owned by *GuruTech*.\n\nType *.menu* to explore all my features! ✨${footer}`);
@@ -504,7 +504,7 @@ gmd(
 
         if (isIdentityQuestion(query)) {
             if (react) await react("🦙");
-            const botN = botName || "ULTRA GURU MD";
+            const botN = botName || "LUKA-XMD";
             return reply(`🤖 *${botN}* — AI WhatsApp Bot\n\n◈ 👤 *Creator*    ⤳ GuruTech\n◈ 🌐 *Owner*      ⤳ GuruTech\n◈ 🧠 *Engine*     ⤳ Llama 3.3 70B\n◈ 💬 *Memory*     ⤳ Remembers up to 10 exchanges\n◈ 📦 *Platform*   ⤳ WhatsApp Multi-Device\n\nI am *Lupus*, powered by GuruTech. Type *.metaai <question>* to chat!${footer}`);
         }
 
@@ -584,13 +584,13 @@ gmd(
     async (from, Guru, conText) => {
         const { reply, react, q, mek, botFooter, botName, sender } = conText;
         const footer = buildFooter(botFooter, botName);
-        const botN  = botName || "ULTRA GURU MD";
+        const botN  = botName || "LUKA-XMD";
         const query = q || mek?.message?.extendedTextMessage?.contextInfo?.quotedMessage?.conversation;
 
         if (!query) {
             return reply(
 `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃  🐺  *LUPUS AI* by GuruTech
+┃  🐺  *LUPUS AI* by Lukabrand
 ┃━━━━━━━━━━━━━━━━━━━━━━━━━━━━┃
 ┃  Your personal AI assistant
 ┃  powered exclusively by
@@ -623,7 +623,7 @@ gmd(
             if (react) await react("✅");
             await reply(
 `┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃  🐺  *LUPUS* by GuruTech
+┃  🐺  *LUPUS* by Lukabrand
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 ${result}
@@ -813,8 +813,8 @@ gmd(
             await fs.writeFile(tmpFile, Buffer.from(imgRes.data));
 
             const stickerBuf = await gmdSticker(tmpFile, {
-                pack:   packName   || 'ULTRA GURU',
-                author: packAuthor || 'GURU-TECH',
+                pack:   packName   || 'LUKA-XMD',
+                author: packAuthor || 'LUKABRAND',
                 type:   StickerTypes.FULL,
                 categories: ['🤩', '🎉'],
                 quality: 80,
