@@ -1,4 +1,4 @@
-const { gmd, getSetting, setSetting } = require("../guru");
+const { gmd, getSetting, setSetting } = require("../luka");
 
 // ═══════════════════════════════════════════════════════════════════
 //  BOT IDENTITY SUITE
@@ -72,7 +72,7 @@ gmd({
         getSetting("BOT_BIO").catch(() => ""),
     ]);
 
-    const botName    = name    || "ULTRA GURU MD";
+    const botName    = name    || "LUKA-XMD";
     const picUrl     = pic     || "";
     const watermark  = wmOn === "true";
     const wmLabel    = wmText  || `_Powered by ${botName}_`;
@@ -94,10 +94,10 @@ gmd({
         `   ↳ _.botbio <text>_\n\n` +
         `${"─".repeat(32)}\n` +
         `*Quick Commands:*\n` +
-        `• \`.rebrand ULTRA GURU MD\`\n` +
+        `• \`.rebrand LUKA-XMD\`\n` +
         `• \`.setpic https://…\`\n` +
         `• \`.setpic\` _(reply to a photo)_\n` +
-        `• \`.setwm Powered by GURU\`\n` +
+        `• \`.setwm Powered by LUKA\`\n` +
         `• \`.wmtoggle\`\n` +
         `• \`.previewbot\``;
 
@@ -349,7 +349,7 @@ gmd({
         getSetting("WATERMARK_TEXT").catch(() => ""),
     ]);
 
-    const botName   = name   || "ULTRA GURU MD";
+    const botName   = name   || "LULA-XMD";
     const picUrl    = pic    || "";
     const watermark = wmOn === "true";
     const wm        = wmText || `_Powered by ${botName}_`;
