@@ -273,16 +273,16 @@ async function sendStartupMessage(socket, s) {
         const { expiryLine } = require("./luka/expiry");
         const expLine        = await expiryLine().catch(() => "✅ Active");
 
-        const msg = [
-    `╭━━⟮ *${botName}* ⟯━━╮`,
-    `┃ 🟢 *ONLINE*`,
+       const msg = [
+    `╭══〘〘 *${botName}* 〙〙═⊷`,
+    `┃ 🟢 Status   › *ONLINE*`,
     `┃ 📊 Plugins  › *${totalCommands}*`,
     `┃ 📌 Prefix   › *${s.PREFIX || d.PREFIX}*`,
     `┃ 🌐 Mode     › *${modeLabel}*`,
     `┃ ⏳ Licence  › *${expLine}*`,
-    `╰━━⟮ ✦ *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ* ✦ ⟯━━╯`,
+    `╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`,
     ``,
-    `> _Allow a few seconds to sync._`,
+    `> _Allow a few seconds to get ready._`,
 ].join("\n");
 
         const destJid = jidNormalizedUser(socket.user.id);
