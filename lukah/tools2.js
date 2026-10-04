@@ -1,5 +1,5 @@
 
-const { gmd, getExtensionFromMime, isTextContent } = require("../guru");
+const { gmd, getExtensionFromMime, isTextContent } = require("../luka");
 const axios = require("axios");
 const fs = require("fs").promises;
 const { sendButtons } = require("gifted-btns");
