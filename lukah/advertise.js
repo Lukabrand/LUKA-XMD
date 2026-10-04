@@ -5,13 +5,13 @@
 
 "use strict";
 
-const { gmd }    = require("../guru");
+const { gmd }    = require("../luka");
 const Database   = require("better-sqlite3");
 const path       = require("path");
 const fs         = require("fs-extra");
 
 // ─── Database Setup ──────────────────────────────────────────────────────────
-const DB_DIR = path.join(__dirname, "../guru/database");
+const DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(DB_DIR);
 
 const db = new Database(path.join(DB_DIR, "advertise.db"));
@@ -76,7 +76,7 @@ function buildAdMessage(ad, pushName, botFooter) {
 
     lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     lines.push(``);
-    lines.push(`> _Advertised via ${botFooter || "ULTRA GURU MD"}_`);
+    lines.push(`> _Advertised via ${botFooter || "LUKA-XMD"}_`);
 
     return lines.join("\n");
 }
@@ -184,7 +184,7 @@ gmd(
                 `\`\`\`${p}setad Business Name | Description | Contact | Location | Working Hours | Website\`\`\`\n\n` +
                 `*Example:*\n` +
                 `\`\`\`${p}setad GuruTech Shop | Phone repairs & accessories | +254700000000 | Nairobi CBD | Mon-Sat 8am-6pm | gurutech.co.ke\`\`\`\n\n` +
-                `> _${botFooter || "ULTRA GURU MD"}_`
+                `> _${botFooter || "LUKA-XMD"}_`
             );
         }
 
