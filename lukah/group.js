@@ -1,7 +1,7 @@
 
-const { gmd, getGroupMetadata, getLidMapping } = require("../guru");
+const { gmd, getGroupMetadata, getLidMapping } = require("../luka");
 const baileys = require("@whiskeysockets/baileys");
-const { getGroupSetting, setGroupSetting } = require("../guru/database/groupSettings");
+const { getGroupSetting, setGroupSetting } = require("../luka/database/groupSettings");
 
 // ─── GROUPSTATS ───────────────────────────────────────────────────────────────
 
@@ -248,7 +248,7 @@ gmd(
       groupAdmins,
       groupMetadata,
     } = conText;
-    const { getLidMapping } = require("../guru/connection/groupCache");
+    const { getLidMapping } = require("../luka/connection/groupCache");
 
     if (!isGroup) return reply("❌ This command only works in groups!");
     if (!isBotAdmin) return reply("❌ Bot is not an admin in this group!");
@@ -304,7 +304,7 @@ gmd(
 
     if (!targetJid.includes("@")) targetJid += "@s.whatsapp.net";
 
-    const { isSuperUser } = require("../guru/database/sudo");
+    const { isSuperUser } = require("../luka/database/sudo");
     const targetNum = targetJid.split("@")[0];
     const isTargetSuperUser = await isSuperUser(targetJid, Guru);
     
@@ -401,7 +401,7 @@ gmd(
       groupSuperAdmins,
       groupMetadata,
     } = conText;
-    const { getLidMapping } = require("../guru/connection/groupCache");
+    const { getLidMapping } = require("../luka/connection/groupCache");
 
     if (!isGroup) return reply("❌ This command only works in groups!");
     if (!isBotAdmin) return reply("❌ Bot is not an admin in this group!");
@@ -547,7 +547,7 @@ gmd(
       mentionedJid,
       groupMetadata,
     } = conText;
-    const { getLidMapping } = require("../guru/connection/groupCache");
+    const { getLidMapping } = require("../luka/connection/groupCache");
 
     if (!isGroup) return reply("❌ This command only works in groups!");
     if (!isBotAdmin) return reply("❌ Bot is not an admin in this group!");
@@ -2263,9 +2263,9 @@ gmd(
 
 // ============ ADVANCED SECRETIVE COMMANDS ============
 
-const { ghostActivityMap } = require("../guru/restrictionManager");
+const { ghostActivityMap } = require("../luka/restrictionManager");
 const { addStalkTarget, removeStalkTarget, getStalkTargets } = require("../guru/connection/connectionHandler");
-const { LOCK_KEYS } = require("../guru/restrictionManager");
+const { LOCK_KEYS } = require("../luka/restrictionManager");
 
 // ─── Shadow Ban ─────────────────────────────────────────────────────────────
 
@@ -2987,7 +2987,7 @@ gmd(
 
     const target = mentionedJid?.[0] || quotedUser || sender;
     const targetNum = target.split("@")[0];
-    const { getSetting } = require("../guru/database/settings");
+    const { getSetting } = require("../luka/database/settings");
     const warnLimit = parseInt(await getSetting("WARN_LIMIT")) || 3;
 
     const warns = await getGroupWarns(from);
@@ -3063,7 +3063,7 @@ gmd(
     const { mek, react, reply, isGroup, newsletterJid, botName } = conText;
     if (!isGroup) return reply("❌ Groups only.");
 
-    const { getSetting } = require("../guru/database/settings");
+    const { getSetting } = require("../luka/database/settings");
     const warnLimit = parseInt(await getSetting("WARN_LIMIT")) || 3;
     const warns = await getGroupWarns(from);
     const warnedUsers = Object.entries(warns).filter(([, v]) => (v?.count || 0) > 0);
