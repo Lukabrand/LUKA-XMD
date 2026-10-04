@@ -1,14 +1,14 @@
 
-const { gmd } = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
 const {
     addGreetingsChat,
     removeGreetingsChat,
     getAllGreetingsChats,
     hasGreetingsChat,
     countGreetingsChats,
-} = require("../guru/database/greetings");
-const { sendGreeting } = require("../guru/scheduler");
+} = require("../luka/database/greetings");
+const { sendGreeting } = require("../luka/scheduler");
 
 gmd(
     {
