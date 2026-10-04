@@ -19,7 +19,7 @@
  *   Utility:    remindme, lyrics, geoip, pinterest, github2
  */
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 
 // ─────────────────────────────────────────────
