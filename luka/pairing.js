@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  GURU PAIRING — Generate a new SESSION_ID via WhatsApp pairing code
+//  LUKA PAIRING — Generate a new SESSION_ID via WhatsApp pairing code
 // ════════════════════════════════════════════════════════════════════════════
 
 "use strict";
