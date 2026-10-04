@@ -9,8 +9,8 @@ const si = (str) => [...(str || '')].map(c => {
 }).join('');
 // ───────────────────────────────────────────────────────────────────────────
 
-const { gmd } = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
 
 const OWNER_ONLY = true;
 
@@ -537,11 +537,11 @@ gmd(
         await react("🤖");
         reply(
 `◢◣◢◣◢◣◢ *𝘉𝘖𝘛 𝘐𝘕𝘍𝘖𝘙𝘔𝘈𝘛𝘐𝘖𝘕* ◢◣◢◣◢◣◢
-     ⋄ _𝘗𝘖𝘞𝘌𝘙𝘌𝘋 𝘉𝘠 𝘎𝘜𝘙𝘜𝘛𝘌𝘊𝘏_ ⋄
+     ⋄ _ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_ ⋄
 ▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔
 
 ◈ 🤖 *𝘉𝘰𝘵 𝘕𝘢𝘮𝘦*    ⤳ ${botName}
-◈ 👤 *𝘊𝘳𝘦𝘢𝘵𝘰𝘳*     ⤳ GuruTech
+◈ 👤 *𝘊𝘳𝘦𝘢𝘵𝘰𝘳*     ⤳ Lukabrand
 ◈ 🏷️ *𝘝𝘦𝘳𝘴𝘪𝘰𝘯*     ⤳ v${botVersion}
 ◈ 📱 *𝘔𝘰𝘥𝘦*        ⤳ ${botMode}
 ◈ 🌍 *𝘓𝘢𝘯𝘨𝘶𝘢𝘨𝘦*    ⤳ ${botLang.toUpperCase()}
@@ -556,7 +556,7 @@ gmd(
 
 ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
 
-> _ULTRA GURU MD — built by GuruTech. All rights reserved._`
+> _LUKA-XMD — built by Lukabrand. All rights reserved._`
         );
     },
 );
@@ -647,7 +647,7 @@ gmd(
             return raw.length > 28 ? raw.substring(0, 28) + "…" : raw;
         };
 
-        let out = `⚙️ *𝘜𝘓𝘛𝘙𝘈 𝘎𝘜𝘙𝘜 𝘔𝘋 — 𝘚𝘌𝘛𝘛𝘐𝘕𝘎𝘚 𝘖𝘝𝘌𝘙𝘝𝘐𝘌𝘞*\n${"━".repeat(34)}\n`;
+        let out = `⚙️ *LUKA-XMD — 𝘚𝘌𝘛𝘛𝘐𝘕𝘎𝘚 𝘖𝘝𝘌𝘙𝘝𝘐𝘌𝘞*\n${"━".repeat(34)}\n`;
 
         for (const sec of sections) {
             out += `\n*${sec.title}*\n`;
