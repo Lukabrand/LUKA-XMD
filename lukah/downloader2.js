@@ -5,7 +5,7 @@ const {
         getFileSize,
         getMimeCategory,
         getMimeFromUrl,
-    } = require("../guru"),
+    } = require("../luka"),
     GIFTED_DLS = require("gifted-dls"),
     guruDls = new GIFTED_DLS(),
     axios = require("axios"),
