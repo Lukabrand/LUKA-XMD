@@ -1,6 +1,6 @@
 "use strict";
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios   = require("axios");
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ gmd(
             const audioContext = thumbBuffer ? {
                 externalAdReply: {
                     title: (title || query).substring(0, 30),
-                    body: botName || "ULTRA GURU MD",
+                    body: botName || "LUKA-XMD",
                     thumbnail: thumbBuffer,
                     sourceUrl: sourceUrl || url,
                     mediaType: 1,
