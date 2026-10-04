@@ -1,10 +1,10 @@
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 const {
   generateWAMessageContent,
   generateWAMessageFromContent,
 } = require("@whiskeysockets/baileys");
-const { getSetting } = require("../guru/database/settings");
+const { getSetting } = require("../luka/database/settings");
 
 const SPORTS_API_BASE = "https://apiskeith.top";
 
@@ -30,7 +30,7 @@ const LEAGUE_CONFIG = {
 };
 
 async function getContextInfo() {
-  const botName = (await getSetting("BOT_NAME")) || "ULTRA MD";
+  const botName = (await getSetting("BOT_NAME")) || "LUKA-XMD";
   const channelJid =
     (await getSetting("NEWSLETTER_JID")) || "120363406466294627@newsletter";
   return {
