@@ -7,7 +7,7 @@
 // waiting/timeout risk.
 //
 // Usage:
-//   node guru/set-session.js "GURU~xxxxxxxxxxxxxxxxxxxx"
+//   node luka/set-session.js "LUKA~xxxxxxxxxxxxxxxxxxxx"
 //
 // After it finishes, restart the bot from the Katabump panel — it will
 // find SESSION_ID already in .env and skip the paste prompt entirely.
@@ -19,12 +19,12 @@ const sessionId = process.argv[2];
 
 if (!sessionId || !sessionId.trim()) {
     console.error("❌ No SESSION_ID provided.");
-    console.error('   Usage: node guru/set-session.js "GURU~xxxxxxxxxxxx"');
+    console.error('   Usage: node luka/set-session.js "LUKA~xxxxxxxxxxxx"');
     process.exit(1);
 }
 
-if (!sessionId.startsWith("GURU~")) {
-    console.error("❌ Invalid format — SESSION_ID must start with 'GURU~'.");
+if (!sessionId.startsWith("LUKA~")) {
+    console.error("❌ Invalid format — SESSION_ID must start with 'LUKA~'.");
     process.exit(1);
 }
 
