@@ -5,7 +5,7 @@ const { PassThrough } = require("stream");
 const fsA = require("node:fs");
 
 const path = require("path");
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 
 const ROOT = path.resolve(__dirname, "..");
 
