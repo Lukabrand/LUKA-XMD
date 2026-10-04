@@ -1,4 +1,4 @@
-const { gmd, getAllSettings, getMediaBuffer } = require("../guru");
+const { gmd, getAllSettings, getMediaBuffer } = require("../luka");
 
 gmd(
     {
