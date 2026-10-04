@@ -8,7 +8,7 @@
 // if ffmpeg itself fails, it just returns an error code — it can never take
 // down the bot process.
 
-const { gmd, gmdRandom, getVideoDuration } = require("../guru");
+const { gmd, gmdRandom, getVideoDuration } = require("../luka");
 const fs = require("fs").promises;
 const fss = require("fs");
 const { exec, execSync } = require("child_process");
