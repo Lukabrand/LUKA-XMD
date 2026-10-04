@@ -3,7 +3,7 @@
 const ffmpeg = require("fluent-ffmpeg");
 const { PassThrough } = require("stream");
 const baileys = require("@whiskeysockets/baileys");
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 
 // ─── COLOR MAP (hex) ─────────────────────────────────────────────────────────
 const COLORS = {
@@ -39,7 +39,7 @@ gmd(
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
                 newsletterJid: newsletterJid || "120363200367779016@newsletter",
-                newsletterName: botName || "ULTRA GURU MD",
+                newsletterName: botName || "LUKA-XMD",
                 serverMessageId: 143,
             },
             mentionedJid: [mek.key.participant || from],
