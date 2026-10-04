@@ -1,24 +1,24 @@
 
-const { gmd } = require("../guru/gmdCmds");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka/gmdCmds");
+const { getSetting, setSetting } = require("../luka/database/settings");
 const {
   getGroupSetting,
   setGroupSetting,
   resetAllGroupSettings,
   getAllGroupSettings,
-} = require("../guru/database/groupSettings");
-const { clearAllSudo, getSudoNumbers } = require("../guru/database/sudo");
+} = require("../luka/database/groupSettings");
+const { clearAllSudo, getSudoNumbers } = require("../luka/database/sudo");
 const {
   getAllUsersNotes,
   deleteNoteById,
   updateNoteById,
   deleteAllNotes,
-} = require("../guru/database/notes");
+} = require("../luka/database/notes");
 const {
   getTopCommands,
   getTotalCommandRuns,
   resetStats,
-} = require("../guru/database/stats");
+} = require("../luka/database/stats");
 
 function parseBooleanInput(input) {
   if (!input) return null;
@@ -586,11 +586,11 @@ gmd(
     const { reply, react, botName, botFooter } = conText;
     await react("🔗");
     try {
-      const BOT_GITHUB = "https://github.com/GuruhTech/ULTRA-GURU";
+      const BOT_GITHUB = "https://github.com/Lukabrand/LUKA-XMD";
       // Use DB only if owner explicitly changed it via .setbotrepo, otherwise hardcoded
       let repoUrl = (await getSetting("BOT_REPO")) || BOT_GITHUB;
       if (!repoUrl.startsWith("http")) repoUrl = `https://github.com/${repoUrl}`;
-      const botN     = botName || "ULTRA GURU MD";
+      const botN     = botName || "LUKA-XMD";
       const footer   = botFooter ? `\n\n> *${botFooter}*` : "";
       await reply(
 `🌟 *${botN} — Source Code*
@@ -971,7 +971,7 @@ gmd(
       const {
         getBadWords,
         DEFAULT_BAD_WORDS,
-      } = require("../guru/database/groupSettings");
+      } = require("../luka/database/groupSettings");
       const settings = await getAllGroupSettings(from);
 
       const welcomeStatus = isSettingEnabled(settings.WELCOME_MESSAGE)
@@ -1138,7 +1138,7 @@ gmd(
       const {
         GroupSettingsDB,
         AntilinkWarningsDB,
-      } = require("../guru/database/groupSettings");
+      } = require("../luka/database/groupSettings");
       await GroupSettingsDB.destroy({ where: {} });
       await AntilinkWarningsDB.destroy({ where: {} });
       await react("✅");
