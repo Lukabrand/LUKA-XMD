@@ -1,5 +1,5 @@
 
-const { gmd, commands, getSetting } = require("../guru");
+const { gmd, commands, getSetting } = require("../luka");
 const fs = require("fs").promises;
 const fsA = require("node:fs");
 const { S_WHATSAPP_NET } = require("@whiskeysockets/baileys");
@@ -9,7 +9,7 @@ const {
   groupCache,
   getGroupMetadata,
   cachedGroupMetadata,
-} = require("../guru/connection/groupCache");
+} = require("../luka/connection/groupCache");
 
 const { exec: _shellExec } = require("child_process");
 
@@ -65,8 +65,8 @@ gmd(
 
     await react("⏳");
     try {
-      const gift = require("../guru");
-      const _rawDb = require("../guru/database/database").DATABASE;
+      const gift = require("../luka");
+      const _rawDb = require("../luka/database/database").DATABASE;
       const settings = await gift.getAllSettings();
       const { getSetting, setSetting, getAllSettings, commands } = gift;
       const prefix = settings.PREFIX;
@@ -139,8 +139,8 @@ gmd(
       await reply("🔄 *Checking for updates before restart...*");
 
       try {
-        const { runUpdate } = require("../guru/autoUpdater");
-        const { getSetting } = require("../guru/database/settings");
+        const { runUpdate } = require("../luka/autoUpdater");
+        const { getSetting } = require("../luka/database/settings");
 
         const rawRepo = await getSetting("BOT_REPO");
         const match = String(rawRepo || "").match(/github\.com\/([^/\s]+\/[^/\s]+)/);
@@ -352,13 +352,13 @@ gmd(
     }
 
     const commitMsg = args.join(" ").trim() || `bot: auto-push ${new Date().toISOString()}`;
-    const remoteUrl = `https://x-access-token:${token}@github.com/GuruhTech/ULTRA-GURU`;
+    const remoteUrl = `https://x-access-token:${token}@github.com/Lukabrand/LUKA-XMD`;
 
     await react("⏳");
     await reply("⏳ Staging and pushing to GitHub...");
 
     _shellExec(
-      `git add -A && git diff --cached --quiet || git -c user.email="bot@ultraguru.md" -c user.name="Ultra Guru MD" commit -m "${commitMsg.replace(/"/g, "'")}" && git push "${remoteUrl}" main 2>&1`,
+      `git add -A && git diff --cached --quiet || git -c user.email="bot@ultraguru.md" -c user.name="Luka XMD" commit -m "${commitMsg.replace(/"/g, "'")}" && git push "${remoteUrl}" main 2>&1`,
       { timeout: 60000, maxBuffer: 1024 * 1024 * 2 },
       async (err, stdout, stderr) => {
         const output = (stdout || "").trim();
@@ -375,7 +375,7 @@ gmd(
             `✅ *Successfully pushed to GitHub!*\n\n` +
             `📝 Commit: _${commitMsg}_\n\n` +
             `📌 *Latest commits:*\n\`\`\`\n${(log || "").trim()}\n\`\`\`\n\n` +
-            `🔗 https://github.com/GuruhTech/ULTRA-GURU`
+            `🔗 https://github.com/Lukabrand/LUKA-XMD`
           );
         });
       }
