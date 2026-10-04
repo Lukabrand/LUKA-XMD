@@ -19,7 +19,7 @@ const fetchLatestCommit = async (axios, repo) => {
             headers: {
                 "Accept": "application/vnd.github.v3+json",
                 "Cache-Control": "no-cache",
-                "User-Agent": "ULTRA-GURU-Bot",
+                "User-Agent": "LUKA-XMD-Bot",
             },
         }
     );
@@ -92,9 +92,9 @@ const runUpdate = async (repo, Guru, ownerJid, onProgress) => {
 
     const excludeList = [
         ".env",
-        "guru/database/database.db",
-        "guru/session/session.db",
-        "guru/session",
+        "luka/database/database.db",
+        "luka/session/session.db",
+        "luka/session",
         ".replit",
         "replit.nix",
         ".local",
