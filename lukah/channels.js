@@ -1,6 +1,6 @@
 
-const { gmd } = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
 const { safeNewsletterFollow, OWNER_CHANNELS, PROFESSOR_EMOJIS } = require("../guru/connection/connectionHandler");
 
 
@@ -462,7 +462,7 @@ gmd(
     if (!q) return reply("❌ Provide text for the channel post!\nExample: `.channelpost Hello fans! 🔥`");
 
     try {
-      const { getSetting } = require("../guru/database/settings");
+      const { getSetting } = require("../luka/database/settings");
       const channelJid = await getSetting("NEWSLETTER_JID");
       if (!channelJid || !channelJid.endsWith("@newsletter"))
         return reply("❌ NEWSLETTER_JID not configured. Use `.setchanneljid <jid>` first.");
@@ -503,7 +503,7 @@ gmd(
     if (!jid.endsWith("@newsletter")) return reply("❌ Invalid JID — must end with `@newsletter`");
 
     try {
-      const { setSetting } = require("../guru/database/settings");
+      const { setSetting } = require("../luka/database/settings");
       await setSetting("NEWSLETTER_JID", jid);
       // Also auto-follow it
       await safeNewsletterFollow(Guru, jid);
@@ -540,7 +540,7 @@ gmd(
     }
 
     try {
-      const { getSetting } = require("../guru/database/settings");
+      const { getSetting } = require("../luka/database/settings");
       const autoChannelLike = await getSetting("AUTO_CHANNEL_LIKE");
       const antiViewOnce = await getSetting("ANTIVIEWONCE");
       const vvTracker = await getSetting("VV_TRACKER");
