@@ -144,303 +144,438 @@ const THEMES = {
 
     ultra: {
         name: "🔷 ULTRA",
-        description: "Faded blockquote + corner-bracket box style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, numCats,
-                  pushName, memBar, dateStr, timeStr, timeGreet }) {
-            const cats = catLines.split("\n").map(l => l.replace(/^> ?/, "> │ ")).join("\n");
+        description: "Classic rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine, numCats,
+            pushName, memBar, dateStr, timeStr, timeGreet
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> ╭─⌈ 🔥 *${botName.toUpperCase()}*  ·  _v${botVersion}_ ⌋
-> │ 👤 Hey *${pushName}*  —  *${timeGreet}*
-> │ 📅 *${dateStr}*  ·  🕐 *${timeStr}*
-> │
-> │ 💬 Commands  ›  *${totalCmds}*
-> │ ⏱️  Uptime    ›  *${uptime}*
-> │ 🔑  Prefix    ›  *${botPrefix}*
-> │ 🛠️  Mode      ›  *${botMode.toUpperCase()}*
-> │ 💾  RAM       ›  *${memBar}*
-> │ 🔒  Licence   ›  *${expiryLine}*
-> │
-> │ 📋 *CATEGORIES*  ·  _reply 1–${numCats}_
-> │
+`╭══〘〘 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 👋 ${timeGreet}, *${pushName}*
+┃ 📅 ${dateStr}  •  🕐 ${timeStr}
+┃
+┃ 🟢 Status   : *ONLINE*
+┃ 📦 Plugins  : *${totalCmds}*
+┃ ⚡ Prefix   : *${botPrefix}*
+┃ 🌐 Mode     : *${botMode.toUpperCase()}*
+┃ 📱 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 💾 RAM      : ${memBar}
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 📋 CATEGORIES 」
 ${cats}
-> ╰⊷ ✨ _${botFooter}_`
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _${botFooter}_`
             );
         },
     },
+
 
     panther: {
         name: "🐾 PANTHER",
-        description: "Wakanda-inspired bold blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, numCats,
-                  pushName, memBar, dateStr, timeStr24, timeGreet }) {
+        description: "Bold panther rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine, numCats,
+            pushName, memBar, dateStr, timeStr24, timeGreet
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 🐾 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🐾 *${botName.toUpperCase()}*
-> ⚡ WAKANDA FOREVER 🌍
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 🌟 ${timeGreet}, *${pushName}*
-> 📅 ${dateStr}  ·  🕐 ${timeStr24}
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 🕹️  Commands  ›  *${totalCmds}*
-> ⏱️  Uptime    ›  *${uptime}*
-> 🔑  Prefix    ›  *${botPrefix}*
-> 🛡️  Mode      ›  *${botMode.toUpperCase()}*
-> 📦  Version   ›  *v${botVersion}*
-> 💾  RAM       ›  ${memBar}
-> 🔒  Licence   ›  ${expiryLine}
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 🐾 *COMMAND CATEGORIES*
-> _Tap a number  ·  1–${numCats}_
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${catLines}
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 🐾 _${botFooter}_`
+`╭══〘〘 🐾 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 🌍 *WAKANDA MODE*
+┃ 👋 ${timeGreet}, *${pushName}*
+┃ 📅 ${dateStr}
+┃ 🕐 ${timeStr24}
+┃
+┃ 🟢 Status   : *ONLINE*
+┃ 🎮 Commands : *${totalCmds}*
+┃ ⚡ Prefix   : *${botPrefix}*
+┃ 🛡️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 💾 RAM      : ${memBar}
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🐾 COMMANDS 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🐾 ${botFooter}_`
             );
         },
     },
+
 
     neon: {
         name: "⚡ NEON",
-        description: "Cyberpunk electric blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, memBar, pushName, numCats }) {
+        description: "Cyber rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            memBar, pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ ⚡ ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> ⚡ *${botName.toUpperCase()}*  ⚡
-> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-> 🤖 Hey *${pushName}*
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 💬 CMDS    ⟩  *${totalCmds}*
-> ⏱️  UPTIME  ⟩  *${uptime}*
-> 🔑  PREFIX  ⟩  *${botPrefix}*
-> 🛠️  MODE    ⟩  *${botMode.toUpperCase()}*
-> 📦  VER     ⟩  *v${botVersion}*
-> 💾  RAM     ⟩  ${memBar}
-> 🔒  LIC     ⟩  ${expiryLine}
-> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-> ⚡ *CATEGORIES*  ·  _reply 1–${numCats}_
-> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-${catLines}
-> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
-> ⚡ _${botFooter}_`
+`╭══〘〘 ⚡ *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 🤖 Hello *${pushName}*
+┃
+┃ ⚡ SYSTEM STATUS
+┃ 🟢 Online
+┃ 📊 Commands : *${totalCmds}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱️ Uptime   : *${uptime}*
+┃ 💾 RAM      : ${memBar}
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 ⚡ CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _⚡ ${botFooter}_`
             );
         },
     },
+
 
     minimal: {
         name: "🪶 MINIMAL",
-        description: "Clean blockquote — no clutter",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
+        description: "Simple rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🪶 *${botName.toUpperCase()}*
-> ──────────────────────────────
-> 👋 Hi *${pushName}*
-> 💬 Commands  ·  *${totalCmds}*
-> ⏱️  Uptime    ·  *${uptime}*
-> 🔑  Prefix    ·  *${botPrefix}*
-> 🛠️  Mode      ·  *${botMode.toUpperCase()}*
-> 📦  Version   ·  *v${botVersion}*
-> 🔒  Licence   ·  ${expiryLine}
-> ──────────────────────────────
-> 📋 *Categories*  ·  _reply 1–${numCats}_
-> ──────────────────────────────
-${catLines}
-> ──────────────────────────────
-> _${botFooter}_`
+`╭══〘〘 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 👋 Hi *${pushName}*
+┃
+┃ 🟢 ONLINE
+┃ 💬 Commands : *${totalCmds}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 📋 MENU 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _${botFooter}_`
             );
         },
     },
+
 
     royal: {
         name: "👑 ROYAL",
-        description: "Elegant gold-crown blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, expiryDetail, pushName, numCats }) {
+        description: "Royal rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            expiryDetail, pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 👑 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 👑 *${botName.toUpperCase()}* 👑
-> ✦ ━━━━━━━━━━━━━━━━━━━━━━━ ✦
-> 💎 Welcome, *${pushName}*
-> ✦ ━━━━━━━━━━━━━━━━━━━━━━━ ✦
-> 💬 Total Commands  ›  *${totalCmds}*
-> ⏱️  Uptime          ›  *${uptime}*
-> 🔑  Prefix          ›  *${botPrefix}*
-> 🛠️  Mode            ›  *${botMode.toUpperCase()}*
-> 📦  Version         ›  *v${botVersion}*
-> 🔒  Licence         ›  ${expiryLine}
-> 📅  Expiry          ›  _${expiryDetail}_
-> ✦ ━━━━━━━━━━━━━━━━━━━━━━━ ✦
-> 👑 *COMMAND CATEGORIES*
-> _Reply a number to explore  ·  1–${numCats}_
-> ✦ ━━━━━━━━━━━━━━━━━━━━━━━ ✦
-${catLines}
-> ✦ ━━━━━━━━━━━━━━━━━━━━━━━ ✦
-> 👑 _${botFooter}_`
+`╭══〘〘 👑 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 💎 Welcome, *${pushName}*
+┃
+┃ 👑 ROYAL SYSTEM
+┃ 🟢 Status   : *ONLINE*
+┃ 💬 Commands : *${totalCmds}*
+┃ ⚡ Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 🔒 Licence  : ${expiryLine}
+┃ 📅 Expiry   : _${expiryDetail}_
+┃
+┃ ╭─「 👑 CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _👑 ${botFooter}_`
             );
         },
     },
+
 
     galaxy: {
         name: "🌌 GALAXY",
-        description: "Space & stars blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, memBar, numCats }) {
+        description: "Galaxy rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, memBar, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 🌌 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🌌 *${botName.toUpperCase()}*  🚀
-> ✨ ━━━━━━━━━━━━━━━━━━━━━━━ ✨
-> 🌟 Greetings, *${pushName}*
-> ✨ ━━━━━━━━━━━━━━━━━━━━━━━ ✨
-> 🪐  Commands  ··  *${totalCmds}*
-> ⏳  Uptime    ··  *${uptime}*
-> 🔭  Prefix    ··  *${botPrefix}*
-> 🛸  Mode      ··  *${botMode.toUpperCase()}*
-> 🌍  Version   ··  *v${botVersion}*
-> 💾  RAM       ··  ${memBar}
-> 🔒  Licence   ··  ${expiryLine}
-> ✨ ━━━━━━━━━━━━━━━━━━━━━━━ ✨
-> 🌌 *WARP TO A CATEGORY*
-> _Reply with a number  ·  1–${numCats}_
-> ✨ ━━━━━━━━━━━━━━━━━━━━━━━ ✨
-${catLines}
-> ✨ ━━━━━━━━━━━━━━━━━━━━━━━ ✨
-> 🌙 _${botFooter}_`
+`╭══〘〘 🌌 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 🚀 Greetings, *${pushName}*
+┃ ✨ Welcome to the galaxy
+┃
+┃ 🪐 SYSTEM
+┃ 🟢 Status   : *ONLINE*
+┃ 🛰️ Commands : *${totalCmds}*
+┃ 🔭 Prefix   : *${botPrefix}*
+┃ 🛸 Mode     : *${botMode.toUpperCase()}*
+┃ 🌍 Version  : *v${botVersion}*
+┃ ⏳ Uptime   : *${uptime}*
+┃ 💾 RAM      : ${memBar}
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🌌 CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🌙 ${botFooter}_`
             );
         },
     },
+
 
     dark: {
         name: "🖤 DARK",
-        description: "Dark gothic blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, memBar, numCats }) {
+        description: "Dark rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, memBar, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ ☠️ ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🖤 *${botName.toUpperCase()}* 🖤
-> ◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢
-> ☠️  *${pushName}* entered the shadows
-> ◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢
-> 💬  Commands  ›  *${totalCmds}*
-> ⏱️   Uptime    ›  *${uptime}*
-> 🔑  Prefix    ›  *${botPrefix}*
-> 🛠️  Mode      ›  *${botMode.toUpperCase()}*
-> 📦  Version   ›  *v${botVersion}*
-> 💾  RAM       ›  ${memBar}
-> 🔒  Licence   ›  ${expiryLine}
-> ◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢
-> 🕷️ *COMMAND CATEGORIES*
-> _Choose your path  ·  1–${numCats}_
-> ◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢
-${catLines}
-> ◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢
-> 🖤 _${botFooter}_`
+`╭══〘〘 🖤 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ ☠️ *${pushName}* entered the shadows
+┃
+┃ 🕷️ DARK SYSTEM
+┃ 🟢 Status   : *ONLINE*
+┃ 💬 Commands : *${totalCmds}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 💾 RAM      : ${memBar}
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🕷️ CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🖤 ${botFooter}_`
             );
         },
     },
+
 
     flower: {
         name: "🌸 FLOWER",
-        description: "Cute floral blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
+        description: "Cute floral rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 🌸 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🌸 *${botName.toUpperCase()}* 🌸
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌷 Hi *${pushName}*  ╰(✿◕‿◕✿)╯
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌻  Cmds     »  *${totalCmds}*
-> 🌻  Uptime   »  *${uptime}*
-> 🌻  Prefix   »  *${botPrefix}*
-> 🌻  Mode     »  *${botMode.toUpperCase()}*
-> 🌻  Version  »  *v${botVersion}*
-> 🌻  Licence  »  ${expiryLine}
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌷 *CATEGORIES*
-> _Reply a number  ·  1–${numCats}_
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-${catLines}
-> 🌺 ━━━━━━━━━━━━━━━━━━━━━━━ 🌺
-> 🌸 _${botFooter}_`
+`╭══〘〘 🌸 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 🌷 Hi *${pushName}* ✨
+┃ 🌺 Welcome back
+┃
+┃ 🟢 Status   : *ONLINE*
+┃ 🌻 Commands : *${totalCmds}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🌐 Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🌸 CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🌸 ${botFooter}_`
             );
         },
     },
+
 
     fire: {
         name: "🔥 FIRE",
-        description: "Blazing hot blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
+        description: "Fire rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 🔥 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🔥 *${botName.toUpperCase()}* 🔥
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 💥 *${pushName}*, you're on fire!
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥  Cmds     ⟩  *${totalCmds}*
-> 🔥  Uptime   ⟩  *${uptime}*
-> 🔥  Prefix   ⟩  *${botPrefix}*
-> 🔥  Mode     ⟩  *${botMode.toUpperCase()}*
-> 🔥  Version  ⟩  *v${botVersion}*
-> 🔥  Licence  ⟩  ${expiryLine}
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥 *COMMAND CATEGORIES*
-> 🌶️ _Reply a number to ignite  ·  1–${numCats}_
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-${catLines}
-> 🌋 ━━━━━━━━━━━━━━━━━━━━━━━ 🌋
-> 🔥 _${botFooter}_`
+`╭══〘〘 🔥 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 💥 *${pushName}*, you're on fire!
+┃
+┃ 🔥 FIRE SYSTEM
+┃ 🟢 Status   : *ONLINE*
+┃ 💬 Commands : *${totalCmds}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🔥 CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🔥 ${botFooter}_`
             );
         },
     },
+
 
     wave: {
         name: "🌊 WAVE",
-        description: "Calm ocean blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, pushName, numCats }) {
+        description: "Ocean rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            pushName, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 🌊 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 🌊 *${botName.toUpperCase()}* 🌊
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🐚 Riding the wave, *${pushName}*
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🐠  Commands  ›  *${totalCmds}*
-> 🐠  Uptime    ›  *${uptime}*
-> 🐠  Prefix    ›  *${botPrefix}*
-> 🐠  Mode      ›  *${botMode.toUpperCase()}*
-> 🐠  Version   ›  *v${botVersion}*
-> 🐠  Licence   ›  ${expiryLine}
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🌊 *COMMAND CATEGORIES*
-> ↯ _Reply a number  ·  1–${numCats}_
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-${catLines}
-> 〰️ ━━━━━━━━━━━━━━━━━━━━━━━ 〰️
-> 🌊 _${botFooter}_`
+`╭══〘〘 🌊 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ 🐚 Riding the wave, *${pushName}*
+┃
+┃ 🌊 OCEAN SYSTEM
+┃ 🟢 Status   : *ONLINE*
+┃ 🐠 Commands : *${totalCmds}*
+┃ 🔑 Prefix   : *${botPrefix}*
+┃ 🛠️ Mode     : *${botMode.toUpperCase()}*
+┃ 📦 Version  : *v${botVersion}*
+┃ ⏱ Uptime   : *${uptime}*
+┃ 🔒 Licence  : ${expiryLine}
+┃
+┃ ╭─「 🌊 CATEGORIES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _🌊 ${botFooter}_`
             );
         },
     },
 
+
     matrix: {
         name: "💻 MATRIX",
-        description: "Hacker terminal blockquote style",
-        render({ botName, botPrefix, botVersion, botMode, botFooter,
-                  uptime, totalCmds, catLines, expiryLine, sender, memBar, numCats }) {
+        description: "Hacker rounded frame",
+        render({
+            botName, botPrefix, botVersion, botMode, botFooter,
+            uptime, totalCmds, catLines, expiryLine,
+            sender, memBar, numCats
+        }) {
+
+            const cats = catLines
+                .split("\n")
+                .map(l => `┃ 💻 ${l.replace(/^> ?/, "")}`)
+                .join("\n");
+
             return (
-`> 💻 *${botName.toUpperCase()}*
-> ══════════════════════════════
-> ⌨️  INIT_USER  ::  ${sender.split("@")[0]}
-> ✅  SYS_BOOT   ::  COMPLETE
-> ══════════════════════════════
-> 💬  CMDS       ::  *${totalCmds}*
-> ⏱️   UPTIME     ::  *${uptime}*
-> 🔑  PREFIX     ::  *${botPrefix}*
-> 🛠️  MODE       ::  *${botMode.toUpperCase()}*
-> 📦  VERSION    ::  *v${botVersion}*
-> 💾  RAM        ::  ${memBar}
-> 🔒  LICENCE    ::  ${expiryLine}
-> ══════════════════════════════
-> 🔎 SELECT_MODULE  ::  _reply 1–${numCats}_
-> ══════════════════════════════
-${catLines}
-> ══════════════════════════════
-> 💻 _${botFooter}_`
+`╭══〘〘 💻 *${botName.toUpperCase()}* 〙〙═⊷
+┃
+┃ ⌨️ INIT_USER  :: ${sender.split("@")[0]}
+┃ ✅ SYS_BOOT   :: COMPLETE
+┃
+┃ 💻 MATRIX SYSTEM
+┃ 🟢 STATUS    :: *ONLINE*
+┃ 💬 CMDS      :: *${totalCmds}*
+┃ 🔑 PREFIX    :: *${botPrefix}*
+┃ 🛠️ MODE      :: *${botMode.toUpperCase()}*
+┃ 📦 VERSION   :: *v${botVersion}*
+┃ ⏱ UPTIME     :: *${uptime}*
+┃ 💾 RAM       :: ${memBar}
+┃ 🔒 LICENCE   :: ${expiryLine}
+┃
+┃ ╭─「 💻 MODULES 」
+${cats}
+┃ ╰───────────────
+┃
+╰═════════════════⊷
+     _💻 ${botFooter}_`
             );
         },
     },
