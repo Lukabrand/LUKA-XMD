@@ -1,5 +1,5 @@
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 
 const RIDDLES = [
