@@ -1,6 +1,6 @@
 'use strict';
 // ╔══════════════════════════════════════════════════════════════╗
-//  ULTRA GURU MD  —  expiry.js
+//  LUKA-XMD  —  expiry.js
 //  Licence / deployment expiry gate
 //  Reads from: process.env.EXPIRY_DATE (primary)
 //              BOT_EXPIRY_DATE in DB (fallback)
@@ -151,7 +151,7 @@ async function checkExpiry({ onExpire, onWarn, exitOnExpiry = true } = {}) {
         const expiredAgo = Math.abs(days);
         const msg =
             `\n╔${'═'.repeat(54)}╗\n` +
-            `║  ⛔  ULTRA GURU MD — LICENCE EXPIRED\n` +
+            `║  ⛔  LUKA-XMD — LICENCE EXPIRED\n` +
             `╠${'═'.repeat(54)}╣\n` +
             `║  📅  Expiry Date : ${fmtDate(expiryDate)}\n` +
             `║  ⏱️   Expired     : ${expiredAgo} day(s) ago\n` +
