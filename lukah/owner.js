@@ -1,4 +1,4 @@
-const { gmd, commands, getSetting } = require("../guru");
+const { gmd, commands, getSetting } = require("../luka");
 const fs = require("fs").promises;
 const fsA = require("node:fs");
 const { S_WHATSAPP_NET } = require("@whiskeysockets/baileys");
@@ -8,7 +8,7 @@ const {
   groupCache,
   getGroupMetadata,
   cachedGroupMetadata,
-} = require("../guru/connection/groupCache");
+} = require("../luka/connection/groupCache");
 
 const pendingCmdFiles = new Map();
 
@@ -284,7 +284,7 @@ gmd(
           );
         } catch (error) {
           profilePictureUrl =
-            "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg";
+            "https://i.imgur.com/9VP31oG.png";
         }
 
         try {
@@ -967,8 +967,8 @@ gmd(
       superUser,
     } = conText;
     const { isJidGroup } = require("@whiskeysockets/baileys");
-    const { convertLidToJid } = require("../guru/connection/serializer");
-    const { resolveTargetJid } = require("../guru/connection/lidResolver");
+    const { convertLidToJid } = require("../luka/connection/serializer");
+    const { resolveTargetJid } = require("../luka/connection/lidResolver");
 
     if (!isSuperUser) return reply("❌ Owner Only Command!");
 
@@ -1049,8 +1049,8 @@ gmd(
     const { reply, react, isSuperUser, quotedUser, args, mentionedJid } =
       conText;
     const { isJidGroup } = require("@whiskeysockets/baileys");
-    const { convertLidToJid } = require("../guru/connection/serializer");
-    const { resolveTargetJid } = require("../guru/connection/lidResolver");
+    const { convertLidToJid } = require("../luka/connection/serializer");
+    const { resolveTargetJid } = require("../luka/connection/lidResolver");
 
     if (!isSuperUser) return reply("❌ Owner Only Command!");
 
@@ -1119,7 +1119,7 @@ gmd(
   },
   async (from, Guru, conText) => {
     const { reply, react, isSuperUser } = conText;
-    const { convertLidToJid } = require("../guru/connection/serializer");
+    const { convertLidToJid } = require("../luka/connection/serializer");
 
     if (!isSuperUser) return reply("❌ Owner Only Command!");
 
@@ -1171,7 +1171,7 @@ gmd(
       newsletterJid,
       botPrefix,
     } = conText;
-    const { downloadMediaMessage } = require("../guru/connection/serializer");
+    const { downloadMediaMessage } = require("../luka/connection/serializer");
     const { isJidGroup } = require("@whiskeysockets/baileys");
 
     if (!isSuperUser) return reply("❌ Owner Only Command!");
@@ -1241,7 +1241,7 @@ gmd(
           buffer = Buffer.concat(chunks);
         } catch (dlErr) {
           const altDownload =
-            require("../guru/connection/serializer").downloadMediaMessage;
+            require("../luka/connection/serializer").downloadMediaMessage;
           const fakeMsg = { key: { remoteJid: from }, message: quotedMsg };
           buffer = await altDownload(fakeMsg, Guru);
         }
@@ -1314,7 +1314,7 @@ gmd(
   },
   async (from, Guru, conText) => {
     const { reply, react, isSuperUser, quotedMsg, q, mek } = conText;
-    const { downloadMediaMessage } = require("../guru/connection/serializer");
+    const { downloadMediaMessage } = require("../luka/connection/serializer");
 
     if (!isSuperUser) return reply("❌ Owner Only Command!");
     if (!quotedMsg)
@@ -1815,7 +1815,7 @@ gmd(
   },
   async (from, Guru, conText) => {
     const { q, mek, reply, react, isGroup, isSuperUser, quotedUser, botFooter } = conText;
-    const { getLidMapping } = require("../guru/connection/groupCache");
+    const { getLidMapping } = require("../luka/connection/groupCache");
     const { sendButtons } = require("gifted-btns");
 
     if (!isSuperUser) {
