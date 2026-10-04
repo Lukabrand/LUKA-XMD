@@ -1,27 +1,27 @@
 
-const { gmd, commands } = require("../guru/gmdCmds");
+const { gmd, commands } = require("../luka/gmdCmds");
 const {
   getSetting,
   setSetting,
   getAllSettings,
   resetSetting,
   resetAllSettings,
-} = require("../guru/database/settings");
+} = require("../luka/database/settings");
 const {
   getGroupSetting,
   setGroupSetting,
   getEnabledGroupSettings,
   resetAllGroupSettings,
   getAllGroupSettings,
-} = require("../guru/database/groupSettings");
-const { getSudoNumbers, clearAllSudo } = require("../guru/database/sudo");
+} = require("../luka/database/groupSettings");
+const { getSudoNumbers, clearAllSudo } = require("../luka/database/sudo");
 const {
   getAllUsersNotes,
   deleteNoteById,
   updateNoteById,
   deleteAllNotes,
   NotesDB,
-} = require("../guru/database/notes");
+} = require("../luka/database/notes");
 
 function parseBooleanInput(input) {
   if (!input) return null;
@@ -966,7 +966,7 @@ gmd(
     const value = modeMap[input];
     if (!value) {
       const warnCount = await getGroupSetting(from, "ANTIBAD_WARN_COUNT");
-      const { getBadWords } = require("../guru/database/groupSettings");
+      const { getBadWords } = require("../luka/database/groupSettings");
       const badWords = await getBadWords(from);
       return reply(`❌ Please specify a mode:
 • *on/delete* - Delete bad word messages
