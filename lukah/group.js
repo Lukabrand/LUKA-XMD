@@ -3106,7 +3106,7 @@ gmd(
     if (!isAdmin && !isSuperAdmin && !isSuperUser)
       return reply("❌ You must be an admin to use this command!");
 
-    const { getGroupSetting, setGroupSetting } = require("../guru/database/groupSettings");
+    const { getGroupSetting, setGroupSetting } = require("../luka/database/groupSettings");
 
     const val = (q || "").toLowerCase().trim();
 
