@@ -16,8 +16,8 @@
 //  so enabling one for a scope replaces whichever was active there before.
 // ─────────────────────────────────────────────────────────────────────────
 
-const { gmd } = require("../guru/gmdCmds");
-const { getSetting, setSetting } = require("../guru/database/settings");
+const { gmd } = require("../luka/gmdCmds");
+const { getSetting, setSetting } = require("../luka/database/settings");
 
 function parseScope(word) {
   const w = (word || "").toLowerCase().trim();
