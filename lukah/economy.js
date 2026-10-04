@@ -1,4 +1,4 @@
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const Database = require("better-sqlite3");
 const path     = require("path");
 const fs       = require("fs-extra");
@@ -9,7 +9,7 @@ const fs       = require("fs-extra");
 //  Passive chat rewards · Daily bonus · Anti-abuse cooldowns.
 // ═══════════════════════════════════════════════════════════════════
 
-const DB_DIR = path.join(__dirname, "../guru/database");
+const DB_DIR = path.join(__dirname, "../luka/database");
 fs.ensureDirSync(DB_DIR);
 
 const db = new Database(path.join(DB_DIR, "economy.db"));
