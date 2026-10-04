@@ -6,7 +6,7 @@
  * ╚══════════════════════════════════════════════════════════════╝
  */
 
-const { gmd } = require("../guru");
+const { gmd } = require("../luka");
 const axios = require("axios");
 const crypto = require("crypto");
 const os = require("os");
@@ -918,7 +918,7 @@ gmd(
 
     const mem = memUsage();
     const up  = uptime();
-    const cmds = require("../guru").commands?.length || 0;
+    const cmds = require("../luka").commands?.length || 0;
 
     const statusText =
 `🤖 *${botName}* — ONLINE
