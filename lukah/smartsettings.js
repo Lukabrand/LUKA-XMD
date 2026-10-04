@@ -1,6 +1,6 @@
-const { gmd }               = require("../guru");
-const { getSetting, setSetting } = require("../guru/database/settings");
-const { sendGreeting, sendWellness } = require("../guru/scheduler");
+const { gmd }               = require("../luka");
+const { getSetting, setSetting } = require("../luka/database/settings");
+const { sendGreeting, sendWellness } = require("../luka/scheduler");
 
 // ═══════════════════════════════════════════════════════════════════
 //  SMART SETTINGS PANEL  ·  ULTRA GURU MD
