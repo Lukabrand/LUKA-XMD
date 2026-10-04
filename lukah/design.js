@@ -834,7 +834,7 @@ gmd(
 
         if (!isSuperUser) { await react("❌"); return reply("❌ Owner Only Command!"); }
 
-        const { expiryLine, parseExpiryDate } = require("../guru/expiry");
+        const { expiryLine, parseExpiryDate } = require("../luka/expiry");
 
         if (!args[0]) {
             await react("ℹ️");
