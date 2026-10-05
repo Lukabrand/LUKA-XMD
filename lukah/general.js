@@ -200,81 +200,69 @@ gmd(
             mek,
             react,
             botName,
-            sender,
         } = conText;
 
         try {
             const startTime = process.hrtime();
 
-            // Small delay to calculate response speed
-            await new Promise((resolve) =>
-                setTimeout(
-                    resolve,
-                    Math.floor(
-                        80 + Math.random() * 420
-                    )
-                )
-            );
-
-            const elapsed =
-                process.hrtime(startTime);
+            const elapsed = process.hrtime(startTime);
 
             const speed = Math.floor(
                 elapsed[0] * 1000 +
                 elapsed[1] / 1000000
             );
 
-            const name =
-                botName || "LUKA-XMD";
+            const name = botName || "LUKA-XMD";
 
-            // Get profile picture of the person who used .ping
-            let profilePic;
+            // JID ya BOT mwenyewe
+            const botJid =
+                Guru.user?.id?.split(":")[0];
+
+            let botProfilePic;
 
             try {
-                if (sender) {
-                    profilePic =
+                if (botJid) {
+                    botProfilePic =
                         await Guru.profilePictureUrl(
-                            sender,
+                            botJid,
                             "image"
                         );
                 }
             } catch (e) {
                 console.log(
-                    "Profile picture not available"
+                    "Bot profile picture not available"
                 );
             }
 
-            const caption =
+            await Guru.sendMessage(
+                from,
+                {
+                    text:
 `${name} speed
 
-${speed} ms`;
+${speed} ms`,
 
-            // Send user's profile picture + speed
-            if (profilePic) {
-                await Guru.sendMessage(
-                    from,
-                    {
-                        image: {
-                            url: profilePic,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: name,
+                            body: "View details",
+                            mediaType: 1,
+
+                            thumbnailUrl:
+                                botProfilePic,
+
+                            renderLargerThumbnail: true,
+                            showAdAttribution: false,
+
+                            sourceUrl:
+                                "https://wa.me/",
                         },
-                        caption: caption,
                     },
-                    {
-                        quoted: mek,
-                    }
-                );
-            } else {
-                // Fallback if user has no profile picture
-                await Guru.sendMessage(
-                    from,
-                    {
-                        text: caption,
-                    },
-                    {
-                        quoted: mek,
-                    }
-                );
-            }
+                },
+                {
+                    quoted: mek,
+                }
+            );
 
             await react("✅");
 
@@ -288,7 +276,6 @@ ${speed} ms`;
         }
     }
 );
-
 
 // ─── 4. UPTIME ────────────────────────────────────────────────────────────────
 
