@@ -181,7 +181,7 @@ const GN_MESSAGES = [
 
 // ── Daily Wellness Messages ───────────────────────────────────────────────────
 const WELLNESS_MESSAGES = [
-    `🌟 *Daily Check-In — ULTRA GURU MD*\n${"═".repeat(32)}\n\n` +
+    `🌟 *Daily Check-In — LUKA-XMD*\n${"═".repeat(32)}\n\n` +
     `👋 Hey fam! Hope you're having an amazing day!\n\n` +
     `📋 *Quick Check-In:*\n` +
     `✅ How are you doing today?\n` +
@@ -192,29 +192,29 @@ const WELLNESS_MESSAGES = [
     `Keep thriving — you're doing great! 🚀\n\n` +
     `> _Reply anytime — we're always listening!_`,
 
-    `💫 *Morning Pulse — ULTRA GURU MD*\n${"═".repeat(32)}\n\n` +
+    `💫 *Morning Pulse — LUKA-XMD*\n${"═".repeat(32)}\n\n` +
     `🌤️ Good day, legend!\n\n` +
     `We hope you're well-rested and fired up! 🔥\n\n` +
     `📌 *Today's Reminders:*\n` +
     `🤖 Your bot is running and protecting your chats\n` +
     `🔄 Check for bot updates: *.update* command\n` +
-    `💬 Invite friends to use ULTRA GURU MD!\n\n` +
+    `💬 Invite friends to use LUKA-XMD!\n\n` +
     `${"─".repeat(32)}\n` +
     `Stay healthy, stay blessed! 🙏\n` +
-    `> _ULTRA GURU MD — Built with love, just for you_`,
+    `> _LUKA-XMD — Built with love, just for you_`,
 
-    `🎯 *Daily Update Check — ULTRA GURU MD*\n${"═".repeat(32)}\n\n` +
+    `🎯 *Daily Update Check — LUKA-XMD*\n${"═".repeat(32)}\n\n` +
     `Hi there! 👋\n\n` +
     `*A gentle reminder:*\n` +
     `🔄 Have you checked for bot updates today?\n` +
     `   → Use *.update* to see the latest version\n\n` +
-    `🛡️ Your groups are protected by ULTRA GURU MD\n` +
+    `🛡️ Your groups are protected by LUKA-XMD\n` +
     `⚡ All systems are running smoothly!\n\n` +
     `${"─".repeat(32)}\n` +
     `We hope your day is going wonderfully! 😊\n` +
-    `Thank you for being part of the GURU family! 💜`,
+    `Thank you for being part of the LUKA family! 💜`,
 
-    `☀️ *ULTRA GURU MD — Daily Wellness*\n${"═".repeat(32)}\n\n` +
+    `☀️ *LUKA-XMD — Daily Wellness*\n${"═".repeat(32)}\n\n` +
     `Hello beautiful people! 🌺\n\n` +
     `*How's your bot doing today?*\n\n` +
     `📊 Quick tips to keep your bot healthy:\n` +
@@ -244,8 +244,8 @@ async function sendGreeting(Guru, type) {
             return 0;
         }
 
-        const botName = (await getSetting("BOT_NAME")) || "ULTRA GURU";
-        const botFooter = (await getSetting("FOOTER")) || "Powered by GURUTECH";
+        const botName = (await getSetting("BOT_NAME")) || "LUKA-XMD";
+        const botFooter = (await getSetting("FOOTER")) || "Powered by Lukabrand";
 
         const customMsgKey = type === "morning" ? "GREETINGS_GM_MSG" : "GREETINGS_GN_MSG";
         const customMsg = await getSetting(customMsgKey);
