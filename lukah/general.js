@@ -200,13 +200,13 @@ gmd(
             mek,
             react,
             botName,
+            sender,
         } = conText;
 
         try {
-            const startTime =
-                process.hrtime();
+            const startTime = process.hrtime();
 
-            // Small delay like the original ping
+            // Small delay to calculate response speed
             await new Promise((resolve) =>
                 setTimeout(
                     resolve,
@@ -224,20 +224,60 @@ gmd(
                 elapsed[1] / 1000000
             );
 
-            await Guru.sendMessage(
-                from,
-                {
-                    text:
-`${botName || "LUKA-XMD"} speed
+            const name =
+                botName || "LUKA-XMD";
 
-${speed} ms`,
-                },
-                {
-                    quoted: mek,
+            // Get profile picture of the person who used .ping
+            let profilePic;
+
+            try {
+                if (sender) {
+                    profilePic =
+                        await Guru.profilePictureUrl(
+                            sender,
+                            "image"
+                        );
                 }
-            );
+            } catch (e) {
+                console.log(
+                    "Profile picture not available"
+                );
+            }
+
+            const caption =
+`${name} speed
+
+${speed} ms`;
+
+            // Send user's profile picture + speed
+            if (profilePic) {
+                await Guru.sendMessage(
+                    from,
+                    {
+                        image: {
+                            url: profilePic,
+                        },
+                        caption: caption,
+                    },
+                    {
+                        quoted: mek,
+                    }
+                );
+            } else {
+                // Fallback if user has no profile picture
+                await Guru.sendMessage(
+                    from,
+                    {
+                        text: caption,
+                    },
+                    {
+                        quoted: mek,
+                    }
+                );
+            }
 
             await react("✅");
+
         } catch (error) {
             console.error(
                 "Ping Error:",
