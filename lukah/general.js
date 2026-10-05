@@ -201,7 +201,6 @@ gmd(
             newsletterUrl,
             botFooter,
             botPrefix,
-            botName,
         } = conText;
 
         try {
@@ -225,17 +224,17 @@ gmd(
             );
 
             await sendButtons(Guru, from, {
-                title: `${botName || "LUKA-XMD"} speed`,
+                title: "Bot Speed",
 
                 text:
 `⚡ Pong: ${responseTime}ms`,
 
                 footer:
-`> *${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}*`,
+`> *${botFooter}*`,
 
                 buttons: [
                     {
-                        id: `${botPrefix || "."}uptime`,
+                        id: `${botPrefix}uptime`,
                         text: "⏱️ Uptime",
                     },
 
