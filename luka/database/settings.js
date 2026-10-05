@@ -52,7 +52,7 @@ const DEFAULT_SETTINGS = {
     ANTICALL_MSG: "*_📞 Auto Call Reject Mode Active. 📵 No Calls Allowed!_*",
     AUTO_LIKE_STATUS: config.AUTO_LIKE_STATUS || "true",
     AUTO_READ_STATUS: config.AUTO_READ_STATUS || "true",
-    STATUS_LIKE_EMOJIS: "🥼,🏅,🎖️,🧧,🎐,🏅,🏆,🥇,🥈,🏆",
+    STATUS_LIKE_EMOJIS: "💚,💜,💙,❤️,💛,🦠",
     STATUS_REACT_EMOJI: "",  // status reaction content: "" = random from STATUS_LIKE_EMOJIS, "name" = react with sender's WhatsApp display name, "brand" = bot name (BOT_NAME) spelled in flag-letter emoji + keycap time/date, anything else = used literally as the reaction text
     AUTO_REPLY_STATUS: "false",
     STATUS_REPLY_TEXT: "*✨ Your status viewed successfully! ✨*",
