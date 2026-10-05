@@ -19,7 +19,7 @@ const TEMP_DIR = path.join(__dirname, "pairing_temp");
 // ─── Module state ────────────────────────────────────────────────────────────
 let _socket      = null;
 let _code        = null;        // "ABCD-EFGH" formatted pairing code
-let _sessionId   = null;        // Final "GURU~..." string
+let _sessionId   = null;        // Final "LUKA~..." string
 let _status      = "idle";      // idle | requesting | ready | success | error
 let _error       = null;
 
