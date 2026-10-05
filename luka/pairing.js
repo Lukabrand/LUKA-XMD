@@ -90,7 +90,7 @@ async function startPairing(rawPhone) {
                     const credsPath = path.join(TEMP_DIR, "creds.json");
                     const credsJson = fs.readFileSync(credsPath, "utf8");
                     const compressed = zlib.gzipSync(Buffer.from(credsJson, "utf8"));
-                    _sessionId = "GURU~" + compressed.toString("base64");
+                    _sessionId = "LUKA~" + compressed.toString("base64");
                     _status    = "success";
                     // Leave socket open briefly so creds finalise, then close
                     setTimeout(() => _cleanup(), 5_000);
