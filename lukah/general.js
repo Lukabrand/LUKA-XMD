@@ -400,19 +400,15 @@ gmd(
             );
 
         await reply(
-`╭─⌈ 🤖 *${botName || "LUKA-XMD"}* ⌋
-│
-│ 📦 Version  : *v${botVersion || "5.0.0"}*
-│ 📌 Prefix   : *${botPrefix || "."}*
-│ 🌐 Mode     : *${(
-            botMode || "public"
-        ).toUpperCase()}*
-│ 📊 Commands : *${totalCmds}*
-│ ⏱️ Uptime   : *${hours}h ${minutes}m*
-│ 👑 Owner    : *${ownerName || "Lukabrand"}*
-│ 📚 Library  : *Baileys*
-│
-╰⊷ ✦ *${botName || "LUKA-XMD"}* ✦`
+`╭══〘〘 *${botName || "LUKA-XMD"}* 〙〙═⊷`,
+`┃ 📦 Version  › *v${botVersion || "5.0.0"}*`,
+`┃ 📌 Prefix   › *${botPrefix || "."}*`,
+`┃ 🌐 Mode     › *${(botMode || "public").toUpperCase()}*`,
+`┃ 📊 Commands › *${totalCmds}*`,
+`┃ ⏱️ Uptime   › *${hours}h ${minutes}m*`,
+`┃ 👑 Owner    › *${ownerName || "Lukabrand"}*`,
+`┃ 📚 Library  › *Baileys*`,
+`╰══✦ *${botName || "LUKA-XMD"}* ✦══⊷`
         );
     }
 );
