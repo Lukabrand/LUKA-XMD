@@ -4,11 +4,11 @@ const { gmd, commands } = require("../luka");
 const moment = require("moment-timezone");
 
 const {
-    buildThemedMenu,
-    sendMenuMsg,
-    getSortedCategories,
-    CAT_ICONS,
-    getMenuPicUrl,
+buildThemedMenu,
+sendMenuMsg,
+getSortedCategories,
+CAT_ICONS,
+getMenuPicUrl,
 } = require("./design");
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -16,518 +16,390 @@ const {
 //                              LUKA-XMD
 // ══════════════════════════════════════════════════════════════════════════════
 
-
 // ─── 1. MENU ──────────────────────────────────────────────────────────────────
 
 gmd(
-    {
-        pattern: "menu",
-        aliases: ["help", "cmds", "commands", "start"],
-        react: "📋",
-        category: "general",
-        description: "Show the bot command menu",
-    },
+{
+pattern: "menu",
+aliases: ["help", "cmds", "commands", "start"],
+react: "📋",
+category: "general",
+description: "Show the bot command menu",
+},
 
-    async (from, Guru, conText) => {
-        const { react } = conText;
+async (from, Guru, conText) => {  
+    const { react } = conText;  
 
-        await react("📋");
+    await react("📋");  
 
-        try {
-            const text = await buildThemedMenu(
-                conText,
-                Guru
-            );
+    try {  
+        const text = await buildThemedMenu(conText, Guru);  
 
-            await sendMenuMsg(
-                Guru,
-                from,
-                text,
-                conText
-            );
+        await sendMenuMsg(  
+            Guru,  
+            from,  
+            text,  
+            conText  
+        );  
 
-            await react("✅");
+        await react("✅");  
+    } catch (error) {  
+        console.error("Menu Error:", error);  
+        await react("❌");  
+    }  
+}
 
-        } catch (error) {
-            console.error(
-                "Menu Error:",
-                error
-            );
-
-            await react("❌");
-        }
-    }
 );
-
 
 // ─── 2. CATEGORY HANDLER ──────────────────────────────────────────────────────
 
 gmd(
-    {
-        pattern: /^\d+$/,
-        on: "body",
-        dontAddCommandList: true,
-        react: "📂",
-        category: "general",
-        description: "Browse commands by category",
-    },
+{
+pattern: /^\d+$/,
+on: "body",
+dontAddCommandList: true,
+react: "📂",
+category: "general",
+description: "Browse commands by category number",
+},
 
-    async (from, Guru, conText) => {
-        const {
-            body,
-            mek,
-            botName,
-            botPrefix,
-            botFooter,
-            newsletterJid,
-            sender,
-            botId,
-        } = conText;
+async (from, Guru, conText) => {  
+    const {  
+        body,  
+        mek,  
+        botName,  
+        botPrefix,  
+        botFooter,  
+        newsletterJid,  
+        sender,  
+        botId,  
+    } = conText;  
 
-        const n = parseInt(
-            body.trim(),
-            10
-        );
+    const n = parseInt(body.trim(), 10);  
+    const cats = getSortedCategories();  
 
-        const cats =
-            getSortedCategories();
+    if (isNaN(n) || n < 1 || n > cats.length) {  
+        return;  
+    }  
 
-        if (
-            isNaN(n) ||
-            n < 1 ||
-            n > cats.length
-        ) {
-            return;
-        }
+    const { cat, cmds } = cats[n - 1];  
 
-        const {
-            cat,
-            cmds,
-        } = cats[n - 1];
+    const icon = CAT_ICONS[cat] || "⚡";  
 
-        const icon =
-            CAT_ICONS[cat] || "⚡";
+    const label =  
+        cat.charAt(0).toUpperCase() +  
+        cat.slice(1);  
 
-        const label =
-            cat.charAt(0).toUpperCase() +
-            cat.slice(1);
+    const cmdList = cmds  
+        .map((c) => {  
+            const desc = c.description  
+                ? ` — _${c.description}_`  
+                : "";  
 
-        const cmdList = cmds
-            .map((c) => {
+            const alts =  
+                (c.aliases || []).length  
+                    ? `\n> │   ↳ _${c.aliases  
+                          .map((a) => `${botPrefix}${a}`)  
+                          .join(", ")}_`  
+                    : "";  
 
-                const desc =
-                    c.description
-                        ? ` — _${c.description}_`
-                        : "";
+            return `> │ ◈ *${botPrefix}${c.pattern}*${desc}${alts}`;  
+        })  
+        .join("\n");  
 
-                const alts =
-                    (c.aliases || [])
-                        .length
-                        ? `\n> │   ↳ _${c.aliases
-                            .map(
-                                (a) =>
-                                    `${botPrefix}${a}`
-                            )
-                            .join(", ")}_`
-                        : "";
+    const text = `
 
-                return `> │ ◈ *${botPrefix}${c.pattern}*${desc}${alts}`;
-            })
-            .join("\n");
-
-        const text = `
-> ╭─⌈ ${icon} *${label.toUpperCase()}* ⌋
-> │ _${cmds.length} command${cmds.length !== 1 ? "s" : ""} available_
-> │
+> ╭─⌈ ${icon} ${label.toUpperCase()} ⌋
+│ ${cmds.length} command${cmds.length !== 1 ? "s" : ""} available
+│
 ${cmdList}
-> ╰⊷ ✨ _${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}_
+╰⊷ ✨ ${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}
 `;
 
-        const picUrl =
-            await getMenuPicUrl(
-                Guru,
-                botId
-            );
 
-        const contextInfo = {
-            mentionedJid:
-                sender
-                    ? [sender]
-                    : [],
 
-            forwardingScore: 5,
+const picUrl = await getMenuPicUrl(  
+        Guru,  
+        botId  
+    );  
 
-            isForwarded: true,
+    const contextInfo = {  
+        mentionedJid: sender ? [sender] : [],  
+        forwardingScore: 5,  
+        isForwarded: true,  
+        forwardedNewsletterMessageInfo: {  
+            newsletterJid:  
+                newsletterJid ||  
+                "120363406649804510@newsletter",  
 
-            forwardedNewsletterMessageInfo: {
-                newsletterJid:
-                    newsletterJid ||
-                    "120363406649804510@newsletter",
+            newsletterName:  
+                botName || "LUKA-XMD",  
 
-                newsletterName:
-                    botName ||
-                    "LUKA-XMD",
+            serverMessageId: 0,  
+        },  
+    };  
 
-                serverMessageId: 0,
-            },
-        };
+    try {  
+        if (picUrl) {  
+            await Guru.sendMessage(  
+                from,  
+                {  
+                    image: {  
+                        url: picUrl,  
+                    },  
+                    caption: text.trim(),  
+                    contextInfo,  
+                },  
+                {  
+                    quoted: mek,  
+                }  
+            );  
+        } else {  
+            await Guru.sendMessage(  
+                from,  
+                {  
+                    text: text.trim(),  
+                    contextInfo,  
+                },  
+                {  
+                    quoted: mek,  
+                }  
+            );  
+        }  
+    } catch (error) {  
+        console.error(  
+            "Category Error:",  
+            error  
+        );  
 
-        try {
+        await Guru.sendMessage(  
+            from,  
+            {  
+                text: text.trim(),  
+            },  
+            {  
+                quoted: mek,  
+            }  
+        );  
+    }  
+}
 
-            if (picUrl) {
-
-                await Guru.sendMessage(
-                    from,
-                    {
-                        image: {
-                            url: picUrl,
-                        },
-
-                        caption:
-                            text.trim(),
-
-                        contextInfo,
-                    },
-
-                    {
-                        quoted: mek,
-                    }
-                );
-
-            } else {
-
-                await Guru.sendMessage(
-                    from,
-                    {
-                        text:
-                            text.trim(),
-
-                        contextInfo,
-                    },
-
-                    {
-                        quoted: mek,
-                    }
-                );
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Category Error:",
-                error
-            );
-
-            await Guru.sendMessage(
-                from,
-                {
-                    text:
-                        text.trim(),
-                },
-
-                {
-                    quoted: mek,
-                }
-            );
-        }
-    }
 );
 
 // ─── 3. PING ──────────────────────────────────────────────────────────────────
 
 gmd(
-    {
-        pattern: "ping",
-        aliases: [
-            "p",
-            "pi",
-            "alive",
-            "status",
-            "check",
-        ],
-        react: "⚡",
-        category: "general",
-        description: "Check bot response speed",
-    },
+{
+pattern: "ping",
+aliases: ["p", "pi", "alive", "status", "check"],
+react: "⚡",
+category: "general",
+description: "Check bot response speed",
+},
 
-    async (from, Guru, conText) => {
+async (from, Guru, conText) => {  
+    const {  
+        mek,  
+        react,  
+        botName,  
+    } = conText;  
 
-        const {
-            react,
-            newsletterUrl,
-            botFooter,
-            botName,
-        } = conText;
+    try {  
+        const startTime =  
+            process.hrtime();  
 
-        try {
+        // Small delay like the original ping  
+        await new Promise((resolve) =>  
+            setTimeout(  
+                resolve,  
+                Math.floor(  
+                    80 + Math.random() * 420  
+                )  
+            )  
+        );  
 
-            const startTime =
-                process.hrtime();
+        const elapsed =  
+            process.hrtime(startTime);  
 
-            await new Promise(
-                (resolve) =>
-                    setTimeout(
-                        resolve,
-                        Math.floor(
-                            80 +
-                            Math.random() *
-                            420
-                        )
-                    )
-            );
+        const speed = Math.floor(  
+            elapsed[0] * 1000 +  
+            elapsed[1] / 1000000  
+        );  
 
-            const elapsed =
-                process.hrtime(
-                    startTime
-                );
+        await Guru.sendMessage(  
+            from,  
+            {  
+                text:
 
-            const responseTime =
-                Math.floor(
-                    elapsed[0] * 1000 +
-                    elapsed[1] /
-                        1000000
-                );
+`${botName || "LUKA-XMD"} speed
 
-            await sendButtons(
-                Guru,
-                from,
-                {
-                    title:
-                        `${botName || "LUKA-XMD"} speed`,
-
-                    text:
-                        `⚡ Pong: ${responseTime}ms`,
-
-                    footer:
-                        `> *${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}*`,
-
-                    buttons: [
-                        {
-                            name:
-                                "cta_url",
-
-                            buttonParamsJson:
-                                JSON.stringify({
-                                    display_text:
-                                        "WaChannel",
-
-                                    url:
-                                        newsletterUrl,
-                                }),
-                        },
-                    ],
-                }
-            );
-
-            await react("✅");
-
-        } catch (error) {
-
-            console.error(
-                "Ping Error:",
-                error
-            );
-
-            await react("❌");
-        }
-    }
+${speed} ms`,
+},
+{
+quoted: mek,
+}
 );
 
+await react("✅");  
+    } catch (error) {  
+        console.error(  
+            "Ping Error:",  
+            error  
+        );  
+
+        await react("❌");  
+    }  
+}
+
+);
 
 // ─── 4. UPTIME ────────────────────────────────────────────────────────────────
 
 if (!global._botStartTime) {
-    global._botStartTime =
-        Date.now();
+global._botStartTime = Date.now();
 }
 
 function getUptime() {
+const totalSeconds = Math.floor(
+(Date.now() - global._botStartTime) /
+1000
+);
 
-    const totalSeconds =
-        Math.floor(
-            (Date.now() -
-                global._botStartTime) /
-                1000
-        );
+const days = Math.floor(  
+    totalSeconds / 86400  
+);  
 
-    const days =
-        Math.floor(
-            totalSeconds / 86400
-        );
+const hours = Math.floor(  
+    (totalSeconds % 86400) / 3600  
+);  
 
-    const hours =
-        Math.floor(
-            (totalSeconds % 86400) /
-                3600
-        );
+const minutes = Math.floor(  
+    (totalSeconds % 3600) / 60  
+);  
 
-    const minutes =
-        Math.floor(
-            (totalSeconds % 3600) /
-                60
-        );
+const seconds =  
+    totalSeconds % 60;  
 
-    const seconds =
-        totalSeconds % 60;
+const parts = [];  
 
-    const parts = [];
+if (days) {  
+    parts.push(`${days}d`);  
+}  
 
-    if (days) {
-        parts.push(
-            `${days}d`
-        );
-    }
+if (hours) {  
+    parts.push(`${hours}h`);  
+}  
 
-    if (hours) {
-        parts.push(
-            `${hours}h`
-        );
-    }
+if (minutes) {  
+    parts.push(`${minutes}m`);  
+}  
 
-    if (minutes) {
-        parts.push(
-            `${minutes}m`
-        );
-    }
+parts.push(`${seconds}s`);  
 
-    parts.push(
-        `${seconds}s`
-    );
+return parts.join(" : ");
 
-    return parts.join(
-        " : "
-    );
 }
 
-
 gmd(
-    {
-        pattern: "uptime",
-        aliases: [
-            "runtime",
-            "ut",
-        ],
-        react: "⏱️",
-        category: "general",
-        description: "Check bot uptime",
-    },
+{
+pattern: "uptime",
+aliases: ["runtime", "ut"],
+react: "⏱️",
+category: "general",
+description: "Check bot uptime",
+},
 
-    async (from, Guru, conText) => {
+async (from, Guru, conText) => {  
+    const {  
+        mek,  
+        react,  
+        botName,  
+    } = conText;  
 
-        const {
-            mek,
-            react,
-            botName,
-        } = conText;
+    try {  
+        const uptime = getUptime();  
 
-        try {
+        await Guru.sendMessage(  
+            from,  
+            {  
+                text:
 
-            const uptime =
-                getUptime();
-
-            await Guru.sendMessage(
-                from,
-                {
-                    text:
 `${botName || "LUKA-XMD"} uptime
 
 ${uptime}`,
-                },
-
-                {
-                    quoted: mek,
-                }
-            );
-
-            await react("✅");
-
-        } catch (error) {
-
-            console.error(
-                "Uptime Error:",
-                error
-            );
-
-            await react("❌");
-        }
-    }
+},
+{
+quoted: mek,
+}
 );
 
+await react("✅");  
+    } catch (error) {  
+        console.error(  
+            "Uptime Error:",  
+            error  
+        );  
+
+        await react("❌");  
+    }  
+}
+
+);
 
 // ─── 5. BOT INFO ──────────────────────────────────────────────────────────────
 
 gmd(
-    {
-        pattern: "botinfo",
+{
+pattern: "botinfo",
+aliases: [
+"info",
+"about",
+"mybot",
+],
+react: "🤖",
+category: "general",
+description: "Show bot information",
+},
 
-        aliases: [
-            "info",
-            "about",
-            "mybot",
-        ],
+async (from, Guru, conText) => {  
+    const {  
+        reply,  
+        react,  
+        botName,  
+        botPrefix,  
+        botVersion,  
+        botMode,  
+        ownerName,  
+    } = conText;  
 
-        react: "🤖",
+    await react("🤖");  
 
-        category: "general",
+    const totalCmds =  
+        commands.filter(  
+            (c) =>  
+                c.pattern &&  
+                !c.dontAddCommandList  
+        ).length;  
 
-        description:
-            "Show bot information",
-    },
+    const uptimeSeconds =  
+        Math.floor(process.uptime());  
 
-    async (from, Guru, conText) => {
+    const hours =  
+        Math.floor(  
+            uptimeSeconds / 3600  
+        );  
 
-        const {
-            reply,
-            react,
-            botName,
-            botPrefix,
-            botVersion,
-            botMode,
-            ownerName,
-        } = conText;
+    const minutes =  
+        Math.floor(  
+            (uptimeSeconds % 3600) /  
+            60  
+        );  
 
-        await react("🤖");
+    await reply(
 
-        const totalCmds =
-            commands.filter(
-                (c) =>
-                    c.pattern &&
-                    !c.dontAddCommandList
-            ).length;
-
-        const uptimeSeconds =
-            Math.floor(
-                process.uptime()
-            );
-
-        const hours =
-            Math.floor(
-                uptimeSeconds / 3600
-            );
-
-        const minutes =
-            Math.floor(
-                (uptimeSeconds % 3600) /
-                    60
-            );
-
-        await reply(
-`╭─⌈ 🤖 *${botName || "LUKA-XMD"}* ⌋
-│
-│ 📦 Version  : *v${botVersion || "5.0.0"}*
-│ 📌 Prefix   : *${botPrefix || "."}*
-│ 🌐 Mode     : *${(
-    botMode || "public"
-).toUpperCase()}*
-│ 📊 Commands : *${totalCmds}*
-│ ⏱️ Uptime   : *${hours}h ${minutes}m*
-│ 👑 Owner    : *${ownerName || "Lukabrand"}*
-│ 📚 Library  : *Baileys*
-│
-╰⊷ ✦ *${botName || "LUKA-XMD"}* ✦`
-        );
-    }
+╭─⌈ 🤖 *${botName || "LUKA-XMD"}* ⌋   │   │ 📦 Version  : *v${botVersion || "5.0.0"}*   │ 📌 Prefix   : *${botPrefix || "."}*   │ 🌐 Mode     : *${(   botMode || "public"   ).toUpperCase()}*   │ 📊 Commands : *${totalCmds}*   │ ⏱️ Uptime   : *${hours}h ${minutes}m*   │ 👑 Owner    : *${ownerName || "Lukabrand"}*   │ 📚 Library  : *Baileys*   │   ╰⊷ ✦ *${botName || "LUKA-XMD"}* ✦
 );
-
+}
+);
 
 module.exports = {};
