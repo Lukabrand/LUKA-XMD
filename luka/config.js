@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════════════
-//  GURU CONFIG — Environment Variable Loader
+//  LUKA CONFIG — Environment Variable Loader
 // ════════════════════════════════════════════════════════════════════════════
 
 "use strict";
