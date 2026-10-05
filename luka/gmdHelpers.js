@@ -76,15 +76,15 @@ function setupConsoleFilters() {
 setupConsoleFilters();
 
 const createContext = async (userJid, options = {}) => {
-    const botName = (await getSetting("BOT_NAME")) || "𝐔𝐋𝐓𝐑𝐀 𝐆𝐔𝐑𝐔";
+    const botName = (await getSetting("BOT_NAME")) || "𝐋𝐔𝐊𝐀-𝐗𝐌𝐃";
     const botPic =
         (await getSetting("BOT_PIC")) ||
-        "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg";
+        "https://i.imgur.com/9VP31oG.png";
     const newsletterJid =
         (await getSetting("NEWSLETTER_JID")) || "120363406649804510@newsletter";
     const newsletterUrl =
         (await getSetting("NEWSLETTER_URL")) ||
-        "https://whatsapp.com/channel/0029VbCl2UX3rZZilMSvxN1e";
+        "https://whatsapp.com/channel/0029VbCl2UX3lMSvxN1e";
 
     return {
         contextInfo: {
@@ -101,7 +101,7 @@ const createContext = async (userJid, options = {}) => {
             },
             externalAdReply: {
                 title: options.title || botName,
-                body: options.body || "Powered by GuruTech",
+                body: options.body || "Powered by Lukabrand",
                 thumbnailUrl: botPic,
                 mediaType: 1,
                 mediaUrl: options.mediaUrl || botPic,
@@ -114,10 +114,10 @@ const createContext = async (userJid, options = {}) => {
 };
 
 const createContext2 = async (userJid, options = {}) => {
-    const botName = (await getSetting("BOT_NAME")) || "ULTRA GURU";
+    const botName = (await getSetting("BOT_NAME")) || "LUKA-XMD";
     const botPic =
         (await getSetting("BOT_PIC")) ||
-        "https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg";
+        "https://i.imgur.com/9VP31oG.png";
     const newsletterJid =
         (await getSetting("NEWSLETTER_JID")) || "120363406649804510@newsletter";
 
@@ -133,7 +133,7 @@ const createContext2 = async (userJid, options = {}) => {
             },
             externalAdReply: {
                 title: options.title || botName,
-                body: options.body || "Powered by Guru Tech",
+                body: options.body || "Powered by Lukabrand",
                 thumbnailUrl: botPic,
                 mediaType: 1,
                 showAdAttribution: true,
