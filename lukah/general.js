@@ -197,16 +197,15 @@ gmd(
 
     async (from, Guru, conText) => {
         const {
-            mek,
             react,
-            botName,
+            newsletterUrl,
+            botFooter,
+            botPrefix,
         } = conText;
 
         try {
-            const startTime =
-                process.hrtime();
+            const startTime = process.hrtime();
 
-            // Small delay like the original ping
             await new Promise((resolve) =>
                 setTimeout(
                     resolve,
@@ -219,26 +218,42 @@ gmd(
             const elapsed =
                 process.hrtime(startTime);
 
-            const speed = Math.floor(
+            const responseTime = Math.floor(
                 elapsed[0] * 1000 +
                 elapsed[1] / 1000000
             );
 
-            await Guru.sendMessage(
-                from,
-                {
-                    text:
-`${botName || "LUKA-XMD"} speed
+            await sendButtons(Guru, from, {
+                title: "Bot Speed",
 
-${speed} ms`,
-                },
-                {
-                    quoted: mek,
-                }
-            );
+                text:
+`⚡ Pong: ${responseTime}ms`,
+
+                footer:
+`> *${botFooter}*`,
+
+                buttons: [
+                    {
+                        id: `${botPrefix}uptime`,
+                        text: "⏱️ Uptime",
+                    },
+
+                    {
+                        name: "cta_url",
+
+                        buttonParamsJson:
+                            JSON.stringify({
+                                display_text: "WaChannel",
+                                url: newsletterUrl,
+                            }),
+                    },
+                ],
+            });
 
             await react("✅");
+
         } catch (error) {
+
             console.error(
                 "Ping Error:",
                 error
