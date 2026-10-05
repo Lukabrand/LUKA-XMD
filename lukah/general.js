@@ -233,7 +233,6 @@ ${cmdList}
     }
 );
 
-
 // ─── 3. PING ──────────────────────────────────────────────────────────────────
 
 gmd(
@@ -257,7 +256,6 @@ gmd(
             react,
             newsletterUrl,
             botFooter,
-            botPrefix,
             botName,
         } = conText;
 
@@ -304,14 +302,6 @@ gmd(
                         `> *${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}*`,
 
                     buttons: [
-                        {
-                            id:
-                                `${botPrefix || "."}uptime`,
-
-                            text:
-                                "⏱️ Uptime",
-                        },
-
                         {
                             name:
                                 "cta_url",
