@@ -203,61 +203,34 @@ gmd(
         } = conText;
 
         try {
-            const startTime = process.hrtime();
+            const startTime =
+                process.hrtime();
 
-            const elapsed = process.hrtime(startTime);
+            // Small delay like the original ping
+            await new Promise((resolve) =>
+                setTimeout(
+                    resolve,
+                    Math.floor(
+                        80 + Math.random() * 420
+                    )
+                )
+            );
+
+            const elapsed =
+                process.hrtime(startTime);
 
             const speed = Math.floor(
                 elapsed[0] * 1000 +
                 elapsed[1] / 1000000
             );
 
-            const name = botName || "LUKA-XMD";
-
-            // JID ya BOT mwenyewe
-            const botJid =
-                Guru.user?.id?.split(":")[0];
-
-            let botProfilePic;
-
-            try {
-                if (botJid) {
-                    botProfilePic =
-                        await Guru.profilePictureUrl(
-                            botJid,
-                            "image"
-                        );
-                }
-            } catch (e) {
-                console.log(
-                    "Bot profile picture not available"
-                );
-            }
-
             await Guru.sendMessage(
                 from,
                 {
                     text:
-`${name} speed
+`${botName || "LUKA-XMD"} speed
 
 ${speed} ms`,
-
-                    contextInfo: {
-                        externalAdReply: {
-                            title: name,
-                            body: "View details",
-                            mediaType: 1,
-
-                            thumbnailUrl:
-                                botProfilePic,
-
-                            renderLargerThumbnail: true,
-                            showAdAttribution: false,
-
-                            sourceUrl:
-                                "https://wa.me/",
-                        },
-                    },
                 },
                 {
                     quoted: mek,
@@ -265,7 +238,6 @@ ${speed} ms`,
             );
 
             await react("✅");
-
         } catch (error) {
             console.error(
                 "Ping Error:",
@@ -276,6 +248,7 @@ ${speed} ms`,
         }
     }
 );
+
 
 // ─── 4. UPTIME ────────────────────────────────────────────────────────────────
 
