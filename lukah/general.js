@@ -306,55 +306,28 @@ gmd(
     },
 
     async (from, Guru, conText) => {
-        const {
-            mek,
-            react,
-            botName,
-            timeZone,
-        } = conText;
+        const { mek, react, botName } = conText;
 
-        await react("⏱️");
+        try {
+            const uptime = getUptime();
 
-        const tz =
-            timeZone ||
-            process.env.TIME_ZONE ||
-            "Africa/Nairobi";
+            await Guru.sendMessage(
+                from,
+                {
+                    text: `${botName || "LUKA-XMD"} uptime\n\n\n${uptime}`,
+                },
+                {
+                    quoted: mek,
+                }
+            );
 
-        const t =
-            moment().tz(tz);
-
-        const time =
-            t.format("hh:mm:ss A");
-
-        const date =
-            t.format("ddd, DD MMM YYYY");
-
-        const uptime =
-            getUptime();
-
-        const text =
-`╭─⌈ ⏱️ *${botName || "LUKA-XMD"}* ⌋
-│
-│ ⏱️ Uptime : *${uptime}*
-│ 🕐 Time   : *${time}*
-│ 📅 Date   : *${date}*
-│
-╰⊷ ✦ *${botName || "LUKA-XMD"}* ✦`;
-
-        await Guru.sendMessage(
-            from,
-            {
-                text,
-            },
-            {
-                quoted: mek,
-            }
-        );
-
-        await react("✅");
+            await react("✅");
+        } catch (error) {
+            console.error("Uptime Error:", error);
+            await react("❌");
+        }
     }
 );
-
 
 // ─── 5. BOT INFO ──────────────────────────────────────────────────────────────
 
