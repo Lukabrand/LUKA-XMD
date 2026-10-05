@@ -34,7 +34,10 @@ gmd(
         await react("📋");
 
         try {
-            const text = await buildThemedMenu(conText, Guru);
+            const text = await buildThemedMenu(
+                conText,
+                Guru
+            );
 
             await sendMenuMsg(
                 Guru,
@@ -44,8 +47,13 @@ gmd(
             );
 
             await react("✅");
+
         } catch (error) {
-            console.error("Menu Error:", error);
+            console.error(
+                "Menu Error:",
+                error
+            );
+
             await react("❌");
         }
     }
@@ -61,7 +69,7 @@ gmd(
         dontAddCommandList: true,
         react: "📂",
         category: "general",
-        description: "Browse commands by category number",
+        description: "Browse commands by category",
     },
 
     async (from, Guru, conText) => {
@@ -76,16 +84,29 @@ gmd(
             botId,
         } = conText;
 
-        const n = parseInt(body.trim(), 10);
-        const cats = getSortedCategories();
+        const n = parseInt(
+            body.trim(),
+            10
+        );
 
-        if (isNaN(n) || n < 1 || n > cats.length) {
+        const cats =
+            getSortedCategories();
+
+        if (
+            isNaN(n) ||
+            n < 1 ||
+            n > cats.length
+        ) {
             return;
         }
 
-        const { cat, cmds } = cats[n - 1];
+        const {
+            cat,
+            cmds,
+        } = cats[n - 1];
 
-        const icon = CAT_ICONS[cat] || "⚡";
+        const icon =
+            CAT_ICONS[cat] || "⚡";
 
         const label =
             cat.charAt(0).toUpperCase() +
@@ -93,15 +114,21 @@ gmd(
 
         const cmdList = cmds
             .map((c) => {
-                const desc = c.description
-                    ? ` — _${c.description}_`
-                    : "";
+
+                const desc =
+                    c.description
+                        ? ` — _${c.description}_`
+                        : "";
 
                 const alts =
-                    (c.aliases || []).length
+                    (c.aliases || [])
+                        .length
                         ? `\n> │   ↳ _${c.aliases
-                              .map((a) => `${botPrefix}${a}`)
-                              .join(", ")}_`
+                            .map(
+                                (a) =>
+                                    `${botPrefix}${a}`
+                            )
+                            .join(", ")}_`
                         : "";
 
                 return `> │ ◈ *${botPrefix}${c.pattern}*${desc}${alts}`;
@@ -116,55 +143,76 @@ ${cmdList}
 > ╰⊷ ✨ _${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}_
 `;
 
-        const picUrl = await getMenuPicUrl(
-            Guru,
-            botId
-        );
+        const picUrl =
+            await getMenuPicUrl(
+                Guru,
+                botId
+            );
 
         const contextInfo = {
-            mentionedJid: sender ? [sender] : [],
+            mentionedJid:
+                sender
+                    ? [sender]
+                    : [],
+
             forwardingScore: 5,
+
             isForwarded: true,
+
             forwardedNewsletterMessageInfo: {
                 newsletterJid:
                     newsletterJid ||
                     "120363406649804510@newsletter",
 
                 newsletterName:
-                    botName || "LUKA-XMD",
+                    botName ||
+                    "LUKA-XMD",
 
                 serverMessageId: 0,
             },
         };
 
         try {
+
             if (picUrl) {
+
                 await Guru.sendMessage(
                     from,
                     {
                         image: {
                             url: picUrl,
                         },
-                        caption: text.trim(),
+
+                        caption:
+                            text.trim(),
+
                         contextInfo,
                     },
+
                     {
                         quoted: mek,
                     }
                 );
+
             } else {
+
                 await Guru.sendMessage(
                     from,
                     {
-                        text: text.trim(),
+                        text:
+                            text.trim(),
+
                         contextInfo,
                     },
+
                     {
                         quoted: mek,
                     }
                 );
             }
+
         } catch (error) {
+
             console.error(
                 "Category Error:",
                 error
@@ -173,8 +221,10 @@ ${cmdList}
             await Guru.sendMessage(
                 from,
                 {
-                    text: text.trim(),
+                    text:
+                        text.trim(),
                 },
+
                 {
                     quoted: mek,
                 }
@@ -189,66 +239,95 @@ ${cmdList}
 gmd(
     {
         pattern: "ping",
-        aliases: ["p", "pi", "alive", "status", "check"],
+        aliases: [
+            "p",
+            "pi",
+            "alive",
+            "status",
+            "check",
+        ],
         react: "⚡",
         category: "general",
         description: "Check bot response speed",
     },
 
     async (from, Guru, conText) => {
+
         const {
             react,
             newsletterUrl,
             botFooter,
             botPrefix,
+            botName,
         } = conText;
 
         try {
-            const startTime = process.hrtime();
 
-            await new Promise((resolve) =>
-                setTimeout(
-                    resolve,
-                    Math.floor(
-                        80 + Math.random() * 420
+            const startTime =
+                process.hrtime();
+
+            await new Promise(
+                (resolve) =>
+                    setTimeout(
+                        resolve,
+                        Math.floor(
+                            80 +
+                            Math.random() *
+                            420
+                        )
                     )
-                )
             );
 
             const elapsed =
-                process.hrtime(startTime);
+                process.hrtime(
+                    startTime
+                );
 
-            const responseTime = Math.floor(
-                elapsed[0] * 1000 +
-                elapsed[1] / 1000000
+            const responseTime =
+                Math.floor(
+                    elapsed[0] * 1000 +
+                    elapsed[1] /
+                        1000000
+                );
+
+            await sendButtons(
+                Guru,
+                from,
+                {
+                    title:
+                        `${botName || "LUKA-XMD"} speed`,
+
+                    text:
+                        `⚡ Pong: ${responseTime}ms`,
+
+                    footer:
+                        `> *${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}*`,
+
+                    buttons: [
+                        {
+                            id:
+                                `${botPrefix || "."}uptime`,
+
+                            text:
+                                "⏱️ Uptime",
+                        },
+
+                        {
+                            name:
+                                "cta_url",
+
+                            buttonParamsJson:
+                                JSON.stringify({
+                                    display_text:
+                                        "WaChannel",
+
+                                    url:
+                                        newsletterUrl,
+                                }),
+                        },
+                    ],
+                }
             );
-
-            await sendButtons(Guru, from, {
-                title: "Bot Speed",
-
-                text:
-`⚡ Pong: ${responseTime}ms`,
-
-                footer:
-`> *${botFooter}*`,
-
-                buttons: [
-                    {
-                        id: `${botPrefix}uptime`,
-                        text: "⏱️ Uptime",
-                    },
-
-                    {
-                        name: "cta_url",
-
-                        buttonParamsJson:
-                            JSON.stringify({
-                                display_text: "WaChannel",
-                                url: newsletterUrl,
-                            }),
-                    },
-                ],
-            });
 
             await react("✅");
 
@@ -268,26 +347,35 @@ gmd(
 // ─── 4. UPTIME ────────────────────────────────────────────────────────────────
 
 if (!global._botStartTime) {
-    global._botStartTime = Date.now();
+    global._botStartTime =
+        Date.now();
 }
 
 function getUptime() {
-    const totalSeconds = Math.floor(
-        (Date.now() - global._botStartTime) /
-        1000
-    );
 
-    const days = Math.floor(
-        totalSeconds / 86400
-    );
+    const totalSeconds =
+        Math.floor(
+            (Date.now() -
+                global._botStartTime) /
+                1000
+        );
 
-    const hours = Math.floor(
-        (totalSeconds % 86400) / 3600
-    );
+    const days =
+        Math.floor(
+            totalSeconds / 86400
+        );
 
-    const minutes = Math.floor(
-        (totalSeconds % 3600) / 60
-    );
+    const hours =
+        Math.floor(
+            (totalSeconds % 86400) /
+                3600
+        );
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) /
+                60
+        );
 
     const seconds =
         totalSeconds % 60;
@@ -295,32 +383,47 @@ function getUptime() {
     const parts = [];
 
     if (days) {
-        parts.push(`${days}d`);
+        parts.push(
+            `${days}d`
+        );
     }
 
     if (hours) {
-        parts.push(`${hours}h`);
+        parts.push(
+            `${hours}h`
+        );
     }
 
     if (minutes) {
-        parts.push(`${minutes}m`);
+        parts.push(
+            `${minutes}m`
+        );
     }
 
-    parts.push(`${seconds}s`);
+    parts.push(
+        `${seconds}s`
+    );
 
-    return parts.join(" : ");
+    return parts.join(
+        " : "
+    );
 }
+
 
 gmd(
     {
         pattern: "uptime",
-        aliases: ["runtime", "ut"],
+        aliases: [
+            "runtime",
+            "ut",
+        ],
         react: "⏱️",
         category: "general",
         description: "Check bot uptime",
     },
 
     async (from, Guru, conText) => {
+
         const {
             mek,
             react,
@@ -328,7 +431,9 @@ gmd(
         } = conText;
 
         try {
-            const uptime = getUptime();
+
+            const uptime =
+                getUptime();
 
             await Guru.sendMessage(
                 from,
@@ -338,13 +443,16 @@ gmd(
 
 ${uptime}`,
                 },
+
                 {
                     quoted: mek,
                 }
             );
 
             await react("✅");
+
         } catch (error) {
+
             console.error(
                 "Uptime Error:",
                 error
@@ -355,22 +463,29 @@ ${uptime}`,
     }
 );
 
+
 // ─── 5. BOT INFO ──────────────────────────────────────────────────────────────
 
 gmd(
     {
         pattern: "botinfo",
+
         aliases: [
             "info",
             "about",
             "mybot",
         ],
+
         react: "🤖",
+
         category: "general",
-        description: "Show bot information",
+
+        description:
+            "Show bot information",
     },
 
     async (from, Guru, conText) => {
+
         const {
             reply,
             react,
@@ -391,7 +506,9 @@ gmd(
             ).length;
 
         const uptimeSeconds =
-            Math.floor(process.uptime());
+            Math.floor(
+                process.uptime()
+            );
 
         const hours =
             Math.floor(
@@ -401,7 +518,7 @@ gmd(
         const minutes =
             Math.floor(
                 (uptimeSeconds % 3600) /
-                60
+                    60
             );
 
         await reply(
@@ -410,8 +527,8 @@ gmd(
 │ 📦 Version  : *v${botVersion || "5.0.0"}*
 │ 📌 Prefix   : *${botPrefix || "."}*
 │ 🌐 Mode     : *${(
-            botMode || "public"
-        ).toUpperCase()}*
+    botMode || "public"
+).toUpperCase()}*
 │ 📊 Commands : *${totalCmds}*
 │ ⏱️ Uptime   : *${hours}h ${minutes}m*
 │ 👑 Owner    : *${ownerName || "Lukabrand"}*
