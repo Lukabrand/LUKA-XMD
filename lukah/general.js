@@ -11,6 +11,8 @@ const {
     getMenuPicUrl,
 } = require("./design");
 
+const { sendButtons } = require("gifted-btns");
+
 // ══════════════════════════════════════════════════════════════════════════════
 //                              GENERAL COMMANDS
 //                              LUKA-XMD
@@ -189,7 +191,7 @@ ${cmdList}
 gmd(
     {
         pattern: "ping",
-        aliases: ["p", "pi", "alive", "status", "check"],
+        aliases: ["p", "pi"],
         react: "⚡",
         category: "general",
         description: "Check bot response speed",
@@ -197,16 +199,15 @@ gmd(
 
     async (from, Guru, conText) => {
         const {
-            mek,
             react,
-            botName,
+            newsletterUrl,
+            botFooter,
+            botPrefix,
         } = conText;
 
         try {
-            const startTime =
-                process.hrtime();
+            const startTime = process.hrtime();
 
-            // Small delay like the original ping
             await new Promise((resolve) =>
                 setTimeout(
                     resolve,
@@ -219,25 +220,32 @@ gmd(
             const elapsed =
                 process.hrtime(startTime);
 
-            const speed = Math.floor(
+            const responseTime = Math.floor(
                 elapsed[0] * 1000 +
                 elapsed[1] / 1000000
             );
 
-            await Guru.sendMessage(
-                from,
-                {
-                    text:
-`${botName || "LUKA-XMD"} speed
-
-${speed} ms`,
-                },
-                {
-                    quoted: mek,
-                }
-            );
+            await sendButtons(Guru, from, {
+                title: "Bot Speed",
+                text: `⚡ Pong: ${responseTime}ms`,
+                footer: `> *${botFooter || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"}*`,
+                buttons: [
+                    {
+                        id: `${botPrefix || "."}uptime`,
+                        text: "⏱️ Uptime",
+                    },
+                    {
+                        name: "cta_url",
+                        buttonParamsJson: JSON.stringify({
+                            display_text: "WaChannel",
+                            url: newsletterUrl,
+                        }),
+                    },
+                ],
+            });
 
             await react("✅");
+
         } catch (error) {
             console.error(
                 "Ping Error:",
@@ -306,7 +314,11 @@ gmd(
     },
 
     async (from, Guru, conText) => {
-        const { mek, react, botName } = conText;
+        const {
+            mek,
+            react,
+            botName,
+        } = conText;
 
         try {
             const uptime = getUptime();
@@ -314,7 +326,10 @@ gmd(
             await Guru.sendMessage(
                 from,
                 {
-                    text: `${botName || "LUKA-XMD"} uptime\n\n\n${uptime}`,
+                    text:
+`${botName || "LUKA-XMD"} uptime
+
+${uptime}`,
                 },
                 {
                     quoted: mek,
@@ -322,12 +337,18 @@ gmd(
             );
 
             await react("✅");
+
         } catch (error) {
-            console.error("Uptime Error:", error);
+            console.error(
+                "Uptime Error:",
+                error
+            );
+
             await react("❌");
         }
     }
 );
+
 
 // ─── 5. BOT INFO ──────────────────────────────────────────────────────────────
 
