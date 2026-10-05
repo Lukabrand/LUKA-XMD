@@ -415,7 +415,7 @@ gmd(
         ).toUpperCase()}*
 │ 📊 Commands : *${totalCmds}*
 │ ⏱️ Uptime   : *${hours}h ${minutes}m*
-│ 👑 Owner    : *${ownerName || "LUKA iT"}*
+│ 👑 Owner    : *${ownerName || "Lukabrand"}*
 │ 📚 Library  : *Baileys*
 │
 ╰⊷ ✦ *${botName || "LUKA-XMD"}* ✦`
