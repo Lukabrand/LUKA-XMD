@@ -1,6 +1,9 @@
 "use strict";
 
 const { gmd } = require("../luka");
+const axios = require("axios");
+
+const PROFILE_IMAGE = "https://i.imgur.com/FmAY2zv.png";
 
 gmd(
     {
@@ -8,7 +11,7 @@ gmd(
         aliases: ["me", "myprofile"],
         category: "user",
         react: "👤",
-        description: "Display your WhatsApp profile information",
+        description: "Display your LUKA-XMD profile card",
     },
 
     async (from, Guru, conText) => {
@@ -20,36 +23,14 @@ gmd(
                 mek?.key?.remoteJid ||
                 from;
 
-            const jid = sender || from;
-
-            const number = jid
+            const number = String(sender)
                 .split("@")[0]
                 .split(":")[0];
 
-            let name =
+            const name =
                 mek?.pushName ||
                 "WhatsApp User";
 
-            let profilePicture = null;
-
-            // Try to retrieve the user's WhatsApp profile picture
-            try {
-                profilePicture = await Guru.profilePictureUrl(
-                    jid,
-                    "image"
-                );
-            } catch (_) {
-                profilePicture = null;
-            }
-
-            // Determine account type
-            const accountType = jid.endsWith("@g.us")
-                ? "Group"
-                : jid.endsWith("@lid")
-                ? "WhatsApp User"
-                : "Personal Account";
-
-            // Determine chat type
             const chatType = String(from).endsWith("@g.us")
                 ? "Group Chat"
                 : "Private Chat";
@@ -58,7 +39,7 @@ gmd(
 
             const dateText = date.toLocaleDateString("en-GB", {
                 day: "2-digit",
-                month: "long",
+                month: "short",
                 year: "numeric",
             });
 
@@ -72,40 +53,41 @@ gmd(
                 "┃\n" +
                 "┃ 👤 *Name:* " + name + "\n" +
                 "┃ 📱 *Number:* " + number + "\n" +
-                "┃ 🏷️ *Account:* " + accountType + "\n" +
-                "┃ 💬 *Chat Type:* " + chatType + "\n" +
+                "┃ 💬 *Chat:* " + chatType + "\n" +
                 "┃ 📅 *Date:* " + dateText + "\n" +
                 "┃ ⏰ *Time:* " + timeText + "\n" +
                 "┃\n" +
                 "╰━━━━━━━━━━━━━━━━━━━━╯\n\n" +
                 "> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ*";
 
-            if (profilePicture) {
-                try {
-                    const axios = require("axios");
+            const response = await axios.get(PROFILE_IMAGE, {
+                responseType: "arraybuffer",
+                timeout: 20000,
+                headers: {
+                    Accept: "image/*",
+                },
+            });
 
-                    const response = await axios.get(
-                        profilePicture,
-                        {
-                            responseType: "arraybuffer",
-                            timeout: 15000,
-                        }
-                    );
+            const imageBuffer = Buffer.from(response.data);
+            const contentType = String(
+                response.headers["content-type"] || ""
+            ).toLowerCase();
 
-                    return await Guru.sendMessage(
-                        from,
-                        {
-                            image: Buffer.from(response.data),
-                            caption: caption,
-                        },
-                        { quoted: mek }
-                    );
-                } catch (_) {
-                    // Send text if the profile picture cannot be downloaded
-                }
+            if (
+                !imageBuffer.length ||
+                !contentType.startsWith("image/")
+            ) {
+                throw new Error("The profile image URL did not return a valid image.");
             }
 
-            return await reply(caption);
+            return await Guru.sendMessage(
+                from,
+                {
+                    image: imageBuffer,
+                    caption: caption,
+                },
+                { quoted: mek }
+            );
 
         } catch (error) {
             console.error(
@@ -114,7 +96,8 @@ gmd(
             );
 
             return reply(
-                "❌ Unable to retrieve your profile information.\n\n" +
+                "❌ Unable to create the profile card.\n" +
+                "Please check the image URL or your internet connection.\n\n" +
                 "> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ*"
             );
         }
