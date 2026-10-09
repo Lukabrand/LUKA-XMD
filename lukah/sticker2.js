@@ -1,113 +1,288 @@
-// Alternate sticker command that does NOT use sharp or wa-sticker-formatter.
-// The regular .sticker command crashes the whole process on some hosts
-// because wa-sticker-formatter uses sharp internally, and a corrupted/
-// mismatched sharp native binary can crash the entire Node process with a
-// "double free or corruption" SIGABRT — not something try/catch can stop.
-//
-// This command builds the webp purely with ffmpeg (a subprocess), so even
-// if ffmpeg itself fails, it just returns an error code — it can never take
-// down the bot process.
+"use strict";
 
 const { gmd, gmdRandom, getVideoDuration } = require("../luka");
 const fs = require("fs").promises;
 const fss = require("fs");
-const { exec, execSync } = require("child_process");
+const { execFile, execSync } = require("child_process");
 
-// Resolve ffmpeg binary: prefer ffmpeg-static, fall back to system ffmpeg
-let _ffmpegBin;
+// Resolve FFmpeg binary
+let ffmpegBin = "ffmpeg";
+
 try {
-    const sp = require("ffmpeg-static");
-    _ffmpegBin = (sp && fss.existsSync(sp)) ? sp : execSync("which ffmpeg").toString().trim();
+    const ffmpegStatic = require("ffmpeg-static");
+
+    if (ffmpegStatic && fss.existsSync(ffmpegStatic)) {
+        ffmpegBin = ffmpegStatic;
+    } else {
+        ffmpegBin = execSync("which ffmpeg", {
+            encoding: "utf8"
+        }).trim();
+    }
 } catch (_) {
-    try { _ffmpegBin = execSync("which ffmpeg").toString().trim(); } catch (__) { _ffmpegBin = "ffmpeg"; }
+    try {
+        ffmpegBin = execSync("which ffmpeg", {
+            encoding: "utf8"
+        }).trim();
+    } catch (__) {
+        ffmpegBin = "ffmpeg";
+    }
 }
 
-function runCmd(cmd) {
+// Run FFmpeg safely without shell command interpolation
+function runFFmpeg(args) {
     return new Promise((resolve, reject) => {
-        exec(cmd, { maxBuffer: 1024 * 1024 * 20 }, (err, _stdout, stderr) => {
-            if (err) reject(new Error(stderr || err.message));
-            else resolve();
-        });
+        execFile(
+            ffmpegBin,
+            args,
+            { maxBuffer: 20 * 1024 * 1024 },
+            (error, stdout, stderr) => {
+                if (error) {
+                    return reject(
+                        new Error(stderr || error.message)
+                    );
+                }
+
+                resolve(stdout);
+            }
+        );
     });
 }
 
-// Square, padded, transparent-background webp — works for static images.
+// Convert image to WebP sticker
 async function imageToWebp(input, output) {
-    const cmd = `"${_ffmpegBin}" -i "${input}" -vf "scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -vcodec libwebp -lossless 0 -qscale 75 -preset default -loop 0 -an -vsync 0 "${output}" -y`;
-    await runCmd(cmd);
+    await runFFmpeg([
+        "-y",
+        "-i", input,
+        "-frames:v", "1",
+        "-vf",
+        "scale=512:512:force_original_aspect_ratio=decrease," +
+        "format=rgba," +
+        "pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+        "-c:v", "libwebp",
+        "-lossless", "0",
+        "-q:v", "75",
+        "-preset", "default",
+        "-an",
+        output
+    ]);
 }
 
-// Animated webp for video/gif — capped duration & fps to keep it under
-// WhatsApp's sticker size limit.
+// Convert video/GIF to animated WebP sticker
 async function videoToWebp(input, output, duration) {
-    const cmd = `"${_ffmpegBin}" -i "${input}" -vf "scale=512:512:force_original_aspect_ratio=decrease,fps=12,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -t ${duration} -vcodec libwebp -loop 0 -preset default -an -vsync 0 "${output}" -y`;
-    await runCmd(cmd);
+    await runFFmpeg([
+        "-y",
+        "-i", input,
+        "-t", String(duration),
+        "-vf",
+        "fps=12," +
+        "scale=512:512:force_original_aspect_ratio=decrease," +
+        "format=rgba," +
+        "pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+        "-c:v", "libwebp",
+        "-loop", "0",
+        "-preset", "default",
+        "-an",
+        output
+    ]);
 }
 
-// Re-encode an existing sticker/webp (covers oversized or malformed stickers).
+// Re-encode an existing WebP sticker
 async function webpToWebp(input, output) {
-    const cmd = `"${_ffmpegBin}" -i "${input}" -vf "scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000" -vcodec libwebp -loop 0 -preset default -an -vsync 0 "${output}" -y`;
-    await runCmd(cmd);
+    await runFFmpeg([
+        "-y",
+        "-i", input,
+        "-vf",
+        "scale=512:512:force_original_aspect_ratio=decrease," +
+        "format=rgba," +
+        "pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000",
+        "-c:v", "libwebp",
+        "-loop", "0",
+        "-preset", "default",
+        "-an",
+        output
+    ]);
 }
 
-gmd({
-    pattern: "sticker2",
-    aliases: ["s2", "stick2"],
-    category: "converter",
-    react: "🔄️",
-    description: "Convert image/video/sticker to sticker (ffmpeg-only, crash-safe fallback).",
-}, async (from, Guru, conText) => {
-    const { mek, reply, react, quoted } = conText;
+gmd(
+    {
+        pattern: "sticker2",
+        aliases: ["s2", "stick2"],
+        category: "converter",
+        react: "🔄️",
+        description: "Convert images, videos, GIFs and stickers using FFmpeg",
+    },
 
-    const directImg = mek.message?.imageMessage;
-    const directVideo = mek.message?.videoMessage;
-    const directSticker = mek.message?.stickerMessage;
+    async (from, Guru, conText) => {
+        const { mek, reply, react, quoted } = conText;
 
-    const targetImg = quoted?.imageMessage || quoted?.message?.imageMessage || directImg;
-    const targetSticker = quoted?.stickerMessage || quoted?.message?.stickerMessage || directSticker;
-    const targetVideo = quoted?.videoMessage || quoted?.message?.videoMessage || directVideo;
+        const message = mek?.message || {};
 
-    if (!targetImg && !targetSticker && !targetVideo) {
-        await react("❌");
-        return reply(
-            "Please reply to (or send directly with the caption) an image, video, GIF or sticker to convert it."
-        );
-    }
+        const quotedMessage =
+            quoted?.message ||
+            quoted?.msg ||
+            quoted ||
+            {};
 
-    let downloadedPath, inputFile, outputFile;
-    try {
-        const media = targetImg || targetVideo || targetSticker;
-        downloadedPath = await Guru.downloadAndSaveMediaMessage(media, "temp_s2_media");
+        const directImage = message.imageMessage;
+        const directVideo = message.videoMessage;
+        const directSticker = message.stickerMessage;
 
-        const data = await fs.readFile(downloadedPath);
-        const ext = targetImg ? ".jpg" : targetVideo ? ".mp4" : ".webp";
-        inputFile = gmdRandom(ext);
-        await fs.writeFile(inputFile, data);
-        outputFile = gmdRandom(".webp");
+        const quotedImage =
+            quotedMessage.imageMessage;
 
-        if (targetImg) {
-            await imageToWebp(inputFile, outputFile);
-        } else if (targetVideo) {
-            let duration = 8;
-            try {
-                duration = await getVideoDuration(inputFile);
-                if (duration > 8) duration = 8;
-            } catch (_) {}
-            await videoToWebp(inputFile, outputFile, duration);
-        } else {
-            await webpToWebp(inputFile, outputFile);
+        const quotedVideo =
+            quotedMessage.videoMessage;
+
+        const quotedSticker =
+            quotedMessage.stickerMessage;
+
+        const targetImage = quotedImage || directImage;
+        const targetVideo = quotedVideo || directVideo;
+        const targetSticker = quotedSticker || directSticker;
+
+        if (!targetImage && !targetVideo && !targetSticker) {
+            await react("❌");
+
+            return reply(
+                "🎨 *LUKA-XMD STICKER MAKER*\n\n" +
+                "Reply to an image, video, GIF, or sticker with:\n" +
+                ".sticker2\n\n" +
+                "Aliases: .s2 or .stick2\n\n" +
+                "> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"
+            );
         }
 
-        const stickerBuffer = await fs.readFile(outputFile);
-        await react("✅");
-        return Guru.sendMessage(from, { sticker: stickerBuffer }, { quoted: mek });
-    } catch (error) {
-        console.error("sticker2 error:", error);
-        await react("❌");
-        return reply("Failed to convert to sticker: " + (error.message || "unknown error"));
-    } finally {
-        for (const f of [downloadedPath, inputFile, outputFile]) {
-            if (f) await fs.unlink(f).catch(() => {});
+        let downloadedPath;
+        let inputFile;
+        let outputFile;
+
+        try {
+            const media =
+                targetImage || targetVideo || targetSticker;
+
+            if (
+                targetVideo &&
+                !targetImage &&
+                !targetSticker &&
+                (targetVideo.seconds || 0) > 8
+            ) {
+                await react("⚠️");
+
+                return reply(
+                    "⚠️ Please use a video that is 8 seconds or shorter."
+                );
+            }
+
+            await react("⏳");
+
+            // Download media using the bot's existing helper
+            downloadedPath =
+                await Guru.downloadAndSaveMediaMessage(
+                    media,
+                    "temp_sticker2"
+                );
+
+            if (
+                !downloadedPath ||
+                typeof downloadedPath !== "string"
+            ) {
+                throw new Error(
+                    "The media downloader did not return a file path."
+                );
+            }
+
+            const mediaBuffer = await fs.readFile(downloadedPath);
+
+            if (!mediaBuffer.length) {
+                throw new Error("Downloaded media is empty.");
+            }
+
+            let extension = ".jpg";
+
+            if (targetVideo) extension = ".mp4";
+            if (targetSticker) extension = ".webp";
+
+            inputFile = gmdRandom(extension);
+            outputFile = gmdRandom(".webp");
+
+            await fs.writeFile(inputFile, mediaBuffer);
+
+            if (targetImage) {
+                await imageToWebp(inputFile, outputFile);
+            } else if (targetVideo) {
+                let duration = 8;
+
+                try {
+                    const videoDuration =
+                        await getVideoDuration(inputFile);
+
+                    if (
+                        Number.isFinite(videoDuration) &&
+                        videoDuration > 0
+                    ) {
+                        duration = Math.min(videoDuration, 8);
+                    }
+                } catch (error) {
+                    console.log(
+                        "[LUKA STICKER] Using default video duration."
+                    );
+                }
+
+                await videoToWebp(
+                    inputFile,
+                    outputFile,
+                    duration
+                );
+            } else {
+                await webpToWebp(inputFile, outputFile);
+            }
+
+            const stickerBuffer = await fs.readFile(outputFile);
+
+            if (!stickerBuffer.length) {
+                throw new Error(
+                    "FFmpeg produced an empty sticker file."
+                );
+            }
+
+            await react("✅");
+
+            return await Guru.sendMessage(
+                from,
+                {
+                    sticker: stickerBuffer
+                },
+                { quoted: mek }
+            );
+
+        } catch (error) {
+            console.error(
+                "[LUKA-XMD STICKER2 ERROR]",
+                error.stack || error.message
+            );
+
+            await react("❌");
+
+            return reply(
+                "❌ *STICKER CREATION FAILED*\n\n" +
+                "Unable to convert this media.\n" +
+                "Please try another image, video, or sticker.\n\n" +
+                "Check that FFmpeg and its WebP encoder are installed.\n\n" +
+                "> *ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ"
+            );
+
+        } finally {
+            for (const file of [
+                downloadedPath,
+                inputFile,
+                outputFile
+            ]) {
+                if (file) {
+                    await fs.unlink(file).catch(() => {});
+                }
+            }
         }
     }
-});
+);
+
+module.exports = {};
