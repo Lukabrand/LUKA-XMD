@@ -593,14 +593,15 @@ gmd(
       const botN     = botName || "LUKA-XMD";
       const footer   = botFooter ? `\n\n> *${botFooter}*` : "";
       await reply(
-`🌟 *${botN} — Source Code*
-
+`╭══〘〘 *LUKA-XMD* 〙〙═⊷
+🌟 *${botN} — Source Code*
 ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
 📦 *Repository:*
 ${repoUrl}
 ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
 ⭐ _Star the repo to support development!_
-🍴 _Fork it to deploy your own instance._${footer}`
+🍴 _Fork it to deploy your own instance._
+╰══✦ ✦══⊷${footer}`
       );
     } catch (error) {
       await reply(`❌ Error: ${error.message}`);
@@ -1021,20 +1022,16 @@ gmd(
       const welcomeText = settings.WELCOME_MESSAGE_TEXT || "Default";
       const goodbyeText = settings.GOODBYE_MESSAGE_TEXT || "Default";
 
-      let msg = `╭━━━━━━━━━━━╮\n`;
-      msg += `│ ⚙️ *GROUP SETTINGS*\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
-      msg += `│ 📍 *${groupName || "This Group"}*\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
-      msg += `│\n`;
-      msg += `│ 👋 *Welcome:* ${welcomeStatus}\n`;
-      msg += `│ 👋 *Goodbye:* ${goodbyeStatus}\n`;
-      msg += `│ 📢 *Events:* ${eventsStatus}\n`;
-      msg += `│\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
-      msg += `│ 🛡️ *PROTECTION*\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
-      msg += `│\n`;
+  let msg = `╭══〘〘 *LUKA-XMD* 〙〙═⊷\n`;
+msg += `│ ⚙️ *GROUP SETTINGS*\n`;
+msg += `│ 📍 *${groupName || "This Group"}*\n`;
+msg += `╰══✦ ✦══⊷\n\n`;
+msg += `👋 *Welcome:* ${welcomeStatus}\n`;
+msg += `👋 *Goodbye:* ${goodbyeStatus}\n`;
+msg += `📢 *Events:* ${eventsStatus}\n`;
+msg += `\n`;
+msg += `╭══〘〘 🛡️ PROTECTION 〙〙═⊷\n`;
+msg += `╰══✦ ✦══⊷\n\n`;
       const antilinkRaw = settings.ANTILINK || "off";
       let antilinkAction = "delete";
       if (antilinkRaw === "warn") antilinkAction = "warn";
@@ -1060,17 +1057,15 @@ gmd(
         }
       }
       msg += `│\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
-      msg += `│ 💬 *MESSAGES*\n`;
-      msg += `├━━━━━━━━━━━┤\n`;
+      msg += `├══〘〘 💬 *MESSAGES* 〙〙═⊷\n`;
       msg += `│\n`;
-      msg += `│ *Welcome Msg:*\n`;
+      msg += `│ ✉️ *Welcome Msg:*\n`;
       msg += `│ ${welcomeText.length > 50 ? welcomeText.substring(0, 50) + "..." : welcomeText}\n`;
       msg += `│\n`;
-      msg += `│ *Goodbye Msg:*\n`;
+      msg += `│ ✉️ *Goodbye Msg:*\n`;
       msg += `│ ${goodbyeText.length > 50 ? goodbyeText.substring(0, 50) + "..." : goodbyeText}\n`;
       msg += `│\n`;
-      msg += `╰━━━━━━━━━━━╯\n`;
+      msg += `╰══✦ ✦══⊷\n`;
       msg += `\n_Use .setwelcome, .setgoodbye, .setantilink, etc to modify_`;
 
       await react("✅");
