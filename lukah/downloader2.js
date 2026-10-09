@@ -1,885 +1,780 @@
 "use strict";
 
+// ═══════════════════════════════════════════════════════════════
+//                 LUKA-XMD DOWNLOADER 2
+//       Spotify • Google Drive • MediaFire • APK • Pastebin
+// ═══════════════════════════════════════════════════════════════
+
 const {
     gmd,
     MAX_MEDIA_SIZE,
+    getFileSize,
     getMimeCategory,
     getMimeFromUrl,
-} = require("../guru");
+} = require("../luka");
 
 const axios = require("axios");
+const { sendButtons } = require("gifted-btns");
 
-const API_TIMEOUT = 60000;
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
+// ─── Helpers ────────────────────────────────────────────────────
 
-// ======================================================
-// LUKA-XMD DOWNLOADER 2
-// Commands: spotify, gdrive, mediafire, apk,
-//           pastebin, ytmp3, ytmp4
-// ======================================================
+function extractButtonId(msg) {
+    if (!msg) return null;
 
-function getApiConfig(conText) {
-    let base = String(conText.GuruTechApi || "").trim();
-    const apikey = String(conText.GuruApiKey || "").trim();
-
-    // Correct the old GiftedTech hostname.
-    if (
-        !base ||
-        base.includes("api.giftedtech.co.ke")
-    ) {
-        base = "https://api.gifted.co.ke";
+    if (msg.templateButtonReplyMessage?.selectedId) {
+        return msg.templateButtonReplyMessage.selectedId;
     }
 
-    return {
-        base: base.replace(/\/+$/, ""),
-        apikey: apikey || "gifted",
-    };
-}
-
-function cleanName(name) {
-    return String(name || "LUKA-XMD-Download")
-        .replace(/[<>:"/\\|?*\x00-\x1F]/g, "")
-        .trim()
-        .slice(0, 100) || "LUKA-XMD-Download";
-}
-
-function getErrorMessage(data, fallback) {
-    if (typeof data === "string" && data.trim()) {
-        return data.slice(0, 250);
+    if (msg.buttonsResponseMessage?.selectedButtonId) {
+        return msg.buttonsResponseMessage.selectedButtonId;
     }
 
-    return (
-        data?.error ||
-        data?.message ||
-        data?.msg ||
-        data?.result?.error ||
-        data?.result?.message ||
-        fallback ||
-        "Unknown API error"
-    );
-}
-
-function extractResult(data) {
-    if (!data || typeof data !== "object") return null;
-
-    if (data.success === false || data.status === false) {
-        throw new Error(getErrorMessage(data, "API request failed"));
+    if (msg.listResponseMessage?.singleSelectReply?.selectedRowId) {
+        return msg.listResponseMessage.singleSelectReply.selectedRowId;
     }
 
-    return data.result ?? data.data ?? data;
-}
+    if (msg.interactiveResponseMessage) {
+        const nf = msg.interactiveResponseMessage.nativeFlowResponseMessage;
 
-async function apiGet(conText, endpoint, params = {}) {
-    const { base, apikey } = getApiConfig(conText);
-
-    if (!base) {
-        throw new Error("API base URL is missing.");
-    }
-
-    const response = await axios.get(
-        `${base}${endpoint}`,
-        {
-            params: { apikey, ...params },
-            timeout: API_TIMEOUT,
-            maxContentLength: MAX_FILE_SIZE,
-            maxBodyLength: MAX_FILE_SIZE,
-            validateStatus: () => true,
-            headers: {
-                "User-Agent": "Mozilla/5.0 LUKA-XMD",
-                Accept: "application/json, */*",
-            },
+        if (nf?.paramsJson) {
+            try {
+                const params = JSON.parse(nf.paramsJson);
+                if (params.id) return params.id;
+            } catch {}
         }
-    );
 
-    if (response.status < 200 || response.status >= 300) {
-        throw new Error(
-            `API HTTP ${response.status}: ${
-                getErrorMessage(response.data, "Request failed")
-            }`
-        );
-    }
-
-    return response.data;
-}
-
-async function downloadBuffer(url) {
-    if (!/^https?:\/\//i.test(String(url || ""))) {
-        throw new Error("Invalid download URL.");
-    }
-
-    const response = await axios.get(url, {
-        responseType: "arraybuffer",
-        timeout: API_TIMEOUT,
-        maxContentLength: MAX_FILE_SIZE,
-        maxBodyLength: MAX_FILE_SIZE,
-        headers: {
-            "User-Agent": "Mozilla/5.0 LUKA-XMD",
-        },
-    });
-
-    const buffer = Buffer.from(response.data);
-    const contentType = String(
-        response.headers["content-type"] || ""
-    ).toLowerCase();
-
-    if (!buffer.length) {
-        throw new Error("The downloaded file is empty.");
-    }
-
-    if (
-        contentType.includes("text/html") ||
-        contentType.includes("application/json")
-    ) {
-        const text = buffer.toString("utf8").slice(0, 250);
-
-        throw new Error(
-            `The server returned a webpage or JSON instead of a file: ${text}`
-        );
-    }
-
-    return { buffer, contentType };
-}
-
-function getUrl(data, keys = []) {
-    if (!data || typeof data !== "object") return null;
-
-    for (const key of keys) {
-        if (
-            typeof data[key] === "string" &&
-            /^https?:\/\//i.test(data[key])
-        ) {
-            return data[key];
-        }
-    }
-
-    for (const key of ["result", "data", "file", "media"]) {
-        if (data[key] && typeof data[key] === "object") {
-            const found = getUrl(data[key], keys);
-            if (found) return found;
-        }
+        return msg.interactiveResponseMessage.buttonId || null;
     }
 
     return null;
 }
 
-async function sendDocument(
-    Guru,
+function cleanFileName(name = "LUKA-XMD") {
+    return String(name).replace(/[^\w\s.-]/g, "").trim() || "LUKA-XMD";
+}
+
+function lukaBox(title, lines, footer = "LUKA-XMD") {
+    const body = lines
+        .filter(Boolean)
+        .map((line) => `│ ${line}`)
+        .join("\n");
+
+    return `╭─❏ 「 ${title} 」\n${body}\n╰───────────────────────────\n> _${footer}_`;
+}
+
+function getApiSettings(conText) {
+    return {
+        api: String(conText.GuruTechApi || "").replace(/\/+$/, ""),
+        key: conText.GuruApiKey || "",
+    };
+}
+
+function getQuotedOptions(mek) {
+    return mek ? { quoted: mek } : {};
+}
+
+async function getApiJson(url, timeout = 30000) {
+    const response = await axios.get(url, {
+        timeout,
+        headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; LUKA-XMD/1.0)",
+        },
+    });
+
+    return response.data;
+}
+
+async function sendDownloadedFile({
+    Luka,
     from,
     mek,
     buffer,
-    filename,
+    fileName,
     mimetype,
-    caption = ""
-) {
-    return Guru.sendMessage(
+    caption,
+    category,
+    formatAudio,
+    formatVideo,
+}) {
+    if (!Buffer.isBuffer(buffer)) {
+        buffer = Buffer.from(buffer);
+    }
+
+    const size = buffer.length;
+    const sendAsDocument =
+        size > MAX_MEDIA_SIZE || category === "document";
+
+    if (category === "audio" && !sendAsDocument) {
+        const audio = typeof formatAudio === "function"
+            ? await formatAudio(buffer)
+            : buffer;
+
+        return Luka.sendMessage(
+            from,
+            {
+                audio,
+                mimetype: mimetype || "audio/mpeg",
+                fileName: fileName || "LUKA-XMD.mp3",
+                ptt: false,
+                ...(caption ? { caption } : {}),
+            },
+            getQuotedOptions(mek)
+        );
+    }
+
+    if (category === "video" && !sendAsDocument) {
+        const video = typeof formatVideo === "function"
+            ? await formatVideo(buffer)
+            : buffer;
+
+        return Luka.sendMessage(
+            from,
+            {
+                video,
+                mimetype: mimetype || "video/mp4",
+                fileName: fileName || "LUKA-XMD.mp4",
+                ...(caption ? { caption } : {}),
+            },
+            getQuotedOptions(mek)
+        );
+    }
+
+    if (category === "image" && !sendAsDocument) {
+        return Luka.sendMessage(
+            from,
+            {
+                image: buffer,
+                mimetype: mimetype || "image/jpeg",
+                ...(caption ? { caption } : {}),
+            },
+            getQuotedOptions(mek)
+        );
+    }
+
+    return Luka.sendMessage(
         from,
         {
             document: buffer,
-            fileName: filename,
+            fileName: fileName || "LUKA-XMD_file",
             mimetype: mimetype || "application/octet-stream",
-            caption,
+            ...(caption ? { caption } : {}),
         },
-        { quoted: mek }
+        getQuotedOptions(mek)
     );
 }
 
-function registerDownloader({
-    pattern,
-    aliases = [],
-    description,
-    validate,
-    execute,
-}) {
-    gmd(
-        {
-            pattern,
-            category: "downloader",
-            react: "⬇️",
-            aliases,
-            description,
-        },
-        async (from, Guru, conText) => {
-            const { q, mek, reply, react } = conText;
+// ═══════════════════════════════════════════════════════════════
+// SPOTIFY DOWNLOADER
+// ═══════════════════════════════════════════════════════════════
 
-            if (!q) {
+gmd(
+    {
+        pattern: "spotify",
+        category: "downloader",
+        react: "🎧",
+        aliases: ["spotifydl", "spotidl", "spoti"],
+        description: "Download Spotify tracks by URL or song name",
+    },
+    async (from, Luka, conText) => {
+        const {
+            q,
+            mek,
+            reply,
+            react,
+            botName,
+            botFooter,
+            gmdBuffer,
+            formatAudio,
+        } = conText;
+
+        const { api, key } = getApiSettings(conText);
+        const footer = botFooter || "LUKA-XMD";
+
+        if (!q) {
+            await react("❌");
+            return reply(
+                "🎧 *LUKA-XMD SPOTIFY DOWNLOADER*\n\n" +
+                "Tuma link ya Spotify au jina la wimbo.\n\n" +
+                "*Matumizi:*\n" +
+                ".spotify https://open.spotify.com/track/...\n" +
+                ".spotify The Spectre Alan Walker"
+            );
+        }
+
+        if (!api || !key) {
+            await react("❌");
+            return reply("Spotify API haijawekwa vizuri kwenye settings za bot.");
+        }
+
+        if (typeof gmdBuffer !== "function" || typeof formatAudio !== "function") {
+            await react("❌");
+            return reply("Audio helper haipatikani kwenye LUKA-XMD. Kagua exports za ../luka.");
+        }
+
+        async function downloadTrack(trackUrl, quotedMessage) {
+            let result = null;
+
+            const endpoints = ["spotifydl", "spotifydlv2"];
+
+            // Jaribu endpoints zote bila kusimamisha bot endpoint moja ikishindwa.
+            const attempts = await Promise.allSettled(
+                endpoints.map(async (endpoint) => {
+                    const url =
+                        `${api}/api/download/${endpoint}` +
+                        `?apikey=${encodeURIComponent(key)}` +
+                        `&url=${encodeURIComponent(trackUrl)}`;
+
+                    const data = await getApiJson(url, 20000);
+
+                    if (data?.success && data?.result?.download_url) {
+                        return data.result;
+                    }
+
+                    throw new Error(`${endpoint} download URL haijapatikana.`);
+                })
+            );
+
+            const successful = attempts.find((attempt) => attempt.status === "fulfilled");
+
+            if (successful) {
+                result = successful.value;
+            }
+
+            // SpotifyDown fallback
+            if (!result) {
+                try {
+                    const trackId = trackUrl.match(/track\/([a-zA-Z0-9]+)/)?.[1];
+
+                    if (trackId) {
+                        const response = await axios.get(
+                            `https://api.spotifydown.com/download/${trackId}`,
+                            {
+                                headers: {
+                                    origin: "https://spotifydown.com",
+                                    referer: "https://spotifydown.com/",
+                                    "User-Agent": "Mozilla/5.0",
+                                },
+                                timeout: 20000,
+                            }
+                        );
+
+                        if (response.data?.success && response.data?.link) {
+                            result = {
+                                download_url: response.data.link,
+                                title: response.data.metadata?.title || "Spotify Track",
+                                thumbnail: response.data.metadata?.cover || null,
+                            };
+                        }
+                    }
+                } catch (error) {
+                    console.error("LUKA-XMD Spotify fallback:", error.message);
+                }
+            }
+
+            if (!result?.download_url) {
                 await react("❌");
-                return reply(
-                    `Please provide a URL or search query.\n\nExample: .${pattern} <query or URL>`
-                );
+                return reply("Imeshindikana kupata wimbo huu. Jaribu link nyingine.", quotedMessage);
             }
 
             try {
-                if (validate) {
-                    const validation = validate(q.trim());
+                const audioBuffer = await gmdBuffer(result.download_url);
 
-                    if (validation !== true) {
-                        await react("❌");
-                        return reply(validation);
-                    }
+                if (!audioBuffer || audioBuffer instanceof Error) {
+                    throw new Error("Audio haikupakuliwa.");
                 }
 
-                await react("⏳");
+                const formattedAudio = await formatAudio(audioBuffer);
+                const title = cleanFileName(result.title || "spotify_track");
 
-                const result = await execute({
+                await Luka.sendMessage(
                     from,
-                    Guru,
-                    conText,
-                    q: q.trim(),
-                    mek,
-                });
-
-                if (result) {
-                    await reply(result);
-                }
+                    {
+                        audio: formattedAudio,
+                        mimetype: "audio/mpeg",
+                        fileName: `${title}.mp3`,
+                        ptt: false,
+                    },
+                    getQuotedOptions(quotedMessage)
+                );
 
                 await react("✅");
             } catch (error) {
-                console.error(
-                    `[LUKA-XMD ${pattern.toUpperCase()} ERROR]`,
-                    error.response?.data || error.message
-                );
-
+                console.error("LUKA-XMD Spotify audio error:", error);
                 await react("❌");
-
-                return reply(
-                    `Download failed.\n\nReason: ${error.message}`
-                );
+                return reply("Imeshindikana kutuma audio. Jaribu tena.", quotedMessage);
             }
         }
-    );
-}
 
-// ======================================================
-// APK DOWNLOADER
-// Usage: .apk WhatsApp
-// ======================================================
+        try {
+            if (/spotify\.com/i.test(q)) {
+                await downloadTrack(q, mek);
+                return;
+            }
 
-registerDownloader({
-    pattern: "apk",
-    aliases: ["apkdl", "app", "appdownload"],
-    description: "Search for and download APK files",
+            const searchUrl =
+                `${api}/api/search/spotifysearch` +
+                `?apikey=${encodeURIComponent(key)}` +
+                `&query=${encodeURIComponent(q)}`;
 
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const { botName } = conText;
+            const data = await getApiJson(searchUrl, 30000);
 
-        const response = await apiGet(
-            conText,
-            "/api/download/apkdl",
-            { appName: q }
-        );
+            if (!data?.success || !data?.results) {
+                await react("❌");
+                return reply("Spotify search imeshindwa. Jaribu jina jingine au tumia link ya Spotify.");
+            }
 
-        const data = extractResult(response);
+            const results = data.results;
+            let tracks = [];
 
-        const downloadUrl = getUrl(data, [
-            "download_url",
-            "downloadUrl",
-            "url",
-            "link",
-        ]);
+            if (Array.isArray(results)) {
+                tracks = results.slice(0, 3);
+            } else if (Array.isArray(results.tracks)) {
+                tracks = results.tracks.slice(0, 3);
+            } else if (results.url || results.link) {
+                tracks = [results];
+            }
 
-        if (!downloadUrl) {
-            throw new Error(
-                "The APK endpoint did not return a download URL. Check the endpoint response."
-            );
-        }
+            if (!tracks.length) {
+                await react("❌");
+                return reply("Hakuna nyimbo zilizopatikana kwa utafutaji huo.");
+            }
 
-        const appName = data.appname || data.appName || q;
-        const appIcon = data.appicon || data.icon || data.image;
-        const developer = data.developer || "Unknown developer";
+            const trackList = tracks.map((track, index) => {
+                const title = track.title || track.name || "Unknown Track";
+                const artists = Array.isArray(track.artists)
+                    ? track.artists.join(", ")
+                    : track.artist || "Unknown Artist";
 
-        if (
-            appIcon &&
-            /^https?:\/\//i.test(appIcon)
-        ) {
+                return `${index + 1}. ${title} — ${artists}`;
+            }).join("\n");
+
+            const buttons = tracks.map((track, index) => ({
+                id: `lukasp_${index}`,
+                text: `${index + 1}. ${(track.title || track.name || "Track").slice(0, 20)}`,
+            }));
+
+            const imageUrl =
+                tracks[0]?.thumbnail ||
+                tracks[0]?.image ||
+                tracks[0]?.album?.images?.[0]?.url;
+
+            // Buttons ni optional; bot itume orodha ya nyimbo kama fallback.
             try {
-                await Guru.sendMessage(
+                await sendButtons(Luka, from, {
+                    title: `${botName || "LUKA-XMD"} SPOTIFY`,
+                    text: `*Matokeo ya utafutaji:*\n\n${trackList}\n\nChagua wimbo unaotaka.`,
+                    footer,
+                    ...(imageUrl ? { image: { url: imageUrl } } : {}),
+                    buttons,
+                });
+            } catch (buttonError) {
+                console.error("Spotify buttons fallback:", buttonError.message);
+
+                await Luka.sendMessage(
                     from,
                     {
-                        image: { url: appIcon },
-                        caption:
-                            `📱 *${botName || "LUKA-XMD"} APK DOWNLOADER*\n\n` +
-                            `*App:* ${appName}\n` +
-                            `*Developer:* ${developer}\n\n` +
-                            `Preparing APK file...`,
+                        text:
+                            `🎧 *LUKA-XMD SPOTIFY*\n\n${trackList}\n\n` +
+                            "Tumia link ya Spotify ya wimbo unaotaka kisha tuma:\n" +
+                            ".spotify <Spotify URL>",
                     },
-                    { quoted: mek }
+                    getQuotedOptions(mek)
                 );
-            } catch (error) {
-                console.error("APK icon could not be sent:", error.message);
             }
+
+            // Hakuna listener ya kudumu inayowekwa hapa ili kuzuia listeners
+            // nyingi kukusanyika. Tumia Spotify URL kwa download ya moja kwa moja.
+        } catch (error) {
+            console.error("LUKA-XMD Spotify search error:", error);
+            await react("❌");
+            return reply("Hitilafu imetokea kwenye Spotify. Jaribu tena baadaye.");
         }
+    }
+);
 
-        const { buffer } = await downloadBuffer(downloadUrl);
+// ═══════════════════════════════════════════════════════════════
+// GOOGLE DRIVE DOWNLOADER
+// ═══════════════════════════════════════════════════════════════
 
-        // APK files are ZIP-based and usually start with PK.
-        if (
-            buffer.length < 4 ||
-            buffer[0] !== 0x50 ||
-            buffer[1] !== 0x4b
-        ) {
-            throw new Error(
-                "The download does not appear to be a valid APK file."
-            );
-        }
-
-        await sendDocument(
-            Guru,
-            from,
+gmd(
+    {
+        pattern: "gdrive",
+        category: "downloader",
+        react: "📁",
+        aliases: ["googledrive", "drive", "gdrivedl"],
+        description: "Download files from Google Drive",
+    },
+    async (from, Luka, conText) => {
+        const {
+            q,
             mek,
-            buffer,
-            `${cleanName(appName)}.apk`,
-            "application/vnd.android.package-archive",
-            `📱 ${appName}\nDownloaded by LUKA-XMD`
-        );
+            reply,
+            react,
+            gmdBuffer,
+            formatAudio,
+            formatVideo,
+        } = conText;
 
-        return null;
-    },
-});
+        const { api, key } = getApiSettings(conText);
 
-// ======================================================
-// GOOGLE DRIVE
-// Usage: .gdrive https://drive.google.com/...
-// ======================================================
-
-registerDownloader({
-    pattern: "gdrive",
-    aliases: ["drive", "gdrivedl", "googledrive"],
-    description: "Download publicly accessible Google Drive files",
-
-    validate: q =>
-        /drive\.google\.com/i.test(q) ||
-        "Please provide a valid Google Drive URL.",
-
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const response = await apiGet(
-            conText,
-            "/api/download/gdrivedl",
-            { url: q }
-        );
-
-        const data = extractResult(response);
-
-        const downloadUrl = getUrl(data, [
-            "download_url",
-            "downloadUrl",
-            "url",
-            "link",
-        ]);
-
-        if (!downloadUrl) {
-            throw new Error(
-                "Google Drive API did not return a download URL."
-            );
+        if (!q) {
+            await react("❌");
+            return reply("Tuma link ya Google Drive.\n\nMfano: .gdrive https://drive.google.com/file/d/...");
         }
 
-        const filename = cleanName(
-            data.name || data.fileName || "gdrive_file"
-        );
-
-        const { buffer, contentType } = await downloadBuffer(downloadUrl);
-
-        let mimetype =
-            contentType ||
-            getMimeFromUrl(filename) ||
-            "application/octet-stream";
-
-        if (mimetype.includes(";")) {
-            mimetype = mimetype.split(";")[0].trim();
+        if (!/drive\.google\.com/i.test(q)) {
+            await react("❌");
+            return reply("Link si ya Google Drive.");
         }
 
-        const category = getMimeCategory(mimetype);
-        const tooLarge =
-            MAX_MEDIA_SIZE && buffer.length > MAX_MEDIA_SIZE;
-
-        if (category === "image" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    image: buffer,
-                    caption: filename,
-                },
-                { quoted: mek }
-            );
-        } else if (category === "video" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    video: buffer,
-                    mimetype,
-                    caption: filename,
-                },
-                { quoted: mek }
-            );
-        } else if (category === "audio" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    audio: buffer,
-                    mimetype,
-                    fileName: filename,
-                },
-                { quoted: mek }
-            );
-        } else {
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                buffer,
-                filename,
-                mimetype
-            );
+        if (!api || !key) {
+            await react("❌");
+            return reply("Google Drive API haijawekwa vizuri kwenye settings.");
         }
 
-        return null;
-    },
-});
+        try {
+            const url =
+                `${api}/api/download/gdrivedl` +
+                `?apikey=${encodeURIComponent(key)}` +
+                `&url=${encodeURIComponent(q)}`;
 
-// ======================================================
-// MEDIAFIRE
-// Usage: .mediafire https://www.mediafire.com/...
-// ======================================================
+            const data = await getApiJson(url, 60000);
 
-registerDownloader({
-    pattern: "mediafire",
-    aliases: ["mf", "mfire", "mediafiredl"],
-    description: "Download files from MediaFire",
+            if (!data?.success || !data?.result?.download_url) {
+                await react("❌");
+                return reply("Imeshindikana kupata file. Hakikisha link inaruhusu public access.");
+            }
 
-    validate: q =>
-        /mediafire\.com/i.test(q) ||
-        "Please provide a valid MediaFire URL.",
+            const { name, download_url } = data.result;
+            let mimetype = getMimeFromUrl(name || download_url) || "application/octet-stream";
 
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const response = await apiGet(
-            conText,
-            "/api/download/mediafire",
-            { url: q }
-        );
-
-        const data = extractResult(response);
-
-        const downloadUrl = getUrl(data, [
-            "downloadUrl",
-            "download_url",
-            "url",
-            "link",
-        ]);
-
-        if (!downloadUrl) {
-            throw new Error(
-                "MediaFire API did not return a download URL."
-            );
-        }
-
-        const filename = cleanName(
-            data.fileName || data.filename || "mediafire_file"
-        );
-
-        const { buffer, contentType } = await downloadBuffer(downloadUrl);
-
-        const mimetype =
-            data.mimeType ||
-            data.mimetype ||
-            contentType ||
-            getMimeFromUrl(filename) ||
-            "application/octet-stream";
-
-        const category = getMimeCategory(mimetype);
-        const tooLarge =
-            MAX_MEDIA_SIZE && buffer.length > MAX_MEDIA_SIZE;
-
-        if (category === "image" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    image: buffer,
-                    caption: filename,
-                },
-                { quoted: mek }
-            );
-        } else if (category === "video" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    video: buffer,
-                    mimetype,
-                    caption: filename,
-                },
-                { quoted: mek }
-            );
-        } else if (category === "audio" && !tooLarge) {
-            await Guru.sendMessage(
-                from,
-                {
-                    audio: buffer,
-                    mimetype,
-                    fileName: filename,
-                },
-                { quoted: mek }
-            );
-        } else {
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                buffer,
-                filename,
-                mimetype
-            );
-        }
-
-        return null;
-    },
-});
-
-// ======================================================
-// SPOTIFY
-// Usage: .spotify <Spotify track URL>
-// ======================================================
-
-registerDownloader({
-    pattern: "spotify",
-    aliases: ["spot", "spotifydl"],
-    description: "Download a Spotify track using its URL",
-
-    validate: q =>
-        /open\.spotify\.com\/track\//i.test(q) ||
-        "Please provide a Spotify track URL, for example https://open.spotify.com/track/....",
-
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const { base, apikey } = getApiConfig(conText);
-
-        let data = null;
-        let lastError = null;
-
-        // Try the downloader endpoints used in the supplied plugin.
-        for (const endpoint of ["spotifydl", "spotifydlv2"]) {
             try {
-                const response = await axios.get(
-                    `${base}/api/download/${endpoint}`,
-                    {
-                        params: { apikey, url: q },
-                        timeout: 30000,
-                    }
-                );
+                const head = await axios.head(download_url, { timeout: 15000 });
+                const contentType = head.headers["content-type"];
 
-                const result = extractResult(response.data);
-
-                const downloadUrl = getUrl(result, [
-                    "download_url",
-                    "downloadUrl",
-                    "url",
-                    "link",
-                ]);
-
-                if (downloadUrl) {
-                    data = {
-                        ...result,
-                        download_url: downloadUrl,
-                    };
-                    break;
+                if (contentType && !contentType.includes("text/html")) {
+                    mimetype = contentType.split(";")[0].trim();
                 }
-            } catch (error) {
-                lastError = error;
+            } catch {}
+
+            const mimeCategory = getMimeCategory(mimetype);
+            const fileBuffer = await gmdBuffer(download_url);
+
+            if (!fileBuffer || fileBuffer instanceof Error) {
+                throw new Error("Imeshindikana kupakua file.");
             }
+
+            await sendDownloadedFile({
+                Luka,
+                from,
+                mek,
+                buffer: fileBuffer,
+                fileName: name || "LUKA-XMD_gdrive_file",
+                mimetype,
+                caption: `📁 *LUKA-XMD GOOGLE DRIVE*\n\n${name || "Google Drive File"}`,
+                category: mimeCategory,
+                formatAudio,
+                formatVideo,
+            });
+
+            await react("✅");
+        } catch (error) {
+            console.error("LUKA-XMD Google Drive error:", error);
+            await react("❌");
+            return reply(`Google Drive download imeshindwa: ${error.message}`);
         }
+    }
+);
 
-        if (!data?.download_url) {
-            throw new Error(
-                lastError
-                    ? `Spotify download failed: ${lastError.message}`
-                    : "No Spotify download URL was returned. Check whether your API supports spotifydl."
-            );
-        }
+// ═══════════════════════════════════════════════════════════════
+// MEDIAFIRE DOWNLOADER
+// ═══════════════════════════════════════════════════════════════
 
-        const { buffer } = await downloadBuffer(data.download_url);
-
-        const title = cleanName(
-            data.title || data.name || "spotify_track"
-        );
-
-        await sendDocument(
-            Guru,
-            from,
+gmd(
+    {
+        pattern: "mediafire",
+        category: "downloader",
+        react: "🔥",
+        aliases: ["mfire", "mediafiredl", "mfiredl"],
+        description: "Download files from MediaFire",
+    },
+    async (from, Luka, conText) => {
+        const {
+            q,
             mek,
-            buffer,
-            `${title}.mp3`,
-            "audio/mpeg",
-            `🎵 ${title}\nDownloaded by LUKA-XMD`
-        );
+            reply,
+            react,
+            gmdBuffer,
+            formatAudio,
+            formatVideo,
+        } = conText;
 
-        return null;
-    },
-});
+        const { api, key } = getApiSettings(conText);
 
-// ======================================================
-// PASTEBIN
-// Usage: .pastebin https://pastebin.com/xxxx
-// ======================================================
-
-registerDownloader({
-    pattern: "pastebin",
-    aliases: ["paste", "getpaste", "pastedl"],
-    description: "Fetch public Pastebin content",
-
-    validate: q =>
-        /pastebin\.com/i.test(q) ||
-        "Please provide a valid Pastebin URL.",
-
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const response = await apiGet(
-            conText,
-            "/api/download/pastebin",
-            { url: q }
-        );
-
-        const data = extractResult(response);
-
-        let content =
-            typeof data === "string"
-                ? data
-                : data?.content || data?.text || data?.paste;
-
-        if (!content) {
-            throw new Error(
-                "Pastebin API did not return any paste content."
-            );
+        if (!q) {
+            await react("❌");
+            return reply("Tuma link ya MediaFire.\n\nMfano: .mediafire https://www.mediafire.com/file/...");
         }
 
-        content = String(content)
-            .replace(/\\r\\n/g, "\n")
-            .replace(/\\n/g, "\n")
-            .replace(/\\t/g, "\t");
+        if (!/mediafire\.com/i.test(q)) {
+            await react("❌");
+            return reply("Link si ya MediaFire.");
+        }
 
-        const pasteId = q
-            .split("/")
-            .pop()
-            .split("?")[0];
+        if (!api || !key) {
+            await react("❌");
+            return reply("MediaFire API haijawekwa vizuri kwenye settings.");
+        }
 
-        const message =
-            `*LUKA-XMD PASTEBIN VIEWER*\n` +
-            `*Paste ID:* ${pasteId}\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n\n` +
-            content;
+        try {
+            const url =
+                `${api}/api/download/mediafire` +
+                `?apikey=${encodeURIComponent(key)}` +
+                `&url=${encodeURIComponent(q)}`;
 
-        if (message.length > 60000) {
-            await sendDocument(
-                Guru,
+            const data = await getApiJson(url, 60000);
+
+            if (!data?.success || !data?.result) {
+                await react("❌");
+                return reply("Imeshindikana kupata file ya MediaFire.");
+            }
+
+            const result = data.result;
+            const downloadUrl = result.downloadUrl || result.download_url;
+
+            if (!downloadUrl) {
+                await react("❌");
+                return reply("MediaFire haikurudisha download URL.");
+            }
+
+            const fileName = result.fileName || result.filename || "mediafire_file";
+            let mimetype = result.mimeType || getMimeFromUrl(fileName) || "application/octet-stream";
+
+            if (mimetype === "application/octet-stream") {
+                try {
+                    const head = await axios.head(downloadUrl, { timeout: 15000 });
+                    const contentType = head.headers["content-type"];
+
+                    if (contentType && !contentType.includes("text/html")) {
+                        mimetype = contentType.split(";")[0].trim();
+                    }
+                } catch {}
+            }
+
+            const mimeCategory = getMimeCategory(mimetype);
+            const fileBuffer = await gmdBuffer(downloadUrl);
+
+            if (!fileBuffer || fileBuffer instanceof Error) {
+                throw new Error("Imeshindikana kupakua file.");
+            }
+
+            await sendDownloadedFile({
+                Luka,
                 from,
                 mek,
-                Buffer.from(content, "utf8"),
-                `pastebin_${cleanName(pasteId)}.txt`,
-                "text/plain",
-                "Paste content is too long to display as a message."
-            );
-        } else {
-            await Guru.sendMessage(
-                from,
-                { text: message },
-                { quoted: mek }
-            );
+                buffer: fileBuffer,
+                fileName,
+                mimetype,
+                caption:
+                    `🔥 *LUKA-XMD MEDIAFIRE*\n\n` +
+                    `*File:* ${fileName}\n` +
+                    `*Size:* ${result.fileSize || "Unknown"}`,
+                category: mimeCategory,
+                formatAudio,
+                formatVideo,
+            });
+
+            await react("✅");
+        } catch (error) {
+            console.error("LUKA-XMD MediaFire error:", error);
+            await react("❌");
+            return reply(`MediaFire download imeshindwa: ${error.message}`);
+        }
+    }
+);
+
+// ═══════════════════════════════════════════════════════════════
+// APK DOWNLOADER
+// ═══════════════════════════════════════════════════════════════
+
+gmd(
+    {
+        pattern: "apk",
+        category: "downloader",
+        react: "📱",
+        aliases: ["app", "apkdl", "appdownload"],
+        description: "Search and download Android APK files",
+    },
+    async (from, Luka, conText) => {
+        const { q, mek, reply, react, botName } = conText;
+        const { api, key } = getApiSettings(conText);
+
+        if (!q) {
+            await react("❌");
+            return reply("Tuma jina la app.\n\nMfano: .apk WhatsApp");
         }
 
-        return null;
-    },
-});
+        if (!api || !key) {
+            await react("❌");
+            return reply("APK API haijawekwa vizuri kwenye settings.");
+        }
 
-// ======================================================
-// YOUTUBE MP3
-// Usage: .ytmp3 https://youtube.com/watch?v=...
-// ======================================================
+        try {
+            const url =
+                `${api}/api/download/apkdl` +
+                `?apikey=${encodeURIComponent(key)}` +
+                `&appName=${encodeURIComponent(q)}`;
 
-registerDownloader({
-    pattern: "ytmp3",
-    aliases: ["ytaudio", "ytmusic"],
-    description: "Download YouTube audio as MP3",
+            const data = await getApiJson(url, 60000);
 
-    validate: q =>
-        /youtube\.com|youtu\.be/i.test(q) ||
-        "Please provide a valid YouTube URL.",
+            if (!data?.success || !data?.result) {
+                await react("❌");
+                return reply("App haijapatikana. Jaribu jina jingine.");
+            }
 
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const { base, apikey } = getApiConfig(conText);
+            const result = data.result;
+            const downloadUrl = result.download_url || result.downloadUrl;
 
-        const response = await axios.get(
-            `${base}/api/download/ytaudio`,
-            {
-                params: {
-                    apikey,
-                    url: q,
+            if (!downloadUrl) {
+                await react("❌");
+                return reply("Download URL ya APK haijapatikana.");
+            }
+
+            const appName = result.appname || result.name || q;
+            const appIcon = result.appicon || result.icon;
+            const developer = result.developer || "Unknown";
+
+            if (appIcon) {
+                try {
+                    await Luka.sendMessage(
+                        from,
+                        {
+                            image: { url: appIcon },
+                            caption:
+                                `📱 *${botName || "LUKA-XMD"} APK DOWNLOADER*\n\n` +
+                                `*App:* ${appName}\n` +
+                                `*Developer:* ${developer}\n\n` +
+                                "_Inatuma APK..._",
+                        },
+                        getQuotedOptions(mek)
+                    );
+                } catch (error) {
+                    console.error("APK icon send error:", error.message);
+                }
+            }
+
+            await Luka.sendMessage(
+                from,
+                {
+                    document: { url: downloadUrl },
+                    fileName: `${cleanFileName(appName)}.apk`,
+                    mimetype: "application/vnd.android.package-archive",
                 },
-                timeout: API_TIMEOUT,
-                responseType: "arraybuffer",
-                maxContentLength: MAX_FILE_SIZE,
-                validateStatus: () => true,
-            }
-        );
-
-        const buffer = Buffer.from(response.data);
-        const contentType = String(
-            response.headers["content-type"] || ""
-        ).toLowerCase();
-
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error(
-                `YouTube audio API returned HTTP ${response.status}.`
+                getQuotedOptions(mek)
             );
+
+            await react("✅");
+        } catch (error) {
+            console.error("LUKA-XMD APK error:", error);
+            await react("❌");
+            return reply(`APK download imeshindwa: ${error.message}`);
         }
+    }
+);
 
-        if (
-            contentType.includes("application/json") ||
-            contentType.includes("text/")
-        ) {
-            let data;
+// ═══════════════════════════════════════════════════════════════
+// PASTEBIN VIEWER
+// ═══════════════════════════════════════════════════════════════
 
-            try {
-                data = JSON.parse(buffer.toString("utf8"));
-            } catch (_) {
-                throw new Error(
-                    "The YouTube audio API returned text instead of audio."
-                );
-            }
-
-            const result = extractResult(data);
-            const url = getUrl(result, [
-                "download_url",
-                "downloadUrl",
-                "url",
-                "link",
-            ]);
-
-            if (!url) {
-                throw new Error(
-                    "The YouTube audio API did not return a download URL."
-                );
-            }
-
-            const file = await downloadBuffer(url);
-
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                file.buffer,
-                "luka-youtube-audio.mp3",
-                "audio/mpeg"
-            );
-        } else {
-            if (!buffer.length) {
-                throw new Error("The audio file is empty.");
-            }
-
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                buffer,
-                "luka-youtube-audio.mp3",
-                "audio/mpeg"
-            );
-        }
-
-        return null;
+gmd(
+    {
+        pattern: "pastebin",
+        category: "downloader",
+        react: "📋",
+        aliases: ["getpaste", "getpastebin", "pastedl", "pastebindl", "paste"],
+        description: "Fetch and read Pastebin content",
     },
-});
+    async (from, Luka, conText) => {
+        const { q, mek, reply, react, botName } = conText;
+        const { api, key } = getApiSettings(conText);
 
-// ======================================================
-// YOUTUBE MP4
-// Usage: .ytmp4 https://youtube.com/watch?v=...
-// ======================================================
-
-registerDownloader({
-    pattern: "ytmp4",
-    aliases: ["ytvideo", "ytv"],
-    description: "Download YouTube video as MP4",
-
-    validate: q =>
-        /youtube\.com|youtu\.be/i.test(q) ||
-        "Please provide a valid YouTube URL.",
-
-    execute: async ({ from, Guru, conText, q, mek }) => {
-        const { base, apikey } = getApiConfig(conText);
-
-        const response = await axios.get(
-            `${base}/api/download/ytvideo`,
-            {
-                params: {
-                    apikey,
-                    url: q,
-                },
-                timeout: API_TIMEOUT,
-                responseType: "arraybuffer",
-                maxContentLength: MAX_FILE_SIZE,
-                validateStatus: () => true,
-            }
-        );
-
-        const buffer = Buffer.from(response.data);
-        const contentType = String(
-            response.headers["content-type"] || ""
-        ).toLowerCase();
-
-        if (response.status < 200 || response.status >= 300) {
-            throw new Error(
-                `YouTube video API returned HTTP ${response.status}.`
-            );
+        if (!q) {
+            await react("❌");
+            return reply("Tuma link ya Pastebin.\n\nMfano: .pastebin https://pastebin.com/xxxxxx");
         }
 
-        if (
-            contentType.includes("application/json") ||
-            contentType.includes("text/")
-        ) {
-            let data;
+        if (!/pastebin\.com/i.test(q)) {
+            await react("❌");
+            return reply("Link si ya Pastebin.");
+        }
 
-            try {
-                data = JSON.parse(buffer.toString("utf8"));
-            } catch (_) {
-                throw new Error(
-                    "The YouTube video API returned text instead of video."
+        if (!api || !key) {
+            await react("❌");
+            return reply("Pastebin API haijawekwa vizuri kwenye settings.");
+        }
+
+        try {
+            await reply("📋 *LUKA-XMD PASTEBIN VIEWER*\n\nInatafuta content...");
+
+            const url =
+                `${api}/api/download/pastebin` +
+                `?apikey=${encodeURIComponent(key)}` +
+                `&url=${encodeURIComponent(q)}`;
+
+            const data = await getApiJson(url, 30000);
+
+            if (!data?.success || data?.result == null) {
+                await react("❌");
+                return reply("Imeshindikana kupata Pastebin content.");
+            }
+
+            let content = typeof data.result === "string"
+                ? data.result
+                : data.result.content || data.result.text || JSON.stringify(data.result, null, 2);
+
+            content = content
+                .replace(/\\r\\n/g, "\n")
+                .replace(/\\n/g, "\n")
+                .replace(/\\t/g, "\t")
+                .replace(/\r\n/g, "\n")
+                .replace(/\r/g, "\n");
+
+            const pasteId = new URL(q).pathname.split("/").filter(Boolean).pop() || "paste";
+            const header =
+                `📋 *${botName || "LUKA-XMD"} PASTEBIN VIEWER*\n` +
+                `*Paste ID:* ${pasteId}\n` +
+                "━━━━━━━━━━━━━━━━━━━━\n\n";
+
+            const message = header + content;
+
+            if (message.length > 60000) {
+                await Luka.sendMessage(
+                    from,
+                    {
+                        document: Buffer.from(content, "utf8"),
+                        fileName: `LUKA-XMD_pastebin_${cleanFileName(pasteId)}.txt`,
+                        mimetype: "text/plain",
+                        caption: `📋 Pastebin content — ${pasteId}`,
+                    },
+                    getQuotedOptions(mek)
+                );
+            } else {
+                await Luka.sendMessage(
+                    from,
+                    { text: message },
+                    getQuotedOptions(mek)
                 );
             }
 
-            const result = extractResult(data);
-            const url = getUrl(result, [
-                "download_url",
-                "downloadUrl",
-                "url",
-                "link",
-            ]);
-
-            if (!url) {
-                throw new Error(
-                    "The YouTube video API did not return a download URL."
-                );
-            }
-
-            const file = await downloadBuffer(url);
-
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                file.buffer,
-                "luka-youtube-video.mp4",
-                "video/mp4"
-            );
-        } else {
-            if (!buffer.length) {
-                throw new Error("The video file is empty.");
-            }
-
-            await sendDocument(
-                Guru,
-                from,
-                mek,
-                buffer,
-                "luka-youtube-video.mp4",
-                "video/mp4"
-            );
+            await react("✅");
+        } catch (error) {
+            console.error("LUKA-XMD Pastebin error:", error);
+            await react("❌");
+            return reply(`Pastebin imeshindwa: ${error.message}`);
         }
+    }
+);
 
-        return null;
-    },
-});
-
-console.log("LUKA-XMD downloader2.js loaded.");
+// ═══════════════════════════════════════════════════════════════
+// END OF LUKA-XMD DOWNLOADER 2
+// ═══════════════════════════════════════════════════════════════
