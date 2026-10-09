@@ -85,9 +85,9 @@ gmd(
       const sudoList = await getSudoNumbers();
       const enabledGroupSettings = await getEnabledGroupSettings();
 
-      let msg = `╭━━━━━━━━━━━╮\n`;
-      msg += `│   *⚙️ BOT SETTINGS*\n`;
-      msg += `╰━━━━━━━━━━━╯\n\n`;
+  let msg = `╭══〘〘 *LUKA-XMD* 〙〙═⊷\n`;
+  msg += `      *BOT SETTINGS*\n`;
+  msg += `╰══✦ ✦══⊷\n\n`;
 
       const keys = Object.keys(settings).sort();
       for (const key of keys) {
@@ -98,9 +98,9 @@ gmd(
 
       msg += `\n▸ *SUDO_USERS:* ${sudoList.length > 0 ? sudoList.join(", ") : "None"}\n`;
 
-      msg += `\n╭━━━━━━━━━━━╮\n`;
-      msg += `│   *📋 GROUP SETTINGS*\n`;
-      msg += `╰━━━━━━━━━━━╯\n\n`;
+      msg += `\n╭══〘〘 *LUKA-XMD* 〙〙═⊷\n`;
+      msg += `      📋 *GROUP SETTINGS*\n`;
+      msg += `╰══✦ ✦══⊷\n\n`;
 
       const [
         welcomeGroups,
