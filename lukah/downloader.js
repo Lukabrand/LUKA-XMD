@@ -4,7 +4,7 @@ const {
     gmd,
     MAX_MEDIA_SIZE,
     getFileSize,
-} = require("../guru");
+} = require("../luka");
 
 const axios = require("axios");
 
