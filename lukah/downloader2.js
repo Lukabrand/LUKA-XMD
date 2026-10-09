@@ -1,872 +1,473 @@
-const {
-        gmd,
-        MAX_MEDIA_SIZE,
-        getFileSize,
-        getMimeCategory,
-        getMimeFromUrl,
-    } = require("../luka"),
-    GIFTED_DLS = require("gifted-dls"),
-    giftedDls = new GIFTED_DLS(),
-    axios = require("axios"),
-    { sendButtons } = require("gifted-btns");
+"use strict";
 
-function extractButtonId(msg) {
-    if (!msg) return null;
-    if (msg.templateButtonReplyMessage?.selectedId)
-        return msg.templateButtonReplyMessage.selectedId;
-    if (msg.buttonsResponseMessage?.selectedButtonId)
-        return msg.buttonsResponseMessage.selectedButtonId;
-    if (msg.listResponseMessage?.singleSelectReply?.selectedRowId)
-        return msg.listResponseMessage.singleSelectReply.selectedRowId;
-    if (msg.interactiveResponseMessage) {
-        const nf = msg.interactiveResponseMessage.nativeFlowResponseMessage;
-        if (nf?.paramsJson) {
-            try { const p = JSON.parse(nf.paramsJson); if (p.id) return p.id; } catch {}
-        }
-        return msg.interactiveResponseMessage.buttonId || null;
-    }
-    return null;
+const { gmd } = require("../luka");
+const axios = require("axios");
+
+const PLUGIN_NAME = "LUKA-XMD Downloader 2";
+
+const DEFAULT_TIMEOUT = 120000;
+
+function getApiConfig(conText) {
+    const apiUrl = (
+        conText.GuruTechApi ||
+        conText.guruTechApi ||
+        ""
+    ).replace(/\/+$/, "");
+
+    const apiKey =
+        conText.GuruApiKey ||
+        conText.GuruTechApiKey ||
+        conText.apikey ||
+        "";
+
+    return { apiUrl, apiKey };
 }
 
-gmd(
-    {
-        pattern: "spotify",
-        category: "downloader",
-        react: "🎧",
-        aliases: ["spotifydl", "spotidl", "spoti"],
-        description: "Download Spotify tracks by URL or song name",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            botName,
-            botFooter,
-            newsletterJid,
-            gmdBuffer,
-            formatAudio,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
+function buildUrl(base, endpoint, params = {}) {
+    const url = new URL(`${base}${endpoint}`);
 
-        if (!q) {
-            await react("❌");
-            return reply(
-                "Please provide a Spotify URL or song name\n\n*Examples:*\n.spotify https://open.spotify.com/track/...\n.spotify The Spectre Alan Walker",
-            );
+    for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+            url.searchParams.set(key, String(value));
         }
+    }
 
-        const truncate = (str, len) =>
-            str && str.length > len ? str.substring(0, len - 2) + ".." : str;
+    return url.toString();
+}
 
-        const downloadAndSend = async (trackUrl, quotedMsg) => {
-            const endpoints = ["spotifydl", "spotifydlv2"];
+async function apiGet(conText, endpoint, params = {}) {
+    const { apiUrl, apiKey } = getApiConfig(conText);
 
-            const t0 = Date.now();
-            const result = await Promise.any(
-                endpoints.map(endpoint => {
-                    const apiUrl = `${GiftedTechApi}/api/download/${endpoint}?apikey=${GiftedApiKey}&url=${encodeURIComponent(trackUrl)}`;
-                    return axios.get(apiUrl, { timeout: 20000 }).then(res => {
-                        if (res.data?.success && res.data?.result?.download_url) {
-                            return res.data.result;
-                        }
-                        throw new Error(`${endpoint}: no download_url`);
-                    });
-                })
-            ).catch(() => null);
+    if (!apiUrl) {
+        throw new Error("API URL is missing from the bot configuration.");
+    }
 
-            if (!result || !result.download_url) {
-                await react("❌");
-                return reply(
-                    "Failed to fetch track. Please try again.",
-                    quotedMsg,
-                );
-            }
+    const url = buildUrl(apiUrl, endpoint, {
+        ...params,
+        apikey: apiKey
+    });
 
-            const { title, thumbnail, download_url } = result;
+    const response = await axios.get(url, {
+        timeout: DEFAULT_TIMEOUT,
+        validateStatus: () => true,
+        headers: {
+            Accept: "application/json, audio/*, video/*, */*",
+            "User-Agent": "LUKA-XMD-Downloader/2.0"
+        },
+        responseType: "arraybuffer",
+        maxContentLength: 100 * 1024 * 1024,
+        maxBodyLength: 100 * 1024 * 1024
+    });
 
-            const audioBuffer = await gmdBuffer(download_url);
-            const formattedAudio = await formatAudio(audioBuffer);
-            const fileSize = formattedAudio.length;
+    const contentType = String(
+        response.headers["content-type"] || ""
+    ).toLowerCase();
 
-            if (fileSize > MAX_MEDIA_SIZE) {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        document: formattedAudio,
-                        fileName: `${(title || "spotify_track").replace(/[^\w\s.-]/gi, "")}.mp3`,
-                        mimetype: "audio/mpeg",
-                    },
-                    { quoted: quotedMsg },
-                );
-            } else {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        audio: formattedAudio,
-                        mimetype: "audio/mpeg",
-                    },
-                    { quoted: quotedMsg },
-                );
-            }
+    const raw = Buffer.from(response.data);
 
-            await react("✅");
-        };
+    if (response.status < 200 || response.status >= 300) {
+        let detail = raw.toString("utf8").slice(0, 400);
 
         try {
-            if (q.includes("spotify.com")) {
-                await downloadAndSend(q, mek);
-                return;
-            }
+            const parsed = JSON.parse(detail);
+            detail =
+                parsed.message ||
+                parsed.error ||
+                parsed.msg ||
+                detail;
+        } catch (_) {}
 
-            const searchUrl = `${GiftedTechApi}/api/search/spotifysearch?apikey=${GiftedApiKey}&query=${encodeURIComponent(q)}`;
-            const searchResponse = await axios.get(searchUrl, {
-                timeout: 30000,
-            });
-            const data = searchResponse.data;
+        throw new Error(
+            `API returned HTTP ${response.status}: ${detail}`
+        );
+    }
 
-            if (!data?.success || !data?.results) {
-                await react("❌");
-                return reply(
-                    "Search failed. Please try with a direct Spotify URL.",
-                );
-            }
+    if (
+        contentType.includes("application/json") ||
+        contentType.includes("text/")
+    ) {
+        const text = raw.toString("utf8");
 
-            const results = data.results;
-
-            if (results?.status === false) {
-                await react("❌");
-                return reply(
-                    "Search service temporarily unavailable. Please try with a direct Spotify URL.",
-                );
-            }
-
-            let tracks = [];
-            if (Array.isArray(results)) {
-                tracks = results.slice(0, 3);
-            } else if (results?.tracks && Array.isArray(results.tracks)) {
-                tracks = results.tracks.slice(0, 3);
-            } else if (
-                typeof results === "object" &&
-                (results.url || results.link)
-            ) {
-                tracks = [results];
-            }
-
-            if (tracks.length === 0) {
-                await react("❌");
-                return reply(
-                    "No Spotify tracks found. Try a different query or provide a direct Spotify URL.",
-                );
-            }
-
-            const dateNow = Date.now();
-            const buttons = tracks.map((track, index) => {
-                const title = track.title || track.name || "Unknown Track";
-                const artist = track.artist || track.artists?.join(", ") || "";
-                const displayName = artist ? `${title} - ${artist}` : title;
-                return {
-                    id: `sp_${index}_${dateNow}`,
-                    text: truncate(displayName, 20),
-                };
-            });
-
-            const trackList = tracks
-                .map((track, i) => {
-                    const title = track.title || track.name || "Unknown";
-                    const artist =
-                        track.artist || track.artists?.join(", ") || "Unknown";
-                    return `${i + 1}. ${title} - ${artist}`;
-                })
-                .join("\n");
-
-            // Fixed: Get thumbnail from the first track
-            const thumbnailUrl = tracks[0]?.thumbnail || tracks[0]?.image || tracks[0]?.album?.images?.[0]?.url || '';
-
-            await sendButtons(Gifted, from, {
-                title: `${botName} SPOTIFY`,
-                text: `*Search Results:*\n\n${trackList}\n\n*Select a track:*`,
-                footer: botFooter,
-                image: { url: thumbnailUrl },
-                buttons: buttons,
-            });
-
-            const handleResponse = async (event) => {
-                const messageData = event.messages[0];
-                if (!messageData.message) return;
-
-                const selectedButtonId = extractButtonId(messageData.message);
-                if (!selectedButtonId) return;
-                if (!selectedButtonId.includes(`_${dateNow}`)) return;
-
-                const isFromSameChat = messageData.key?.remoteJid === from;
-                if (!isFromSameChat) return;
-
-                await react("⬇️");
-
-                try {
-                    const index = parseInt(selectedButtonId.split("_")[1]);
-                    const selectedTrack = tracks[index];
-                    const trackUrl =
-                        selectedTrack?.url ||
-                        selectedTrack?.link ||
-                        selectedTrack?.external_urls?.spotify ||
-                        selectedTrack?.spotify_url;
-
-                    if (!trackUrl) {
-                        await react("❌");
-                        return reply("Track URL not available.", messageData);
-                    }
-
-                    await downloadAndSend(trackUrl, messageData);
-                } catch (error) {
-                    console.error("Spotify download error:", error);
-                    await react("❌");
-                    await reply(
-                        "Failed to download. Please try again.",
-                        messageData,
-                    );
-                }
-            };
-
-            Gifted.ev.on("messages.upsert", handleResponse);
-            setTimeout(
-                () => Gifted.ev.off("messages.upsert", handleResponse),
-                300000,
-            );
-        } catch (error) {
-            console.error("Spotify API error:", error);
-            await react("❌");
-            return reply("An error occurred. Please try again.");
-        }
-    },
-);
-
-gmd(
-    {
-        pattern: "gdrive",
-        category: "downloader",
-        react: "📁",
-        aliases: ["googledrive", "drive", "gdrivedl"],
-        description: "Download from Google Drive",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            botName,
-            botFooter,
-            newsletterJid,
-            gmdBuffer,
-            formatAudio,
-            formatVideo,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
-
-        if (!q) {
-            await react("❌");
-            return reply("Please provide a Google Drive URL");
-        }
-
-        if (!q.includes("drive.google.com")) {
-            await react("❌");
-            return reply("Please provide a valid Google Drive URL");
-        }
-
+        let data;
         try {
-            const apiUrl = `${GiftedTechApi}/api/download/gdrivedl?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
-            const response = await axios.get(apiUrl, { timeout: 60000 });
-
-            if (!response.data?.success || !response.data?.result) {
-                await react("❌");
-                return reply(
-                    "Failed to fetch file. Please check the URL and ensure the file is publicly accessible.",
-                );
-            }
-
-            const { name, download_url } = response.data.result;
-
-            if (!download_url) {
-                await react("❌");
-                return reply("No download URL available.");
-            }
-
-            let mimetype = getMimeFromUrl(name || "");
-            let mimeCategory = getMimeCategory(mimetype);
-
-            try {
-                const headResponse = await axios.head(download_url, {
-                    timeout: 15000,
-                });
-                const contentType = headResponse.headers["content-type"];
-                if (contentType && !contentType.includes("text/html")) {
-                    mimetype = contentType.split(";")[0].trim();
-                    mimeCategory = getMimeCategory(mimetype);
-                }
-            } catch (headErr) {
-                if (headErr.response?.status === 404) {
-                    await react("❌");
-                    return reply(
-                        "File not found. The file may have been deleted or is not publicly accessible.",
-                    );
-                }
-            }
-
-            let fileBuffer;
-            try {
-                fileBuffer = await gmdBuffer(download_url);
-            } catch (dlErr) {
-                if (
-                    dlErr.response?.status === 404 ||
-                    dlErr.message?.includes("404")
-                ) {
-                    await react("❌");
-                    return reply(
-                        "File not found. The file may have been deleted or is not publicly accessible.",
-                    );
-                }
-                throw dlErr;
-            }
-
-            const fileSize = fileBuffer.length;
-            const sendAsDoc =
-                fileSize > MAX_MEDIA_SIZE || mimeCategory === "document";
-
-            if (mimeCategory === "audio" && !sendAsDoc) {
-                const formattedAudio = await formatAudio(fileBuffer);
-
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        audio: formattedAudio,
-                        mimetype: "audio/mpeg",
-                    },
-                    { quoted: mek },
-                );
-            } else if (mimeCategory === "video" && !sendAsDoc) {
-                const formattedVideo = await formatVideo(fileBuffer);
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        video: formattedVideo,
-                        mimetype: "video/mp4",
-                        caption: `*${name || "Google Drive File"}*`,
-                    },
-                    { quoted: mek },
-                );
-            } else if (mimeCategory === "image" && !sendAsDoc) {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        image: fileBuffer,
-                        caption: `*${name || "Google Drive File"}*`,
-                    },
-                    { quoted: mek },
-                );
-            } else {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        document: fileBuffer,
-                        fileName: name || "gdrive_file",
-                        mimetype: mimetype || "application/octet-stream",
-                    },
-                    { quoted: mek },
-                );
-            }
-
-            await react("✅");
-        } catch (error) {
-            console.error("Google Drive API error:", error);
-            await react("❌");
-            if (
-                error.response?.status === 404 ||
-                error.message?.includes("404")
-            ) {
-                return reply(
-                    "File not found. The file may have been deleted or is not publicly accessible.",
-                );
-            }
-            return reply("An error occurred. Please try again.");
-        }
-    },
-);
-
-gmd(
-    {
-        pattern: "mediafire",
-        category: "downloader",
-        react: "🔥",
-        aliases: ["mfire", "mediafiredl", "mfiredl"],
-        description: "Download from MediaFire",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            botName,
-            botFooter,
-            newsletterJid,
-            gmdBuffer,
-            formatAudio,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
-
-        if (!q) {
-            await react("❌");
-            return reply("Please provide a MediaFire URL");
-        }
-
-        if (!q.includes("mediafire.com")) {
-            await react("❌");
-            return reply("Please provide a valid MediaFire URL");
-        }
-
-        try {
-            const apiUrl = `${GiftedTechApi}/api/download/mediafire?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
-            const response = await axios.get(apiUrl, { timeout: 60000 });
-
-            if (!response.data?.success || !response.data?.result) {
-                await react("❌");
-                return reply(
-                    "Failed to fetch file. Please check the URL and try again.",
-                );
-            }
-
-            const { fileName, fileSize, fileType, mimeType, downloadUrl } =
-                response.data.result;
-
-            if (!downloadUrl) {
-                await react("❌");
-                return reply("No download URL available.");
-            }
-
-            const mimetype = mimeType || getMimeFromUrl(downloadUrl);
-            const mimeCategory = getMimeCategory(mimetype);
-
-            const sizeMatch = fileSize?.match(/([\d.]+)\s*(KB|MB|GB)/i);
-            let sizeBytes = 0;
-            if (sizeMatch) {
-                const size = parseFloat(sizeMatch[1]);
-                const unit = sizeMatch[2].toUpperCase();
-                if (unit === "KB") sizeBytes = size * 1024;
-                else if (unit === "MB") sizeBytes = size * 1024 * 1024;
-                else if (unit === "GB") sizeBytes = size * 1024 * 1024 * 1024;
-            }
-
-            const sendAsDoc =
-                sizeBytes > MAX_MEDIA_SIZE || mimeCategory === "document";
-
-            const caption =
-                `*${fileName || "MediaFire File"}*\n\n` +
-                `*Size:* ${fileSize || "Unknown"}\n` +
-                `*Type:* ${fileType || "Unknown"}`;
-
-            if (mimeCategory === "audio" && !sendAsDoc) {
-                const audioBuffer = await gmdBuffer(downloadUrl);
-                const formattedAudio = await formatAudio(audioBuffer);
-
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        audio: formattedAudio,
-                        mimetype: "audio/mpeg",
-                    },
-                    { quoted: mek },
-                );
-            } else if (mimeCategory === "video" && !sendAsDoc) {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        video: { url: downloadUrl },
-                        mimetype: mimetype,
-                        caption: caption,
-                    },
-                    { quoted: mek },
-                );
-            } else if (mimeCategory === "image" && !sendAsDoc) {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        image: { url: downloadUrl },
-                        caption: caption,
-                    },
-                    { quoted: mek },
-                );
-            } else {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        document: { url: downloadUrl },
-                        fileName: fileName || "mediafire_file",
-                        mimetype: mimetype,
-                        caption: caption,
-                    },
-                    { quoted: mek },
-                );
-            }
-
-            await react("✅");
-        } catch (error) {
-            console.error("MediaFire API error:", error);
-            await react("❌");
-            return reply("An error occurred. Please try again.");
-        }
-    },
-);
-
-gmd(
-    {
-        pattern: "apk",
-        category: "downloader",
-        react: "📱",
-        aliases: ["app", "apkdl", "appdownload"],
-        description: "Download Android APK files",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            botName,
-            botFooter,
-            newsletterJid,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
-
-        if (!q) {
-            await react("❌");
-            return reply(
-                "Please provide an app name\n\n*Example:* .apk WhatsApp",
+            data = JSON.parse(text);
+        } catch (_) {
+            throw new Error(
+                `The API returned text instead of a media file: ${text.slice(0, 250)}`
             );
-        }
-
-        try {
-         //   await reply(`Searching for *${q}* APK...`);
-
-            const apiUrl = `${GiftedTechApi}/api/download/apkdl?apikey=${GiftedApiKey}&appName=${encodeURIComponent(q)}`;
-            const response = await axios.get(apiUrl, { timeout: 60000 });
-
-            if (!response.data?.success || !response.data?.result) {
-                await react("❌");
-                return reply("App not found. Please try a different name.");
-            }
-
-            const { appname, appicon, developer, mimetype, download_url } =
-                response.data.result;
-
-            if (!download_url) {
-                await react("❌");
-                return reply("No download URL available for this app.");
-            }
-
-            const caption =
-                `*${botName} APK DOWNLOADER*\n\n` +
-                `*App:* ${appname || q}\n` +
-                `*Developer:* ${developer || "Unknown"}\n\n` +
-                `_Downloading APK..._`;
-
-            await Gifted.sendMessage(
-                from,
-                {
-                    image: { url: appicon },
-                    caption: caption,
-                },
-                { quoted: mek },
-            );
-
-            await Gifted.sendMessage(
-                from,
-                {
-                    document: { url: download_url },
-                    fileName: `${(appname || q).replace(/[^\w\s.-]/gi, "")}.apk`,
-                    mimetype:
-                        mimetype || "application/vnd.android.package-archive",
-                },
-                { quoted: mek },
-            );
-
-            await react("✅");
-        } catch (error) {
-            console.error("APK download error:", error);
-            await react("❌");
-            return reply("An error occurred. Please try again.");
-        }
-    },
-);
-
-gmd(
-    {
-        pattern: "pastebin",
-        category: "downloader",
-        react: "📋",
-        aliases: ["getpaste", "getpastebin", "pastedl", "pastebindl", "paste"],
-        description: "Fetch content from Pastebin",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            botName,
-            botFooter,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
-
-        if (!q) {
-            await react("❌");
-            return reply(
-                "Please provide a Pastebin URL\n\n*Example:* .pastebin https://pastebin.com/xxxxxx",
-            );
-        }
-
-        if (!q.includes("pastebin.com")) {
-            await react("❌");
-            return reply("Please provide a valid Pastebin URL");
-        }
-
-        try {
-            await reply("Fetching paste content...");
-
-            const apiUrl = `${GiftedTechApi}/api/download/pastebin?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
-            const response = await axios.get(apiUrl, { timeout: 30000 });
-
-            if (!response.data?.success || !response.data?.result) {
-                await react("❌");
-                return reply(
-                    "Failed to fetch paste. Please check the URL and try again.",
-                );
-            }
-
-            let content = response.data.result;
-
-            content = content
-                .replace(/\\r\\n/g, "\n")
-                .replace(/\\n/g, "\n")
-                .replace(/\\t/g, "\t");
-            content = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-            const pasteId = q.split("/").pop().split("?")[0];
-
-            const header =
-                `*${botName} PASTEBIN VIEWER*\n` +
-                `*Paste ID:* ${pasteId}\n` +
-                `━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-            const fullMessage = header + content;
-
-            if (fullMessage.length > 65000) {
-                const textBuffer = Buffer.from(content, "utf-8");
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        document: textBuffer,
-                        fileName: `pastebin_${pasteId}.txt`,
-                        mimetype: "text/plain",
-                        caption: `*Paste ID:* ${pasteId}\n_Content too long, sent as file_`,
-                    },
-                    { quoted: mek },
-                );
-            } else {
-                await Gifted.sendMessage(
-                    from,
-                    {
-                        text: fullMessage,
-                    },
-                    { quoted: mek },
-                );
-            }
-
-            await react("✅");
-        } catch (error) {
-            console.error("Pastebin API error:", error);
-            await react("❌");
-            return reply("An error occurred. Please try again.");
-        }
-    },
-);
-
-/*
-gmd(
-    {
-        pattern: "ytv",
-        category: "downloader",
-        react: "📽",
-        description: "Download Video from Youtube",
-    },
-    async (from, Gifted, conText) => {
-        const {
-            q,
-            mek,
-            reply,
-            react,
-            sender,
-            botPic,
-            botName,
-            botFooter,
-            newsletterUrl,
-            newsletterJid,
-            gmdJson,
-            gmdBuffer,
-            formatVideo,
-            GiftedTechApi,
-            GiftedApiKey,
-        } = conText;
-
-        if (!q) {
-            await react("❌");
-            return reply("Please provide a YouTube URL");
         }
 
         if (
-            !q.startsWith("https://youtu.be/") &&
-            !q.startsWith("https://www.youtube.com/") &&
-            !q.startsWith("https://youtube.com/")
+            data.status === false ||
+            data.success === false ||
+            data.error
         ) {
-            return reply("Please provide a valid YouTube URL!");
+            throw new Error(
+                data.message ||
+                data.error ||
+                data.msg ||
+                "The API could not process this request."
+            );
+        }
+
+        return data;
+    }
+
+    return {
+        buffer: raw,
+        contentType
+    };
+}
+
+function findValue(data, keys) {
+    if (!data || typeof data !== "object") return null;
+
+    for (const key of keys) {
+        if (data[key] !== undefined && data[key] !== null) {
+            return data[key];
+        }
+    }
+
+    if (data.result && typeof data.result === "object") {
+        const found = findValue(data.result, keys);
+        if (found) return found;
+    }
+
+    if (data.data && typeof data.data === "object") {
+        const found = findValue(data.data, keys);
+        if (found) return found;
+    }
+
+    return null;
+}
+
+async function downloadFile(url) {
+    const response = await axios.get(url, {
+        responseType: "arraybuffer",
+        timeout: DEFAULT_TIMEOUT,
+        maxContentLength: 100 * 1024 * 1024,
+        headers: {
+            "User-Agent": "Mozilla/5.0 (compatible; LUKA-XMD)"
+        }
+    });
+
+    return {
+        buffer: Buffer.from(response.data),
+        contentType: String(
+            response.headers["content-type"] || ""
+        ).toLowerCase()
+    };
+}
+
+async function getMediaResult(conText, endpoint, params = {}) {
+    const result = await apiGet(conText, endpoint, params);
+
+    if (result.buffer) {
+        return result;
+    }
+
+    const mediaUrl = findValue(result, [
+        "downloadUrl",
+        "download_url",
+        "url",
+        "link",
+        "media",
+        "audio",
+        "video",
+        "file"
+    ]);
+
+    if (typeof mediaUrl !== "string") {
+        throw new Error(
+            "The API responded, but no downloadable media URL was found."
+        );
+    }
+
+    if (!/^https?:\/\//i.test(mediaUrl)) {
+        throw new Error("The API returned an invalid download URL.");
+    }
+
+    return downloadFile(mediaUrl);
+}
+
+function registerCommand(config) {
+    const {
+        pattern,
+        endpoint,
+        inputName = "url",
+        title,
+        mediaType,
+        fileName,
+        mimeType,
+        description
+    } = config;
+
+    gmd(
+        {
+            pattern,
+            alias: config.alias || [],
+            desc: description || `Download using ${PLUGIN_NAME}`,
+            category: "downloader",
+            filename: __filename
+        },
+        async (from, Guru, conText) => {
+            const { q, mek, reply, react } = conText;
+
+            if (!q) {
+                return reply(
+                    `Please provide a search query or URL.\n\nExample: .${pattern} <query or URL>`
+                );
+            }
+
+            try {
+                if (react) await react("⏳");
+
+                await reply(`Downloading ${title}... Please wait.`);
+
+                const result = await getMediaResult(
+                    conText,
+                    endpoint,
+                    { [inputName]: q.trim() }
+                );
+
+                if (!result.buffer || !result.buffer.length) {
+                    throw new Error("The downloaded file is empty.");
+                }
+
+                const caption =
+                    `╭━━〔 LUKA-XMD 〕━━╮\n` +
+                    `┃ ${title} Downloaded\n` +
+                    `╰━━━━━━━━━━━━━━╯`;
+
+                const options = {
+                    caption,
+                    mimetype: mimeType
+                };
+
+                if (mediaType === "audio") {
+                    await Guru.sendMessage(
+                        from,
+                        {
+                            audio: result.buffer,
+                            mimetype: mimeType || "audio/mpeg",
+                            fileName: fileName || "luka-audio.mp3"
+                        },
+                        { quoted: mek }
+                    );
+                } else if (mediaType === "video") {
+                    await Guru.sendMessage(
+                        from,
+                        {
+                            video: result.buffer,
+                            caption,
+                            mimetype: mimeType || "video/mp4"
+                        },
+                        { quoted: mek }
+                    );
+                } else if (mediaType === "document") {
+                    await Guru.sendMessage(
+                        from,
+                        {
+                            document: result.buffer,
+                            mimetype:
+                                mimeType ||
+                                result.contentType ||
+                                "application/octet-stream",
+                            fileName: fileName || "luka-download.bin",
+                            caption
+                        },
+                        { quoted: mek }
+                    );
+                } else {
+                    throw new Error("Unsupported media type in command configuration.");
+                }
+
+                if (react) await react("✅");
+            } catch (error) {
+                console.error(
+                    `[LUKA-XMD DOWNLOADER2] ${pattern}:`,
+                    error.message
+                );
+
+                if (react) await react("❌");
+
+                return reply(
+                    `Download failed.\n\nReason: ${error.message}\n\nPlease check your API configuration and try again.`
+                );
+            }
+        }
+    );
+}
+
+// Spotify music
+registerCommand({
+    pattern: "spotify",
+    alias: ["spot"],
+    endpoint: "/api/download/spotify",
+    inputName: "url",
+    title: "Spotify",
+    mediaType: "audio",
+    fileName: "luka-spotify.mp3",
+    mimeType: "audio/mpeg",
+    description: "Download Spotify music"
+});
+
+// Google Drive
+registerCommand({
+    pattern: "gdrive",
+    alias: ["gdl"],
+    endpoint: "/api/download/gdrive",
+    inputName: "url",
+    title: "Google Drive",
+    mediaType: "document",
+    fileName: "luka-gdrive-download",
+    description: "Download a Google Drive file"
+});
+
+// MediaFire
+registerCommand({
+    pattern: "mediafire",
+    alias: ["mf"],
+    endpoint: "/api/download/mediafire",
+    inputName: "url",
+    title: "MediaFire",
+    mediaType: "document",
+    fileName: "luka-mediafire-download",
+    description: "Download a MediaFire file"
+});
+
+// TikTok
+registerCommand({
+    pattern: "tiktok",
+    alias: ["tt"],
+    endpoint: "/api/download/tiktok",
+    inputName: "url",
+    title: "TikTok",
+    mediaType: "video",
+    mimeType: "video/mp4",
+    description: "Download TikTok videos"
+});
+
+// Facebook
+registerCommand({
+    pattern: "facebook",
+    alias: ["fb"],
+    endpoint: "/api/download/facebook",
+    inputName: "url",
+    title: "Facebook",
+    mediaType: "video",
+    mimeType: "video/mp4",
+    description: "Download Facebook videos"
+});
+
+// Instagram
+registerCommand({
+    pattern: "instagram",
+    alias: ["ig"],
+    endpoint: "/api/download/instagram",
+    inputName: "url",
+    title: "Instagram",
+    mediaType: "video",
+    mimeType: "video/mp4",
+    description: "Download Instagram media"
+});
+
+// APK
+registerCommand({
+    pattern: "apk",
+    alias: ["apkdl"],
+    endpoint: "/api/download/apkdl",
+    inputName: "appName",
+    title: "APK",
+    mediaType: "document",
+    fileName: "luka-app.apk",
+    mimeType: "application/vnd.android.package-archive",
+    description: "Search for and download APK files"
+});
+
+// Direct URL downloader
+gmd(
+    {
+        pattern: "directdl",
+        alias: ["fetch"],
+        desc: "Download a direct media URL",
+        category: "downloader",
+        filename: __filename
+    },
+    async (from, Guru, conText) => {
+        const { q, mek, reply, react } = conText;
+
+        if (!q) {
+            return reply(
+                "Please provide a direct file URL.\nExample: .directdl https://example.com/file.mp4"
+            );
         }
 
         try {
-            const searchResponse = await gmdJson(
-                `${GiftedTechApi}/search/yts?apikey=${GiftedApiKey}&query=${encodeURIComponent(q)}`,
-            );
-            const videoInfo = searchResponse.results[0];
-            const infoMessage = {
-                image: { url: videoInfo.thumbnail || botPic },
-                caption:
-                    `> *${botName} VIDEO DOWNLOADER*\n\n` +
-                    `*Title:* ${videoInfo.title}\n` +
-                    `*Duration:* ${videoInfo.timestamp}\n` +
-                    `*Views:* ${videoInfo.views}\n` +
-                    `*Uploaded:* ${videoInfo.ago}\n` +
-                    `*Artist:* ${videoInfo.author.name}\n\n` +
-                    `*Reply With:*\n` +
-                    `1 - Download 360p\n` +
-                    `2 - Download 720p\n` +
-                    `3 - Download 1080p`,
-                contextInfo: {
-                    mentionedJid: [sender],
-                    forwardingScore: 5,
-                    isForwarded: true,
-                    forwardedNewsletterMessageInfo: {
-                        newsletterJid: newsletterJid,
-                        newsletterName: botName,
-                        serverMessageId: 143,
+            if (react) await react("⏳");
+
+            const url = q.trim();
+
+            if (!/^https?:\/\//i.test(url)) {
+                throw new Error("Please provide a valid HTTP or HTTPS URL.");
+            }
+
+            const result = await downloadFile(url);
+
+            if (!result.buffer.length) {
+                throw new Error("The downloaded file is empty.");
+            }
+
+            const type = result.contentType;
+            const caption = "Downloaded by LUKA-XMD";
+
+            if (type.includes("audio")) {
+                await Guru.sendMessage(
+                    from,
+                    {
+                        audio: result.buffer,
+                        mimetype: type || "audio/mpeg",
+                        fileName: "luka-audio"
                     },
-                },
-            };
-            const sentMessage = await Gifted.sendMessage(from, infoMessage, {
-                quoted: mek,
-            });
-            const messageId = sentMessage.key.id;
-            const handleResponse = async (event) => {
-                const messageData = event.messages[0];
-                if (!messageData.message) return;
+                    { quoted: mek }
+                );
+            } else if (type.includes("video")) {
+                await Guru.sendMessage(
+                    from,
+                    {
+                        video: result.buffer,
+                        caption,
+                        mimetype: type || "video/mp4"
+                    },
+                    { quoted: mek }
+                );
+            } else {
+                await Guru.sendMessage(
+                    from,
+                    {
+                        document: result.buffer,
+                        fileName: "luka-download",
+                        mimetype: type || "application/octet-stream",
+                        caption
+                    },
+                    { quoted: mek }
+                );
+            }
 
-                const isReplyToPrompt =
-                    messageData.message.extendedTextMessage?.contextInfo
-                        ?.stanzaId === messageId;
-                if (!isReplyToPrompt) return;
-
-                const userChoice =
-                    messageData.message.conversation ||
-                    messageData.message.extendedTextMessage?.text;
-
-                await react("⬇️");
-
-                try {
-                    let quality;
-                    switch (userChoice.trim()) {
-                        case "1":
-                            quality = 360;
-                            break;
-                        case "2":
-                            quality = 720;
-                            break;
-                        case "3":
-                            quality = 1080;
-                            break;
-                        default:
-                            return reply(
-                                "Invalid option. Please reply with: 1, 2 or 3",
-                                messageData,
-                            );
-                    }
-
-                    const downloadResult = await giftedDls.ytmp4(q, quality);
-                    const downloadUrl = downloadResult.result.download_url;
-                    const videoBuffer = await gmdBuffer(downloadUrl);
-
-                    if (videoBuffer instanceof Error) {
-                        await react("❌");
-                        return reply(
-                            "Failed to download the video.",
-                            messageData,
-                        );
-                    }
-
-                    const fileSize = videoBuffer.length;
-                    const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
-
-                    if (sendAsDoc) {
-                        await Gifted.sendMessage(
-                            from,
-                            {
-                                document: videoBuffer,
-                                fileName: `${videoInfo.title.replace(/[^\w\s.-]/gi, "")}.mp4`,
-                                mimetype: "video/mp4",
-                            },
-                            { quoted: messageData },
-                        );
-                    } else {
-                        const formattedVideo = await formatVideo(videoBuffer);
-                        await Gifted.sendMessage(
-                            from,
-                            {
-                                video: formattedVideo,
-                                mimetype: "video/mp4",
-                            },
-                            { quoted: messageData },
-                        );
-                    }
-
-                    await react("✅");
-                    Gifted.ev.off("messages.upsert", handleResponse);
-                } catch (error) {
-                    console.error("Error processing video:", error);
-                    await react("❌");
-                    await reply(
-                        "Failed to process video. Please try again.",
-                        messageData,
-                    );
-                    Gifted.ev.off("messages.upsert", handleResponse);
-                }
-            };
-
-            Gifted.ev.on("messages.upsert", handleResponse);
-
-            setTimeout(() => {
-                Gifted.ev.off("messages.upsert", handleResponse);
-            }, 300000);
+            if (react) await react("✅");
         } catch (error) {
-            console.error("YouTube download error:", error);
-            await react("❌");
+            console.error(
+                "[LUKA-XMD DIRECT DOWNLOAD ERROR]",
+                error.message
+            );
+
+            if (react) await react("❌");
+
             return reply(
-                "An error occurred while processing your request. Please try again.",
+                `Direct download failed.\nReason: ${error.message}`
             );
         }
-    },
+    }
 );
-*/
+
+console.log("LUKA-XMD Downloader 2 plugin loaded.");
