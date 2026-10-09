@@ -1,99 +1,231 @@
 "use strict";
 
+const {
+    gmd,
+    MAX_MEDIA_SIZE,
+    getFileSize,
+} = require("../guru");
+
 const axios = require("axios");
-const { gmd } = require("../luka");
 
-// ═══════════════════════════════════════════════════════════
-//                    LUKA-XMD DOWNLOADER 1
-// ═══════════════════════════════════════════════════════════
+let yts = null;
 
-const MAX_FILE_SIZE = 100 * 1024 * 1024;
-
-function cleanName(name) {
-    return String(name || "LUKA-XMD")
-        .replace(/[<>:"/\\|?*\x00-\x1F]/g, "_")
-        .replace(/\s+/g, "_")
-        .slice(0, 100);
-}
-
-function apiBase(url) {
-    return String(url || "").replace(/\/+$/, "");
-}
-
-function findUrl(data) {
-    const result = data?.result || data?.data || data;
-
-    if (typeof result === "string") {
-        return result.startsWith("http") ? result : "";
-    }
-
-    return (
-        result?.download_url ||
-        result?.downloadUrl ||
-        result?.url ||
-        result?.link ||
-        result?.dl_url ||
-        ""
+try {
+    yts = require("yt-search");
+} catch (error) {
+    console.log(
+        "[LUKA-XMD] yt-search is not installed. Run: npm install yt-search"
     );
 }
 
-async function getApiResult(url, params) {
-    const response = await axios.get(url, {
-        params,
-        timeout: 60000,
-        headers: {
-            Accept: "application/json",
-            "User-Agent": "Mozilla/5.0 LUKA-XMD",
-        },
-    });
+const API_TIMEOUT = 120000;
+const MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024;
 
-    return response.data;
+// Use the current Gifted API domain if the old domain is configured.
+function getApiBase(GuruTechApi) {
+    let base = String(GuruTechApi || "").trim();
+
+    if (
+        !base ||
+        base.includes("api.giftedtech.co.ke")
+    ) {
+        base = "https://api.gifted.co.ke";
+    }
+
+    return base.replace(/\/+$/, "");
 }
 
-async function downloadBuffer(url) {
-    let parsed;
+function getApiKey(GuruApiKey) {
+    return String(GuruApiKey || "").trim() || "gifted";
+}
 
-    try {
-        parsed = new URL(url);
-    } catch {
-        throw new Error("The download URL is invalid.");
+function findDownloadUrl(data) {
+    if (!data) return null;
+
+    if (typeof data === "string") {
+        if (/^https?:\/\//i.test(data)) {
+            return data;
+        }
+
+        return null;
     }
 
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-        throw new Error("The download URL uses an unsupported protocol.");
+    if (Array.isArray(data)) {
+        for (const item of data) {
+            const result = findDownloadUrl(item);
+            if (result) return result;
+        }
+
+        return null;
     }
 
-    const response = await axios.get(url, {
-        responseType: "arraybuffer",
-        timeout: 120000,
-        maxContentLength: MAX_FILE_SIZE,
-        maxBodyLength: MAX_FILE_SIZE,
-        headers: {
-            "User-Agent": "Mozilla/5.0",
-            Accept: "*/*",
-        },
-    });
+    if (typeof data === "object") {
+        const keys = [
+            "download_url",
+            "downloadUrl",
+            "url",
+            "link",
+            "audio",
+            "video",
+            "media",
+            "file",
+        ];
 
-    const buffer = Buffer.from(response.data);
+        for (const key of keys) {
+            const value = data[key];
 
-    if (!buffer.length) {
-        throw new Error("The downloaded file is empty.");
+            if (
+                typeof value === "string" &&
+                /^https?:\/\//i.test(value)
+            ) {
+                return value;
+            }
+        }
+
+        for (const key of ["result", "data", "response"]) {
+            if (data[key]) {
+                const result = findDownloadUrl(data[key]);
+
+                if (result) return result;
+            }
+        }
     }
 
-    if (buffer.length > MAX_FILE_SIZE) {
-        throw new Error("The file exceeds the maximum allowed size.");
+    return null;
+}
+
+function findErrorMessage(data) {
+    if (!data || typeof data !== "object") {
+        return "The API returned an unknown error.";
     }
+
+    return (
+        data.error ||
+        data.message ||
+        data.msg ||
+        data.result?.error ||
+        data.result?.message ||
+        "The API could not process the request."
+    );
+}
+
+async function getGiftedMedia({
+    GuruTechApi,
+    GuruApiKey,
+    url,
+    type,
+}) {
+    const base = getApiBase(GuruTechApi);
+    const apikey = getApiKey(GuruApiKey);
+
+    const endpoint =
+        type === "audio"
+            ? "/api/download/ytmp3"
+            : "/api/download/ytvideo";
+
+    const response = await axios.get(
+        `${base}${endpoint}`,
+        {
+            params: {
+                apikey,
+                url,
+                stream: "true",
+                ...(type === "audio"
+                    ? { quality: "128" }
+                    : { quality: "720" }),
+            },
+            responseType: "arraybuffer",
+            timeout: API_TIMEOUT,
+            maxContentLength: MAX_DOWNLOAD_SIZE,
+            maxBodyLength: MAX_DOWNLOAD_SIZE,
+            validateStatus: () => true,
+            headers: {
+                "User-Agent": "Mozilla/5.0 LUKA-XMD",
+                Accept: "*/*",
+            },
+        }
+    );
 
     const contentType = String(
         response.headers["content-type"] || ""
     ).toLowerCase();
 
+    const buffer = Buffer.from(response.data);
+
     if (
-        contentType.includes("text/html") ||
-        contentType.includes("application/json")
+        response.status < 200 ||
+        response.status >= 300
     ) {
+        let message = buffer.toString("utf8").slice(0, 500);
+
+        try {
+            message = findErrorMessage(
+                JSON.parse(message)
+            );
+        } catch (_) {}
+
         throw new Error(
-            "The server returned a webpage instead of a media file."
+            `Gifted API returned HTTP ${response.status}: ${message}`
+        );
+    }
+
+    // Some API responses return JSON containing a media URL.
+    if (
+        contentType.includes("application/json") ||
+        contentType.includes("text/html")
+    ) {
+        let data;
+
+        try {
+            data = JSON.parse(buffer.toString("utf8"));
+        } catch (_) {
+            throw new Error(
+                "The API returned text instead of a media file. Check the API response."
+            );
+        }
+
+        if (
+            data.success === false ||
+            data.status === false ||
+            data.error
+        ) {
+            throw new Error(findErrorMessage(data));
+        }
+
+        const mediaUrl = findDownloadUrl(data);
+
+        if (!mediaUrl) {
+            throw new Error(
+                "The API response did not contain a download URL."
+            );
+        }
+
+        const mediaResponse = await axios.get(mediaUrl, {
+            responseType: "arraybuffer",
+            timeout: API_TIMEOUT,
+            maxContentLength: MAX_DOWNLOAD_SIZE,
+            maxBodyLength: MAX_DOWNLOAD_SIZE,
+            headers: {
+                "User-Agent": "Mozilla/5.0 LUKA-XMD",
+            },
+        });
+
+        return {
+            buffer: Buffer.from(mediaResponse.data),
+            contentType: String(
+                mediaResponse.headers["content-type"] || ""
+            ).toLowerCase(),
+        };
+    }
+
+    if (!buffer.length) {
+        throw new Error("The downloaded file is empty.");
+    }
+
+    // Avoid sending an HTML error page as audio or video.
+    if (contentType.includes("text/html")) {
+        throw new Error(
+            "The API returned an HTML page instead of media."
         );
     }
 
@@ -103,377 +235,200 @@ async function downloadBuffer(url) {
     };
 }
 
-async function sendMedia({
-    from,
-    Guru,
-    mek,
-    react,
-    reply,
-    url,
-    title,
+async function searchYouTube(query) {
+    if (!yts) {
+        throw new Error(
+            "The yt-search package is missing. Run: npm install yt-search"
+        );
+    }
+
+    const result = await yts(query);
+    const video = result?.videos?.[0];
+
+    if (!video || !video.url) {
+        throw new Error(
+            "No YouTube results were found for that search."
+        );
+    }
+
+    return video;
+}
+
+function safeFileName(name) {
+    return String(name || "LUKA-XMD")
+        .replace(/[^\w\s.-]/g, "")
+        .trim()
+        .slice(0, 100) || "LUKA-XMD";
+}
+
+function registerYouTubeCommand({
+    pattern,
+    aliases,
     type,
-    mimetype,
+    description,
 }) {
-    if (!url) {
-        await react("❌");
-        return reply(
-            "The download link could not be found. Please try again later."
-        );
-    }
+    gmd(
+        {
+            pattern,
+            category: "downloader",
+            react: type === "audio" ? "🎵" : "🎬",
+            aliases,
+            description,
+        },
+        async (from, Guru, conText) => {
+            const {
+                q,
+                mek,
+                reply,
+                react,
+                botFooter,
+                GuruTechApi,
+                GuruApiKey,
+            } = conText;
 
-    const {
-        buffer,
-        contentType,
-    } = await downloadBuffer(url);
-
-    const fileName =
-        `${cleanName(title)}.${type === "audio" ? "mp3" : "mp4"}`;
-
-    const finalMime =
-        mimetype ||
-        contentType ||
-        (type === "audio" ? "audio/mpeg" : "video/mp4");
-
-    if (type === "audio") {
-        await Guru.sendMessage(
-            from,
-            {
-                audio: buffer,
-                mimetype: finalMime,
-                fileName,
-                ptt: false,
-            },
-            { quoted: mek }
-        );
-    } else {
-        await Guru.sendMessage(
-            from,
-            {
-                video: buffer,
-                mimetype: finalMime,
-                caption:
-                    `*LUKA-XMD DOWNLOADER*\n\n` +
-                    `*Title:* ${title || "Video"}`,
-            },
-            { quoted: mek }
-        );
-    }
-
-    await react("✅");
-}
-
-async function downloader({
-    from,
-    Guru,
-    conText,
-    endpoint,
-    queryName,
-    mediaType,
-    commandName,
-}) {
-    const {
-        q,
-        mek,
-        reply,
-        react,
-        GuruTechApi,
-        GuruApiKey,
-    } = conText;
-
-    if (!q || !q.trim()) {
-        await react("❌");
-
-        return reply(
-            `Usage: .${commandName} <name or URL>\n\n` +
-            `Example: .${commandName} https://example.com/media`
-        );
-    }
-
-    if (!GuruTechApi || !GuruApiKey) {
-        await react("❌");
-
-        return reply(
-            "The downloader API is not configured. " +
-            "Check GuruTechApi and GuruApiKey in your settings."
-        );
-    }
-
-    try {
-        await react("🔎");
-
-        const url =
-            `${apiBase(GuruTechApi)}${endpoint}`;
-
-        const data = await getApiResult(url, {
-            apikey: GuruApiKey,
-            [queryName]: q.trim(),
-        });
-
-        console.log(
-            `[LUKA-XMD ${commandName.toUpperCase()} API]`,
-            JSON.stringify(data).slice(0, 2000)
-        );
-
-        if (
-            data?.success === false ||
-            data?.status === false
-        ) {
-            throw new Error(
-                data.message ||
-                data.error ||
-                "The API could not retrieve the requested media."
-            );
-        }
-
-        const result =
-            data?.result ||
-            data?.data ||
-            data;
-
-        const mediaUrl = findUrl(data);
-
-        if (!mediaUrl) {
-            throw new Error(
-                "The API response does not contain a download URL."
-            );
-        }
-
-        const title =
-            result?.title ||
-            result?.name ||
-            result?.filename ||
-            q.trim();
-
-        await sendMedia({
-            from,
-            Guru,
-            mek,
-            react,
-            reply,
-            url: mediaUrl,
-            title,
-            type: mediaType,
-            mimetype: result?.mimetype || result?.mimeType,
-        });
-    } catch (error) {
-        console.error(
-            `[LUKA-XMD ${commandName.toUpperCase()} ERROR]`,
-            error.response?.data || error.message
-        );
-
-        await react("❌");
-
-        return reply(
-            `${commandName.toUpperCase()} DOWNLOAD FAILED.\n\n` +
-            `${error.code === "ECONNABORTED"
-                ? "The request timed out. Please try again."
-                : error.response?.status === 401 ||
-                  error.response?.status === 403
-                ? "The API key was rejected. Check your API settings."
-                : error.response?.status === 404
-                ? "The API endpoint was not found."
-                : "Check the terminal logs for the exact error."}`
-        );
-    }
-}
-
-// ─── PLAY: SEARCH FOR A SONG ─────────────────────────────────
-
-gmd(
-    {
-        pattern: "play",
-        aliases: ["music", "songsearch"],
-        category: "downloader",
-        react: "🎵",
-        description: "Search for a song",
-    },
-    async (from, Guru, conText) => {
-        const {
-            q,
-            reply,
-            react,
-            GuruTechApi,
-            GuruApiKey,
-        } = conText;
-
-        if (!q || !q.trim()) {
-            await react("❌");
-            return reply("Example: .play Diamond Platnumz");
-        }
-
-        if (!GuruTechApi || !GuruApiKey) {
-            await react("❌");
-            return reply("Please configure the downloader API settings.");
-        }
-
-        try {
-            await react("🔎");
-
-            const data = await getApiResult(
-                `${apiBase(GuruTechApi)}/api/search/song`,
-                {
-                    apikey: GuruApiKey,
-                    query: q.trim(),
-                }
-            );
-
-            console.log(
-                "[LUKA-XMD PLAY API]",
-                JSON.stringify(data).slice(0, 1500)
-            );
-
-            const result = data?.result || data?.data;
-
-            if (!result) {
+            if (!q) {
                 await react("❌");
-                return reply("No songs were found.");
+
+                return reply(
+                    `Please provide a song name or YouTube URL.\n\n` +
+                    `Example: .${pattern} Faded Alan Walker`
+                );
             }
 
-            const items = Array.isArray(result)
-                ? result
-                : [result];
+            try {
+                await react("⏳");
 
-            const message = items.slice(0, 5).map((item, i) => {
-                return (
-                    `${i + 1}. ${item.title || item.name || "Unknown"}\n` +
-                    `Artist: ${item.artist || item.author || "Unknown"}\n` +
-                    `URL: ${item.url || item.link || "N/A"}`
+                await reply(
+                    type === "audio"
+                        ? "🔎 Searching for the song..."
+                        : "🔎 Searching for the video..."
                 );
-            }).join("\n\n");
 
-            await reply(
-                `*LUKA-XMD SONG SEARCH*\n\n${message}\n\n` +
-                "Use .song followed by a supported media URL to download audio."
-            );
+                let video;
 
-            await react("✅");
-        } catch (error) {
-            console.error(
-                "[LUKA-XMD PLAY ERROR]",
-                error.response?.data || error.message
-            );
+                if (/^https?:\/\//i.test(q.trim())) {
+                    if (
+                        !/youtube\.com|youtu\.be/i.test(q)
+                    ) {
+                        throw new Error(
+                            "Please provide a valid YouTube URL."
+                        );
+                    }
 
-            await react("❌");
-            return reply(
-                "Song search failed. Check whether the /api/search/song endpoint exists."
-            );
+                    video = {
+                        title: "YouTube Media",
+                        url: q.trim(),
+                        timestamp: "Unknown",
+                        author: { name: "YouTube" },
+                        thumbnail: null,
+                    };
+                } else {
+                    video = await searchYouTube(q.trim());
+                }
+
+                await reply(
+                    `⬇️ Downloading: ${video.title}`
+                );
+
+                const media = await getGiftedMedia({
+                    GuruTechApi,
+                    GuruApiKey,
+                    url: video.url,
+                    type,
+                });
+
+                if (!media.buffer?.length) {
+                    throw new Error(
+                        "The downloaded media is empty."
+                    );
+                }
+
+                const filename = safeFileName(video.title);
+
+                const caption =
+                    `╭━━〔 LUKA-XMD 〕━━╮\n` +
+                    `┃ ${type === "audio" ? "🎵 SONG" : "🎬 VIDEO"}\n` +
+                    `┃\n` +
+                    `┃ Title: ${video.title}\n` +
+                    `┃ Channel: ${video.author?.name || "YouTube"}\n` +
+                    `┃ Duration: ${video.timestamp || "Unknown"}\n` +
+                    `╰━━━━━━━━━━━━━━━━╯\n` +
+                    `${botFooter ? `\n${botFooter}` : ""}`;
+
+                if (type === "audio") {
+                    await Guru.sendMessage(
+                        from,
+                        {
+                            audio: media.buffer,
+                            mimetype: "audio/mpeg",
+                            fileName: `${filename}.mp3`,
+                        },
+                        { quoted: mek }
+                    );
+                } else {
+                    const fileSize = media.buffer.length;
+
+                    if (
+                        MAX_MEDIA_SIZE &&
+                        fileSize > MAX_MEDIA_SIZE
+                    ) {
+                        await Guru.sendMessage(
+                            from,
+                            {
+                                document: media.buffer,
+                                mimetype: "video/mp4",
+                                fileName: `${filename}.mp4`,
+                                caption,
+                            },
+                            { quoted: mek }
+                        );
+                    } else {
+                        await Guru.sendMessage(
+                            from,
+                            {
+                                video: media.buffer,
+                                mimetype: "video/mp4",
+                                fileName: `${filename}.mp4`,
+                                caption,
+                            },
+                            { quoted: mek }
+                        );
+                    }
+                }
+
+                await react("✅");
+            } catch (error) {
+                console.error(
+                    `[LUKA-XMD ${pattern.toUpperCase()} ERROR]`,
+                    error.response?.data || error.message
+                );
+
+                await react("❌");
+
+                return reply(
+                    `Download failed.\n\n` +
+                    `Reason: ${error.message}\n\n` +
+                    `Please check the API configuration and try again.`
+                );
+            }
         }
-    }
-);
+    );
+}
 
-// ─── SONG DOWNLOADER ─────────────────────────────────────────
+// Search and download a song as MP3.
+registerYouTubeCommand({
+    pattern: "play",
+    aliases: ["song", "music"],
+    type: "audio",
+    description: "Search YouTube and download a song as MP3",
+});
 
-gmd(
-    {
-        pattern: "song",
-        aliases: ["audio", "mp3"],
-        category: "downloader",
-        react: "🎧",
-        description: "Download audio from a supported URL",
-    },
-    async (from, Guru, conText) => {
-        return downloader({
-            from,
-            Guru,
-            conText,
-            endpoint: "/api/download/song",
-            queryName: "url",
-            mediaType: "audio",
-            commandName: "song",
-        });
-    }
-);
+// Download a YouTube video as MP4.
+registerYouTubeCommand({
+    pattern: "video",
+    aliases: ["ytvideo", "ytv"],
+    type: "video",
+    description: "Download a YouTube video as MP4",
+});
 
-// ─── VIDEO DOWNLOADER ────────────────────────────────────────
-
-gmd(
-    {
-        pattern: "video",
-        aliases: ["mp4", "videodl"],
-        category: "downloader",
-        react: "🎬",
-        description: "Download videos from supported URLs",
-    },
-    async (from, Guru, conText) => {
-        return downloader({
-            from,
-            Guru,
-            conText,
-            endpoint: "/api/download/video",
-            queryName: "url",
-            mediaType: "video",
-            commandName: "video",
-        });
-    }
-);
-
-// ─── TIKTOK DOWNLOADER ───────────────────────────────────────
-
-gmd(
-    {
-        pattern: "tiktok",
-        aliases: ["tt", "ttdl"],
-        category: "downloader",
-        react: "📱",
-        description: "Download TikTok videos",
-    },
-    async (from, Guru, conText) => {
-        return downloader({
-            from,
-            Guru,
-            conText,
-            endpoint: "/api/download/tiktok",
-            queryName: "url",
-            mediaType: "video",
-            commandName: "tiktok",
-        });
-    }
-);
-
-// ─── FACEBOOK DOWNLOADER ─────────────────────────────────────
-
-gmd(
-    {
-        pattern: "facebook",
-        aliases: ["fb", "fbdl"],
-        category: "downloader",
-        react: "📘",
-        description: "Download Facebook videos",
-    },
-    async (from, Guru, conText) => {
-        return downloader({
-            from,
-            Guru,
-            conText,
-            endpoint: "/api/download/facebook",
-            queryName: "url",
-            mediaType: "video",
-            commandName: "facebook",
-        });
-    }
-);
-
-// ─── INSTAGRAM DOWNLOADER ────────────────────────────────────
-
-gmd(
-    {
-        pattern: "instagram",
-        aliases: ["ig", "igdl"],
-        category: "downloader",
-        react: "📸",
-        description: "Download Instagram media",
-    },
-    async (from, Guru, conText) => {
-        return downloader({
-            from,
-            Guru,
-            conText,
-            endpoint: "/api/download/instagram",
-            queryName: "url",
-            mediaType: "video",
-            commandName: "instagram",
-        });
-    }
-);
-
-module.exports = {};
+console.log("LUKA-XMD downloader1.js loaded successfully.");
