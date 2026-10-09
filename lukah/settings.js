@@ -1064,7 +1064,7 @@ gmd(
       clearBadWords,
       initializeDefaultBadWords,
       DEFAULT_BAD_WORDS,
-    } = require("../guru/database/groupSettings");
+    } = require("../luka/database/groupSettings");
 
     const action = (args[0] || "").toLowerCase();
     const words = args.slice(1);
