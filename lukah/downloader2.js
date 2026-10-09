@@ -5,7 +5,7 @@ const {
     MAX_MEDIA_SIZE,
     getMimeCategory,
     getMimeFromUrl,
-} = require("../guru");
+} = require("../luka");
 
 const axios = require("axios");
 
