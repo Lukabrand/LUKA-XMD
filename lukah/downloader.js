@@ -1,4 +1,3 @@
-
 const {
         gmd,
         gitRepoRegex,
@@ -8,7 +7,7 @@ const {
         getMimeFromUrl,
     } = require("../luka"),
     GIFTED_DLS = require("gifted-dls"),
-    guruDls = new GIFTED_DLS(),
+    giftedDls = new GIFTED_DLS(),
     axios = require("axios"),
     { sendButtons } = require("gifted-btns");
 
@@ -38,7 +37,7 @@ gmd(
         aliases: ["gitdl", "github", "git", "repodl", "clone"],
         description: "Download GitHub repository as zip file",
     },
-    async (from, Guru, conText) => {
+    async (from, Gifted, conText) => {
         const { q, mek, reply, react, sender, botName, newsletterJid } =
             conText;
 
@@ -77,7 +76,7 @@ gmd(
             const defaultBranch = repoData.default_branch || "main";
             const filename = `${user}-${repo}-${defaultBranch}.zip`;
 
-            await Guru.sendMessage(
+            await Gifted.sendMessage(
                 from,
                 {
                     document: { url: zipUrl },
@@ -114,20 +113,15 @@ gmd(
     },
 );
 
-// ── Toxic-MD box formatter (shared across social downloaders) ─────────────────
-function toxicBox(title, lines, footer) {
-    return `╭─❏ 「 ${title} 」\n${lines.filter(Boolean).map(l => `│ ${l}`).join("\n")}\n╰───────────────────────────\n> _${footer}_`;
-}
-
 gmd(
     {
         pattern: "fb",
         category: "downloader",
         react: "📘",
         aliases: ["fbdl", "facebookdl", "facebook"],
-        description: "Download Facebook videos. Usage: .fb <Facebook URL>",
+        description: "Download Facebook videos",
     },
-    async (from, Guru, conText) => {
+    async (from, Gifted, conText) => {
         const {
             q,
             mek,
@@ -135,91 +129,189 @@ gmd(
             react,
             botName,
             botFooter,
+            newsletterJid,
             gmdBuffer,
             toAudio,
-            GuruTechApi,
-            GuruApiKey,
+            formatAudio,
+            GiftedTechApi,
+            GiftedApiKey,
         } = conText;
 
         if (!q) {
             await react("❌");
-            return reply(toxicBox("FACEBOOK DOWNLOADER", [
-                "⚠️ Send a Facebook video URL.",
-                "Example: .fb https://fb.watch/xxx",
-            ], botFooter));
+            return reply("Please provide a Facebook video URL");
         }
 
         if (!q.includes("facebook.com") && !q.includes("fb.watch")) {
             await react("❌");
-            return reply(toxicBox("FACEBOOK DOWNLOADER", ["❌ Invalid Facebook URL."], botFooter));
+            return reply("Please provide a valid Facebook URL");
         }
 
-        await react("⌛");
-        await reply(toxicBox("FACEBOOK DOWNLOADER", ["⬇️ Fetching video..."], botFooter));
-
         try {
-            let videoUrl = null, title = "Facebook Video", thumbnail = null;
+            const apiUrl = `${GiftedTechApi}/api/download/facebook?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
+            const response = await axios.get(apiUrl, { timeout: 60000 });
 
-            // Toxic-MD API: nexray
-            try {
-                const r = await axios.get(
-                    `https://api.nexray.web.id/downloader/facebook?url=${encodeURIComponent(q)}`,
-                    { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 20000 }
-                );
-                const d = r.data?.result;
-                if (d?.url) { videoUrl = d.url; title = d.title || title; thumbnail = d.thumbnail || null; }
-            } catch (_) {}
-
-            // Fallback: GuruTech
-            if (!videoUrl) {
-                try {
-                    const r = await axios.get(
-                        `${GuruTechApi}/api/download/facebook?apikey=${GuruApiKey}&url=${encodeURIComponent(q)}`,
-                        { timeout: 15000 }
-                    );
-                    const d = r.data?.result;
-                    if (d?.hd_video || d?.sd_video) {
-                        videoUrl = d.hd_video || d.sd_video;
-                        title = d.title || title;
-                        thumbnail = d.thumbnail || null;
-                    }
-                } catch (_) {}
-            }
-
-            if (!videoUrl) {
+            if (!response.data?.success || !response.data?.result) {
                 await react("❌");
-                return reply(toxicBox("FACEBOOK DOWNLOADER", [
-                    "❌ Failed to download.",
-                    "Make sure the video is public.",
-                ], botFooter));
+                return reply(
+                    "Failed to fetch video. Please check the URL and try again.",
+                );
             }
 
-            const fileSize = await getFileSize(videoUrl).catch(() => 0);
-            const msgOpts = { quoted: mek };
+            const { title, duration, thumbnail, hd_video, sd_video } =
+                response.data.result;
+            const dateNow = Date.now();
+            const videoUrl = hd_video || sd_video;
 
-            if (fileSize > MAX_MEDIA_SIZE) {
-                await Guru.sendMessage(from, {
-                    document: { url: videoUrl },
-                    fileName: `${title.replace(/[^\w\s.-]/gi, "")}.mp4`,
-                    mimetype: "video/mp4",
-                    caption: toxicBox("FACEBOOK DOWNLOADER", [
-                        `🎬 ${title}`,
-                    ], botFooter),
-                }, msgOpts);
-            } else {
-                await Guru.sendMessage(from, {
-                    video: { url: videoUrl },
-                    mimetype: "video/mp4",
-                    caption: toxicBox("FACEBOOK DOWNLOADER", [
-                        `🎬 ${title}`,
-                    ], botFooter),
-                }, msgOpts);
-            }
-            await react("✅");
-        } catch (err) {
-            console.error("Facebook error:", err);
+            const buttons = [];
+            if (hd_video)
+                buttons.push({ id: `fb_hd_${dateNow}`, text: "HD Quality" });
+            if (sd_video)
+                buttons.push({ id: `fb_sd_${dateNow}`, text: "SD Quality" });
+            buttons.push({ id: `fb_audio_${dateNow}`, text: "Audio Only" });
+
+            await sendButtons(Gifted, from, {
+                title: `${botName} FACEBOOK DOWNLOADER`,
+                text: `*Title:* ${title || "Facebook Video"}\n*Duration:* ${duration || "Unknown"}\n\n*Select download type:*`,
+                footer: botFooter,
+                image: { url: thumbnail },
+                buttons: buttons,
+            });
+
+            const handleResponse = async (event) => {
+                const messageData = event.messages[0];
+                if (!messageData.message) return;
+
+                const selectedButtonId = extractButtonId(messageData.message);
+                if (!selectedButtonId) return;
+                if (!selectedButtonId.includes(`_${dateNow}`)) return;
+
+                const isFromSameChat = messageData.key?.remoteJid === from;
+                if (!isFromSameChat) return;
+
+                await react("⬇️");
+
+                try {
+                    if (selectedButtonId.startsWith("fb_audio")) {
+                        const sourceVideo = hd_video || sd_video;
+                        if (!sourceVideo) {
+                            await react("❌");
+                            return reply(
+                                "No video available for audio extraction.",
+                                messageData,
+                            );
+                        }
+
+                        const videoBuffer = await gmdBuffer(sourceVideo);
+                        if (!videoBuffer || videoBuffer instanceof Error || !Buffer.isBuffer(videoBuffer)) {
+                            await react("❌");
+                            return reply(
+                                "Failed to download video for audio extraction. Please try again.",
+                                messageData,
+                            );
+                        }
+                        let audioBuffer;
+                        try {
+                            audioBuffer = await toAudio(videoBuffer);
+                        } catch (audioErr) {
+                            await react("❌");
+                            const errMsg = audioErr.message || String(audioErr);
+                            if (errMsg.includes('no audio')) {
+                                return reply("This video has no audio track to extract.", messageData);
+                            }
+                            return reply("Failed to convert video to audio: " + errMsg, messageData);
+                        }
+                        if (!audioBuffer || !Buffer.isBuffer(audioBuffer)) {
+                            await react("❌");
+                            return reply(
+                                "Failed to convert video to audio. The video format may not be supported.",
+                                messageData,
+                            );
+                        }
+                        const fileSize = audioBuffer.length;
+
+                        if (fileSize > MAX_MEDIA_SIZE) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: audioBuffer,
+                                    fileName: `${(title || "facebook_audio").replace(/[^\w\s.-]/gi, "")}.mp3`,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    audio: audioBuffer,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    } else {
+                        const selectedVideoUrl = selectedButtonId.startsWith(
+                            "fb_hd",
+                        )
+                            ? hd_video
+                            : sd_video;
+
+                        if (!selectedVideoUrl) {
+                            await react("❌");
+                            return reply(
+                                "Selected quality not available.",
+                                messageData,
+                            );
+                        }
+
+                        const fileSize = await getFileSize(selectedVideoUrl);
+                        const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
+
+                        if (sendAsDoc) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: { url: selectedVideoUrl },
+                                    fileName: `${(title || "facebook_video").replace(/[^\w\s.-]/gi, "")}.mp4`,
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "Facebook Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    video: { url: selectedVideoUrl },
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "Facebook Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    }
+
+                    await react("✅");
+                } catch (error) {
+                    console.error("Facebook download error:", error);
+                    await react("❌");
+                    await reply(
+                        "Failed to download. Please try again.",
+                        messageData,
+                    );
+                }
+            };
+
+            Gifted.ev.on("messages.upsert", handleResponse);
+            setTimeout(
+                () => Gifted.ev.off("messages.upsert", handleResponse),
+                300000,
+            );
+        } catch (error) {
+            console.error("Facebook API error:", error);
             await react("❌");
-            return reply(toxicBox("FACEBOOK DOWNLOADER", [`❌ Error: ${err.message}`], botFooter));
+            return reply("An error occurred. Please try again.");
         }
     },
 );
@@ -230,97 +322,173 @@ gmd(
         category: "downloader",
         react: "🎵",
         aliases: ["tiktokdl", "ttdl", "tt"],
-        description: "Download TikTok videos/audio. Usage: .tiktok <TikTok URL>",
+        description: "Download TikTok videos",
     },
-    async (from, Guru, conText) => {
-        const { q, mek, reply, react, botFooter, gmdBuffer, toAudio, formatAudio, GuruTechApi, GuruApiKey } = conText;
+    async (from, Gifted, conText) => {
+        const {
+            q,
+            mek,
+            reply,
+            react,
+            botName,
+            botFooter,
+            newsletterJid,
+            gmdBuffer,
+            toAudio,
+            formatAudio,
+            GiftedTechApi,
+            GiftedApiKey,
+        } = conText;
 
         if (!q) {
             await react("❌");
-            return reply(toxicBox("TIKTOK DOWNLOADER", [
-                "⚠️ Send a TikTok URL.",
-                "Example: .tiktok https://vm.tiktok.com/xxx",
-            ], botFooter));
+            return reply("Please provide a TikTok URL");
         }
 
         if (!q.includes("tiktok.com")) {
             await react("❌");
-            return reply(toxicBox("TIKTOK DOWNLOADER", ["❌ Invalid TikTok URL."], botFooter));
+            return reply("Please provide a valid TikTok URL");
         }
 
-        await react("⌛");
-        await reply(toxicBox("TIKTOK DOWNLOADER", ["⬇️ Fetching TikTok..."], botFooter));
-
         try {
-            let result = null;
+            const endpoints = [
+                "tiktok",
+                "tiktokdlv2",
+                "tiktokdlv3",
+                "tiktokdlv4",
+            ];
 
-            // Toxic-MD primary: nexray
-            try {
-                const r = await axios.get(
-                    `https://api.nexray.web.id/downloader/tiktok?url=${encodeURIComponent(q)}`,
-                    { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 20000 }
-                );
-                const d = r.data?.result;
-                if (d?.video) result = { video: d.video, music: d.music, title: d.title || "TikTok Video", author: d.author?.nickname || "Unknown", cover: d.cover || null };
-            } catch (_) {}
+            const t0 = Date.now();
+            const result = await Promise.any(
+                endpoints.map(endpoint => {
+                    const apiUrl = `${GiftedTechApi}/api/download/${endpoint}?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
+                    return axios.get(apiUrl, { timeout: 20000 }).then(res => {
+                        if (res.data?.success && res.data?.result) {
+                            return res.data.result;
+                        }
+                        throw new Error(`${endpoint}: no result`);
+                    });
+                })
+            ).catch(() => null);
 
-            // Fallback: tikwm
             if (!result) {
-                try {
-                    const r = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(q)}`, { timeout: 15000 });
-                    if (r.data?.code === 0 && r.data?.data) {
-                        const d = r.data.data;
-                        result = { video: d.play || d.wmplay, music: d.music, title: d.title || "TikTok Video", author: d.author?.nickname || "Unknown", cover: d.cover || null };
-                    }
-                } catch (_) {}
-            }
-
-            // Fallback: GuruTech
-            if (!result) {
-                for (const ep of ["tiktok", "tiktokdlv2", "tiktokdlv3"]) {
-                    try {
-                        const r = await axios.get(`${GuruTechApi}/api/download/${ep}?apikey=${GuruApiKey}&url=${encodeURIComponent(q)}`, { timeout: 15000 });
-                        if (r.data?.success && r.data?.result) { result = r.data.result; break; }
-                    } catch (_) {}
-                }
-            }
-
-            if (!result?.video) {
                 await react("❌");
-                return reply(toxicBox("TIKTOK DOWNLOADER", ["❌ Failed to download. Try again."], botFooter));
+                return reply(
+                    "Failed to fetch TikTok video. Please try again later.",
+                );
             }
 
-            const { video, music, title, author, cover } = result;
+            const { title, video, music, cover, author } = result;
+            const dateNow = Date.now();
 
-            // Send video
-            const fileSize = await getFileSize(video).catch(() => 0);
-            await Guru.sendMessage(from, {
-                ...(fileSize > MAX_MEDIA_SIZE
-                    ? { document: { url: video }, fileName: `${(title).replace(/[^\w\s.-]/gi, "")}.mp4`, mimetype: "video/mp4" }
-                    : { video: { url: video }, mimetype: "video/mp4" }),
-                caption: toxicBox("TIKTOK DOWNLOADER", [
-                    `🎵 ${title}`,
-                    `👤 @${author}`,
-                ], botFooter),
-            }, { quoted: mek });
+            const buttons = [
+                { id: `tt_video_${dateNow}`, text: "Video" },
+                { id: `tt_audio_${dateNow}`, text: "Audio Only" },
+            ];
 
-            // Send music as audio too
-            if (music) {
+            await sendButtons(Gifted, from, {
+                title: `${botName} TIKTOK DOWNLOADER`,
+                text: `*Title:* ${title || "TikTok Video"}\n*Author:* ${author?.name || "Unknown"}\n\n*Select download type:*`,
+                footer: botFooter,
+                image: { url: cover },
+                buttons: buttons,
+            });
+
+            const handleResponse = async (event) => {
+                const messageData = event.messages[0];
+                if (!messageData.message) return;
+
+                const selectedButtonId = extractButtonId(messageData.message);
+                if (!selectedButtonId) return;
+                if (!selectedButtonId.includes(`_${dateNow}`)) return;
+
+                const isFromSameChat = messageData.key?.remoteJid === from;
+                if (!isFromSameChat) return;
+
+                await react("⬇️");
+
                 try {
-                    await Guru.sendMessage(from, {
-                        audio: { url: music },
-                        mimetype: "audio/mpeg",
-                        ptt: false,
-                        fileName: `${(title).replace(/[^\w\s.-]/gi, "")}_music.mp3`,
-                    }, { quoted: mek });
-                } catch (_) {}
-            }
+                    if (selectedButtonId.startsWith("tt_video")) {
+                        const fileSize = await getFileSize(video);
+                        const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
 
-            await react("✅");
-        } catch (err) {
-            console.error("TikTok error:", err);
+                        if (sendAsDoc) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: { url: video },
+                                    fileName: `${(title || "tiktok_video").replace(/[^\w\s.-]/gi, "")}.mp4`,
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "TikTok Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    video: { url: video },
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "TikTok Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    } else if (selectedButtonId.startsWith("tt_audio")) {
+                        let audioBuffer;
+
+                        if (music) {
+                            audioBuffer = await gmdBuffer(music);
+                            audioBuffer = await formatAudio(audioBuffer);
+                        } else {
+                            const videoBuffer = await gmdBuffer(video);
+                            audioBuffer = await toAudio(videoBuffer);
+                        }
+
+                        const fileSize = audioBuffer.length;
+
+                        if (fileSize > MAX_MEDIA_SIZE) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: audioBuffer,
+                                    fileName: `${(title || "tiktok_audio").replace(/[^\w\s.-]/gi, "")}.mp3`,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    audio: audioBuffer,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    }
+
+                    await react("✅");
+                } catch (error) {
+                    console.error("TikTok download error:", error);
+                    await react("❌");
+                    await reply(
+                        "Failed to download. Please try again.",
+                        messageData,
+                    );
+                }
+            };
+
+            Gifted.ev.on("messages.upsert", handleResponse);
+            setTimeout(
+                () => Gifted.ev.off("messages.upsert", handleResponse),
+                300000,
+            );
+        } catch (error) {
+            console.error("TikTok API error:", error);
             await react("❌");
-            return reply(toxicBox("TIKTOK DOWNLOADER", [`❌ Error: ${err.message}`], botFooter));
+            return reply("An error occurred. Please try again.");
         }
     },
 );
@@ -331,74 +499,172 @@ gmd(
         category: "downloader",
         react: "🐦",
         aliases: ["twitterdl", "xdl", "xdownloader", "twitterdownloader", "x"],
-        description: "Download Twitter/X videos. Usage: .twitter <tweet URL>",
+        description: "Download Twitter/X videos",
     },
-    async (from, Guru, conText) => {
-        const { q, mek, reply, react, botFooter, GuruTechApi, GuruApiKey } = conText;
+    async (from, Gifted, conText) => {
+        const {
+            q,
+            mek,
+            reply,
+            react,
+            botName,
+            botFooter,
+            newsletterJid,
+            gmdBuffer,
+            toAudio,
+            formatAudio,
+            GiftedTechApi,
+            GiftedApiKey,
+        } = conText;
 
         if (!q) {
             await react("❌");
-            return reply(toxicBox("TWITTER/X DOWNLOADER", [
-                "⚠️ Send a Twitter/X URL.",
-                "Example: .twitter https://x.com/user/status/xxx",
-            ], botFooter));
+            return reply("Please provide a Twitter/X URL");
         }
 
         if (!q.includes("twitter.com") && !q.includes("x.com")) {
             await react("❌");
-            return reply(toxicBox("TWITTER/X DOWNLOADER", ["❌ Invalid Twitter/X URL."], botFooter));
+            return reply("Please provide a valid Twitter/X URL");
         }
 
-        await react("⌛");
-        await reply(toxicBox("TWITTER/X DOWNLOADER", ["⬇️ Fetching tweet video..."], botFooter));
-
         try {
-            let videoUrl = null;
+            const apiUrl = `${GiftedTechApi}/api/download/twitter?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
+            const response = await axios.get(apiUrl, { timeout: 60000 });
 
-            // Toxic-MD API: nexray
-            try {
-                const r = await axios.get(
-                    `https://api.nexray.web.id/downloader/twitter?url=${encodeURIComponent(q)}`,
-                    { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 20000 }
-                );
-                const d = r.data?.result;
-                const urls = d?.videoUrls || d?.urls || (d?.url ? [{ url: d.url }] : null);
-                if (urls?.length) videoUrl = urls[0].url;
-            } catch (_) {}
-
-            // Fallback: GuruTech
-            if (!videoUrl) {
-                try {
-                    const r = await axios.get(
-                        `${GuruTechApi}/api/download/twitter?apikey=${GuruApiKey}&url=${encodeURIComponent(q)}`,
-                        { timeout: 15000 }
-                    );
-                    const d = r.data?.result;
-                    if (d?.videoUrls?.length) videoUrl = d.videoUrls[0].url;
-                } catch (_) {}
-            }
-
-            if (!videoUrl) {
+            if (!response.data?.success || !response.data?.result) {
                 await react("❌");
-                return reply(toxicBox("TWITTER/X DOWNLOADER", [
-                    "❌ No video found.",
-                    "Make sure the tweet has a video and is public.",
-                ], botFooter));
+                return reply(
+                    "Failed to fetch video. Please check the URL and try again.",
+                );
             }
 
-            const fileSize = await getFileSize(videoUrl).catch(() => 0);
-            await Guru.sendMessage(from, {
-                ...(fileSize > MAX_MEDIA_SIZE
-                    ? { document: { url: videoUrl }, fileName: "twitter_video.mp4", mimetype: "video/mp4" }
-                    : { video: { url: videoUrl }, mimetype: "video/mp4" }),
-                caption: toxicBox("TWITTER/X DOWNLOADER", ["🐦 Here's your video!"], botFooter),
-            }, { quoted: mek });
+            const { thumbnail, videoUrls } = response.data.result;
 
-            await react("✅");
-        } catch (err) {
-            console.error("Twitter error:", err);
+            if (!videoUrls || videoUrls.length === 0) {
+                await react("❌");
+                return reply("No video found in this tweet.");
+            }
+
+            const dateNow = Date.now();
+            const buttons = videoUrls.map((v, index) => ({
+                id: `tw_${index}_${dateNow}`,
+                text: `${v.quality} Quality`,
+            }));
+            buttons.push({ id: `tw_audio_${dateNow}`, text: "Audio Only" });
+
+            await sendButtons(Gifted, from, {
+                title: `${botName} TWITTER DOWNLOADER`,
+                text: `*Available qualities:* ${videoUrls.map((v) => v.quality).join(", ")}\n\n*Select download type:*`,
+                footer: botFooter,
+                image: { url: thumbnail },
+                buttons: buttons,
+            });
+
+            const handleResponse = async (event) => {
+                const messageData = event.messages[0];
+                if (!messageData.message) return;
+
+                const selectedButtonId = extractButtonId(messageData.message);
+                if (!selectedButtonId) return;
+                if (!selectedButtonId.includes(`_${dateNow}`)) return;
+
+                const isFromSameChat = messageData.key?.remoteJid === from;
+                if (!isFromSameChat) return;
+
+                await react("⬇️");
+
+                try {
+                    if (selectedButtonId.startsWith("tw_audio")) {
+                        const bestVideo = videoUrls[0]?.url;
+                        if (!bestVideo) {
+                            await react("❌");
+                            return reply(
+                                "No video available for audio extraction.",
+                                messageData,
+                            );
+                        }
+
+                        const videoBuffer = await gmdBuffer(bestVideo);
+                        const audioBuffer = await toAudio(videoBuffer);
+                        const fileSize = audioBuffer.length;
+
+                        if (fileSize > MAX_MEDIA_SIZE) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: audioBuffer,
+                                    fileName: "twitter_audio.mp3",
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    audio: audioBuffer,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    } else {
+                        const index = parseInt(selectedButtonId.split("_")[1]);
+                        const videoUrl = videoUrls[index]?.url;
+
+                        if (!videoUrl) {
+                            await react("❌");
+                            return reply(
+                                "Selected quality not available.",
+                                messageData,
+                            );
+                        }
+
+                        const fileSize = await getFileSize(videoUrl);
+                        const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
+
+                        if (sendAsDoc) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: { url: videoUrl },
+                                    fileName: `twitter_video_${videoUrls[index].quality}.mp4`,
+                                    mimetype: "video/mp4",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    video: { url: videoUrl },
+                                    mimetype: "video/mp4",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    }
+
+                    await react("✅");
+                } catch (error) {
+                    console.error("Twitter download error:", error);
+                    await react("❌");
+                    await reply(
+                        "Failed to download. Please try again.",
+                        messageData,
+                    );
+                }
+            };
+
+            Gifted.ev.on("messages.upsert", handleResponse);
+            setTimeout(
+                () => Gifted.ev.off("messages.upsert", handleResponse),
+                300000,
+            );
+        } catch (error) {
+            console.error("Twitter API error:", error);
             await react("❌");
-            return reply(toxicBox("TWITTER/X DOWNLOADER", [`❌ Error: ${err.message}`], botFooter));
+            return reply("An error occurred. Please try again.");
         }
     },
 );
@@ -409,104 +675,152 @@ gmd(
         category: "downloader",
         react: "📸",
         aliases: ["insta", "instadl", "igdl", "instagram"],
-        description: "Download Instagram reels/videos/images. Usage: .ig <Instagram URL>",
+        description: "Download Instagram reels/videos",
     },
-    async (from, Guru, conText) => {
-        const { q, mek, reply, react, botFooter, GuruTechApi, GuruApiKey } = conText;
+    async (from, Gifted, conText) => {
+        const {
+            q,
+            mek,
+            reply,
+            react,
+            botName,
+            botFooter,
+            newsletterJid,
+            gmdBuffer,
+            toAudio,
+            formatAudio,
+            GiftedTechApi,
+            GiftedApiKey,
+        } = conText;
 
         if (!q) {
             await react("❌");
-            return reply(toxicBox("INSTAGRAM DOWNLOADER", [
-                "⚠️ Send an Instagram URL.",
-                "Example: .ig https://www.instagram.com/reel/xxx",
-            ], botFooter));
+            return reply("Please provide an Instagram URL");
         }
 
         if (!q.includes("instagram.com")) {
             await react("❌");
-            return reply(toxicBox("INSTAGRAM DOWNLOADER", ["❌ Invalid Instagram URL."], botFooter));
+            return reply("Please provide a valid Instagram URL");
         }
 
-        await react("⌛");
-        await reply(toxicBox("INSTAGRAM DOWNLOADER", ["⬇️ Fetching Instagram..."], botFooter));
-
         try {
-            let mediaUrl = null, isVideo = true, caption = "";
+            const apiUrl = `${GiftedTechApi}/api/download/instadl?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
+            const response = await axios.get(apiUrl, { timeout: 60000 });
 
-            // Toxic-MD primary: nexray v2
-            try {
-                const r = await axios.get(
-                    `https://api.nexray.web.id/downloader/v2/instagram?url=${encodeURIComponent(q)}`,
-                    { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 20000 }
-                );
-                const d = r.data?.result;
-                if (Array.isArray(d) && d.length) {
-                    mediaUrl = d[0]?.url || d[0]?.video || d[0]?.image;
-                    isVideo = !!(d[0]?.video || d[0]?.type === "video");
-                } else if (d?.url) {
-                    mediaUrl = d.url;
-                    isVideo = d.type === "video";
-                    caption = d.caption || "";
-                }
-            } catch (_) {}
-
-            // Fallback: nexray v1
-            if (!mediaUrl) {
-                try {
-                    const r = await axios.get(
-                        `https://api.nexray.web.id/downloader/instagram?url=${encodeURIComponent(q)}`,
-                        { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 20000 }
-                    );
-                    const d = r.data?.result;
-                    if (d?.url) { mediaUrl = d.url; isVideo = d.type !== "image"; caption = d.caption || ""; }
-                } catch (_) {}
-            }
-
-            // Fallback: GuruTech
-            if (!mediaUrl) {
-                try {
-                    const r = await axios.get(
-                        `${GuruTechApi}/api/download/instadl?apikey=${GuruApiKey}&url=${encodeURIComponent(q)}`,
-                        { timeout: 15000 }
-                    );
-                    const d = r.data?.result;
-                    if (d?.download_url) { mediaUrl = d.download_url; isVideo = true; }
-                } catch (_) {}
-            }
-
-            if (!mediaUrl) {
+            if (!response.data?.success || !response.data?.result) {
                 await react("❌");
-                return reply(toxicBox("INSTAGRAM DOWNLOADER", [
-                    "❌ Failed to download.",
-                    "Make sure the post is public.",
-                ], botFooter));
+                return reply(
+                    "Failed to fetch content. Please check the URL and try again.",
+                );
             }
 
-            const boxCaption = toxicBox("INSTAGRAM DOWNLOADER", [
-                caption ? `📝 ${caption.substring(0, 80)}${caption.length > 80 ? "..." : ""}` : "📸 Instagram Media",
-            ], botFooter);
+            const { thumbnail, download_url } = response.data.result;
 
-            const fileSize = await getFileSize(mediaUrl).catch(() => 0);
-
-            if (isVideo) {
-                await Guru.sendMessage(from, {
-                    ...(fileSize > MAX_MEDIA_SIZE
-                        ? { document: { url: mediaUrl }, fileName: "instagram_video.mp4", mimetype: "video/mp4" }
-                        : { video: { url: mediaUrl }, mimetype: "video/mp4" }),
-                    caption: boxCaption,
-                }, { quoted: mek });
-            } else {
-                await Guru.sendMessage(from, {
-                    image: { url: mediaUrl },
-                    caption: boxCaption,
-                }, { quoted: mek });
+            if (!download_url) {
+                await react("❌");
+                return reply("No downloadable content found.");
             }
 
-            await react("✅");
-        } catch (err) {
-            console.error("Instagram error:", err);
+            const dateNow = Date.now();
+
+            await sendButtons(Gifted, from, {
+                title: `${botName} INSTAGRAM DOWNLOADER`,
+                text: `*Select download type:*`,
+                footer: botFooter,
+                image: { url: thumbnail },
+                buttons: [
+                    { id: `ig_video_${dateNow}`, text: "Video" },
+                    { id: `ig_audio_${dateNow}`, text: "Audio Only" },
+                ],
+            });
+
+            const handleResponse = async (event) => {
+                const messageData = event.messages[0];
+                if (!messageData.message) return;
+
+                const selectedButtonId = extractButtonId(messageData.message);
+                if (!selectedButtonId) return;
+                if (!selectedButtonId.includes(`_${dateNow}`)) return;
+
+                const isFromSameChat = messageData.key?.remoteJid === from;
+                if (!isFromSameChat) return;
+
+                await react("⬇️");
+
+                try {
+                    if (selectedButtonId.startsWith("ig_audio")) {
+                        const videoBuffer = await gmdBuffer(download_url);
+                        const audioBuffer = await toAudio(videoBuffer);
+                        const fileSize = audioBuffer.length;
+
+                        if (fileSize > MAX_MEDIA_SIZE) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: audioBuffer,
+                                    fileName: "instagram_audio.mp3",
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    audio: audioBuffer,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    } else {
+                        const fileSize = await getFileSize(download_url);
+                        const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
+
+                        if (sendAsDoc) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: { url: download_url },
+                                    fileName: "instagram_video.mp4",
+                                    mimetype: "video/mp4",
+                                    caption: `*Downloaded via ${botName}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    video: { url: download_url },
+                                    mimetype: "video/mp4",
+                                    caption: `*Downloaded via ${botName}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    }
+
+                    await react("✅");
+                } catch (error) {
+                    console.error("Instagram download error:", error);
+                    await react("❌");
+                    await reply(
+                        "Failed to download. Please try again.",
+                        messageData,
+                    );
+                }
+            };
+
+            Gifted.ev.on("messages.upsert", handleResponse);
+            setTimeout(
+                () => Gifted.ev.off("messages.upsert", handleResponse),
+                300000,
+            );
+        } catch (error) {
+            console.error("Instagram API error:", error);
             await react("❌");
-            return reply(toxicBox("INSTAGRAM DOWNLOADER", [`❌ Error: ${err.message}`], botFooter));
+            return reply("An error occurred. Please try again.");
         }
     },
 );
@@ -517,57 +831,153 @@ gmd(
         category: "downloader",
         react: "🍿",
         aliases: ["snackdl", "snackvideo"],
-        description: "Download Snack Video. Usage: .snack <Snack Video URL>",
+        description: "Download Snack Video",
     },
-    async (from, Guru, conText) => {
-        const { q, mek, reply, react, botFooter, GuruTechApi, GuruApiKey } = conText;
+    async (from, Gifted, conText) => {
+        const {
+            q,
+            mek,
+            reply,
+            react,
+            botName,
+            botFooter,
+            newsletterJid,
+            gmdBuffer,
+            toAudio,
+            formatAudio,
+            GiftedTechApi,
+            GiftedApiKey,
+        } = conText;
 
         if (!q) {
             await react("❌");
-            return reply(toxicBox("SNACK VIDEO", [
-                "⚠️ Send a Snack Video URL.",
-                "Example: .snack https://snackvideo.com/video/xxx",
-            ], botFooter));
+            return reply("Please provide a Snack Video URL");
         }
 
         if (!q.includes("snackvideo.com")) {
             await react("❌");
-            return reply(toxicBox("SNACK VIDEO", ["❌ Invalid Snack Video URL."], botFooter));
+            return reply("Please provide a valid Snack Video URL");
         }
 
-        await react("⌛");
-        await reply(toxicBox("SNACK VIDEO", ["⬇️ Downloading Snack Video..."], botFooter));
-
         try {
-            const r = await axios.get(
-                `${GuruTechApi}/api/download/snackdl?apikey=${GuruApiKey}&url=${encodeURIComponent(q)}`,
-                { timeout: 60000 }
-            );
+            const apiUrl = `${GiftedTechApi}/api/download/snackdl?apikey=${GiftedApiKey}&url=${encodeURIComponent(q)}`;
+            const response = await axios.get(apiUrl, { timeout: 60000 });
 
-            if (!r.data?.success || !r.data?.result?.media) {
+            if (!response.data?.success || !response.data?.result) {
                 await react("❌");
-                return reply(toxicBox("SNACK VIDEO", ["❌ Failed to fetch. Check URL and try again."], botFooter));
+                return reply(
+                    "Failed to fetch video. Please check the URL and try again.",
+                );
             }
 
-            const { title, media, author, like } = r.data.result;
+            const { title, media, thumbnail, author, like, comment, share } =
+                response.data.result;
 
-            const fileSize = await getFileSize(media).catch(() => 0);
-            await Guru.sendMessage(from, {
-                ...(fileSize > MAX_MEDIA_SIZE
-                    ? { document: { url: media }, fileName: `${(title || "snack_video").replace(/[^\w\s.-]/gi, "")}.mp4`, mimetype: "video/mp4" }
-                    : { video: { url: media }, mimetype: "video/mp4" }),
-                caption: toxicBox("SNACK VIDEO", [
-                    `🎬 ${title || "Snack Video"}`,
-                    `👤 ${author || "Unknown"}`,
-                    like ? `❤️ ${like} likes` : null,
-                ], botFooter),
-            }, { quoted: mek });
+            if (!media) {
+                await react("❌");
+                return reply("No video found.");
+            }
 
-            await react("✅");
-        } catch (err) {
-            console.error("Snack Video error:", err);
+            const dateNow = Date.now();
+
+            await sendButtons(Gifted, from, {
+                title: `${botName} SNACK VIDEO`,
+                text: `*Title:* ${title || "Snack Video"}\n*Author:* ${author || "Unknown"}\n*Likes:* ${like || "0"}\n\n*Select download type:*`,
+                footer: botFooter,
+                image: { url: thumbnail },
+                buttons: [
+                    { id: `sn_video_${dateNow}`, text: "Video" },
+                    { id: `sn_audio_${dateNow}`, text: "Audio Only" },
+                ],
+            });
+
+            const handleResponse = async (event) => {
+                const messageData = event.messages[0];
+                if (!messageData.message) return;
+
+                const selectedButtonId = extractButtonId(messageData.message);
+                if (!selectedButtonId) return;
+                if (!selectedButtonId.includes(`_${dateNow}`)) return;
+
+                const isFromSameChat = messageData.key?.remoteJid === from;
+                if (!isFromSameChat) return;
+
+                await react("⬇️");
+
+                try {
+                    if (selectedButtonId.startsWith("sn_video")) {
+                        const fileSize = await getFileSize(media);
+                        const sendAsDoc = fileSize > MAX_MEDIA_SIZE;
+
+                        if (sendAsDoc) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: { url: media },
+                                    fileName: `${(title || "snack_video").replace(/[^\w\s.-]/gi, "")}.mp4`,
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "Snack Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    video: { url: media },
+                                    mimetype: "video/mp4",
+                                    caption: `*${title || "Snack Video"}*`,
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    } else if (selectedButtonId.startsWith("sn_audio")) {
+                        const videoBuffer = await gmdBuffer(media);
+                        const audioBuffer = await toAudio(videoBuffer);
+                        const fileSize = audioBuffer.length;
+
+                        if (fileSize > MAX_MEDIA_SIZE) {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    document: audioBuffer,
+                                    fileName: `${(title || "snack_audio").replace(/[^\w\s.-]/gi, "")}.mp3`,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        } else {
+                            await Gifted.sendMessage(
+                                from,
+                                {
+                                    audio: audioBuffer,
+                                    mimetype: "audio/mpeg",
+                                },
+                                { quoted: messageData },
+                            );
+                        }
+                    }
+
+                    await react("✅");
+                } catch (error) {
+                    console.error("Snack Video download error:", error);
+                    await react("❌");
+                    await reply(
+                        "Failed to download. Please try again.",
+                        messageData,
+                    );
+                }
+            };
+
+            Gifted.ev.on("messages.upsert", handleResponse);
+            setTimeout(
+                () => Gifted.ev.off("messages.upsert", handleResponse),
+                300000,
+            );
+        } catch (error) {
+            console.error("Snack Video API error:", error);
             await react("❌");
-            return reply(toxicBox("SNACK VIDEO", [`❌ Error: ${err.message}`], botFooter));
+            return reply("An error occurred. Please try again.");
         }
     },
 );
