@@ -216,7 +216,7 @@ addCmd({
 });
 
 // ═══════════════════════════════════════════════════════════════
-// BOT SETTINGS — COMPACT ROUNDED STYLE
+// BOT SETTINGS
 // ═══════════════════════════════════════════════════════════════
 
 addCmd({
@@ -231,17 +231,30 @@ addCmd({
             const botName = config.BOT_NAME || 'LUKA-XMD';
             const footer = config.FOOTER || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
+            // Read setting from DB, then config, then fallback
             const get = (key, fallback = 'Not Set') => {
-                const value = getSetting(key, config[key] ?? fallback);
-                return value ?? config[key] ?? fallback;
+                const dbValue = getSetting(key, null);
+
+                if (dbValue !== null && dbValue !== undefined && dbValue !== '') {
+                    return dbValue;
+                }
+
+                if (config[key] !== undefined && config[key] !== null) {
+                    return config[key];
+                }
+
+                return fallback;
             };
 
+            // Display normal values
             const show = (value) => {
                 if (value === undefined || value === null || value === '') {
                     return 'Not Set';
                 }
 
-                if (typeof value === 'object') {
+                if (Array.isArray(value)) {
+                    value = value.length ? value.join(', ') : 'None';
+                } else if (typeof value === 'object') {
                     try {
                         value = JSON.stringify(value);
                     } catch {
@@ -253,18 +266,67 @@ addCmd({
                 return text.length > 60 ? text.slice(0, 57) + '...' : text;
             };
 
+            // Display boolean values
             const on = (value) => {
+                if (value === true) return 'on';
+                if (value === false) return 'off';
+
                 const v = String(value).toLowerCase().trim();
 
-                if (value === true || ['true', 'on', 'yes', '1'].includes(v)) {
+                if (['true', 'on', 'yes', '1'].includes(v)) return 'on';
+                if (['false', 'off', 'no', '0'].includes(v)) return 'off';
+
+                return show(value);
+            };
+
+            // Anti Delete mode: supports on/off/inchat/indm/all
+            const getAntiDeleteMode = () => {
+                const dbMode = getSetting('ANTIDELETE', null);
+
+                if (
+                    dbMode !== null &&
+                    dbMode !== undefined &&
+                    String(dbMode).trim() !== ''
+                ) {
+                    const mode = String(dbMode).toLowerCase().trim();
+
+                    if (['false', 'off', '0', 'disabled'].includes(mode)) {
+                        return 'off';
+                    }
+
+                    if (['true', 'on', '1', 'enabled'].includes(mode)) {
+                        return 'on';
+                    }
+
+                    if (['inchat', 'indm', 'all'].includes(mode)) {
+                        return mode;
+                    }
+
+                    return mode;
+                }
+
+                // Fallback to config boolean
+                const configValue = config.ANTI_DELETE;
+
+                if (
+                    configValue === true ||
+                    ['true', 'on', '1'].includes(
+                        String(configValue).toLowerCase().trim()
+                    )
+                ) {
                     return 'on';
                 }
 
-                if (value === false || ['false', 'off', 'no', '0'].includes(v)) {
+                if (
+                    configValue === false ||
+                    ['false', 'off', '0'].includes(
+                        String(configValue).toLowerCase().trim()
+                    )
+                ) {
                     return 'off';
                 }
 
-                return show(value);
+                return 'Not Set';
             };
 
             // HEADER
@@ -277,15 +339,14 @@ addCmd({
             msg += `▸ Status: 🟢 ONLINE\n`;
             msg += `▸ Prefix: ${show(get('BOT_PREFIX', '.'))}\n`;
             msg += `▸ Mode: ${show(get('MODE', 'public'))}\n`;
-            msg += `▸ Version: ${show(get('BOT_VERSION', '5.0.0'))}\n`;
-            
+            msg += `▸ Version: ${show(get('BOT_VERSION', '5.0.0'))}\n\n`;
 
             // AUTO FEATURES
             msg += `⚡ *AUTO FEATURES*\n`;
-            msg += `▸ Auto React: ${on(get('AUTO_REACT'))}\n`;
-            msg += `▸ Auto Bio: ${on(get('AUTO_BIO'))}\n`;
-            msg += `▸ Read Status: ${on(get('AUTO_READ_STATUS'))}\n`;
-            msg += `▸ Like Status: ${on(get('AUTO_LIKE_STATUS'))}\n`;
+            msg += `▸ Auto React: ${on(get('AUTO_REACT', false))}\n`;
+            msg += `▸ Auto Bio: ${on(get('AUTO_BIO', false))}\n`;
+            msg += `▸ Read Status: ${on(get('AUTO_READ_STATUS', false))}\n`;
+            msg += `▸ Like Status: ${on(get('AUTO_LIKE_STATUS', false))}\n`;
             msg += `▸ Auto Reply: ${on(get('AUTO_REPLY'))}\n`;
             msg += `▸ Chatbot: ${on(get('CHATBOT'))}\n`;
             msg += `▸ Start Message: ${on(get('STARTING_MESSAGE'))}\n\n`;
@@ -293,7 +354,7 @@ addCmd({
             // SECURITY
             msg += `🛡️ *SECURITY*\n`;
             msg += `▸ Anti Call: ${on(get('ANTICALL'))}\n`;
-            msg += `▸ Anti Delete: ${on(get('ANTIDELETE'))}\n`;
+            msg += `▸ Anti Delete: ${getAntiDeleteMode()}\n`;
             msg += `▸ Anti Edit: ${on(get('ANTI_EDIT'))}\n`;
             msg += `▸ Warn Limit: ${show(get('WARN_LIMIT', '3'))}\n`;
             msg += `▸ Ghost Mode: ${on(get('GHOST_MODE', false))}\n\n`;
@@ -356,9 +417,11 @@ addCmd({
             msg += `╰═════════════════⊷\n\n`;
             msg += `${footer}`;
 
-            await ctx.sock.sendMessage(ctx.from, {
-    text: msg
-}, { quoted: ctx.m });
+            await ctx.sock.sendMessage(
+                ctx.from,
+                { text: msg },
+                { quoted: ctx.m }
+            );
 
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
