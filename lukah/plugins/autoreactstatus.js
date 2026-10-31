@@ -1,5 +1,4 @@
 'use strict';
-
 const db = require('../../luka/db/database');
 const { getBotName } = require('../botname');
 const { addCmd } = require('../../luka/handlers/loader');
@@ -15,7 +14,7 @@ const DEFAULT_REACT_CONFIG = {
     fixedEmoji: '💚',
 
     reactions: [
-        '💚', '💜', '❤️', '💙', '🩵', '🩷'
+        '💚', '💜'
     ],
 
     cycleIndex: 0,
