@@ -656,7 +656,7 @@ addCmd({
         let total = 0;
 
         let header = '';
-        header += `꧁ *${botName}* ꧂\n`;
+        header += `✦ *${botName}* ✦\n`;
         header += `📋 *FULL COMMANDS LIST*\n`;
         header += `${'═'.repeat(30)}\n`;
         header += `⏱️ Uptime: ${uptime}  •  Prefix: ${p}\n`;
