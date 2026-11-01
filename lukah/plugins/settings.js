@@ -216,26 +216,108 @@ addCmd({
 });
 
 // ═══════════════════════════════════════════════════════════════
-// BOT SETTINGS
+//  BOT SETTINGS OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
 addCmd({
     name: 'botsettings',
-    aliases: ['settings', 'bsettings', 'config', 'allsettings'],
-    desc: 'View important bot settings',
+    aliases: ['settings', 'bsettings', 'config'],
+    desc: 'View all bot and group settings',
     category: 'owner',
     ownerOnly: true,
 
     handler: async (ctx) => {
         try {
-            const botName = config.BOT_NAME || 'LUKA-XMD';
-            const footer = config.FOOTER || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
+            const allSettings = [
+                'ANTICALL',
+                'ANTICALL_MSG',
+                'ANTIDELETE',
+                'ANTIVIEWONCE',
+                'ANTI_EDIT',
+                'AUTO_BIO',
+                'AUTO_BLOCK',
+                'AUTO_CHANNEL_LIKE',
+                'AUTO_JOIN',
+                'AUTO_LIKE_STATUS',
+                'AUTO_MUTE',
+                'AUTO_REACT',
+                'AUTO_READ_MESSAGES',
+                'AUTO_READ_STATUS',
+                'AUTO_REPLY',
+                'AUTO_REPLY_STATUS',
+                'AUTO_UPDATE',
+                'BOT_BIO',
+                'BOT_LANG',
+                'BOT_NAME',
+                'BOT_PIC',
+                'BOT_PREFIX',
+                'BOT_REPO',
+                'BOT_VERSION',
+                'CAPTION',
+                'CHATBOT',
+                'CHATBOT_MODE',
+                'DM_PERMIT_ACTION',
+                'DM_PERMIT_MSG',
+                'DM_PRESENCE',
+                'FOOTER',
+                'GC_JID',
+                'GC_PRESENCE',
+                'GLOBAL_SPAM_FILTER',
+                'GREETINGS_AUTOTRACK',
+                'GREETINGS_ENABLED',
+                'GREETINGS_GM_MSG',
+                'GREETINGS_GM_TIME',
+                'GREETINGS_GN_MSG',
+                'GREETINGS_GN_TIME',
+                'GROUP_JOIN_ACTION',
+                'MENU_THEME',
+                'MODE',
+                'MSG_COUNTER',
+                'NEWSLETTER_JID',
+                'NEWSLETTER_URL',
+                'OWNER_NAME',
+                'OWNER_NUMBER',
+                'PACK_AUTHOR',
+                'PACK_NAME',
+                'PM_PERMIT',
+                'PREFIX',
+                'REJECT_CALL',
+                'STARTING_MESSAGE',
+                'STATUS_LIKE_EMOJIS',
+                'STATUS_REACT_EMOJI',
+                'STATUS_REPLY_TEXT',
+                'SUDO_NUMBERS',
+                'TAG_PROTECT',
+                'TIME_ZONE',
+                'VERSION',
+                'VV_TRACKER',
+                'WARN_COUNT',
+                'WARN_LIMIT',
+                'YT',
+            ];
 
-            // Read setting from DB, then config, then fallback
-            const get = (key, fallback = 'Not Set') => {
-                const dbValue = getSetting(key, null);
+            const onOff = (value) => {
+                if (value === true || String(value).toLowerCase() === 'true') return 'true';
+                if (value === false || String(value).toLowerCase() === 'false') return 'false';
+                return value;
+            };
 
-                if (dbValue !== null && dbValue !== undefined && dbValue !== '') {
+            const formatValue = (value) => {
+                if (value === undefined || value === null || value === '') {
+                    return 'Not Set';
+                }
+
+                if (typeof value === 'object') {
+                    return JSON.stringify(value);
+                }
+
+                return String(onOff(value));
+            };
+
+            const getValue = (key) => {
+                const dbValue = getSetting(key, undefined);
+
+                if (dbValue !== undefined && dbValue !== null) {
                     return dbValue;
                 }
 
@@ -243,193 +325,54 @@ addCmd({
                     return config[key];
                 }
 
-                return fallback;
-            };
-
-            // Display normal values
-            const show = (value) => {
-                if (value === undefined || value === null || value === '') {
-                    return 'Not Set';
-                }
-
-                if (Array.isArray(value)) {
-                    value = value.length ? value.join(', ') : 'None';
-                } else if (typeof value === 'object') {
-                    try {
-                        value = JSON.stringify(value);
-                    } catch {
-                        value = String(value);
-                    }
-                }
-
-                const text = String(value);
-                return text.length > 60 ? text.slice(0, 57) + '...' : text;
-            };
-
-            // Display boolean values
-            const on = (value) => {
-                if (value === true) return 'on';
-                if (value === false) return 'off';
-
-                const v = String(value).toLowerCase().trim();
-
-                if (['true', 'on', 'yes', '1'].includes(v)) return 'on';
-                if (['false', 'off', 'no', '0'].includes(v)) return 'off';
-
-                return show(value);
-            };
-
-            // Anti Delete mode: supports on/off/inchat/indm/all
-            const getAntiDeleteMode = () => {
-                const dbMode = getSetting('ANTIDELETE', null);
-
-                if (
-                    dbMode !== null &&
-                    dbMode !== undefined &&
-                    String(dbMode).trim() !== ''
-                ) {
-                    const mode = String(dbMode).toLowerCase().trim();
-
-                    if (['false', 'off', '0', 'disabled'].includes(mode)) {
-                        return 'off';
-                    }
-
-                    if (['true', 'on', '1', 'enabled'].includes(mode)) {
-                        return 'on';
-                    }
-
-                    if (['inchat', 'indm', 'all'].includes(mode)) {
-                        return mode;
-                    }
-
-                    return mode;
-                }
-
-                // Fallback to config boolean
-                const configValue = config.ANTI_DELETE;
-
-                if (
-                    configValue === true ||
-                    ['true', 'on', '1'].includes(
-                        String(configValue).toLowerCase().trim()
-                    )
-                ) {
-                    return 'on';
-                }
-
-                if (
-                    configValue === false ||
-                    ['false', 'off', '0'].includes(
-                        String(configValue).toLowerCase().trim()
-                    )
-                ) {
-                    return 'off';
-                }
-
                 return 'Not Set';
             };
 
-            // HEADER
-            let msg = `╭══〘〘 *${botName}* 〙〙═⊷\n`;
-            msg += `      *⚙️ BOT SETTINGS*\n`;
-            msg += `╰══✦ ✦══⊷\n\n`;
+            let text =
+                `╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `      *BOT SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
 
-            // SYSTEM STATUS
-            msg += `📡 *SYSTEM STATUS*\n`;
-            msg += `▸ Status: 🟢 ONLINE\n`;
-            msg += `▸ Prefix: ${show(get('BOT_PREFIX', '.'))}\n`;
-            msg += `▸ Mode: ${show(get('MODE', 'public'))}\n`;
-            msg += `▸ Version: ${show(get('BOT_VERSION', '5.0.0'))}\n\n`;
-
-            // AUTO FEATURES
-            msg += `⚡ *AUTO FEATURES*\n`;
-            msg += `▸ Auto React: ${on(get('AUTO_REACT', false))}\n`;
-            msg += `▸ Auto Bio: ${on(get('AUTO_BIO', false))}\n`;
-            msg += `▸ Read Status: ${on(get('AUTO_READ_STATUS', false))}\n`;
-            msg += `▸ Like Status: ${on(get('AUTO_LIKE_STATUS', false))}\n`;
-            msg += `▸ Auto Reply: ${on(get('AUTO_REPLY'))}\n`;
-            msg += `▸ Chatbot: ${on(get('CHATBOT'))}\n`;
-            msg += `▸ Start Message: ${on(get('STARTING_MESSAGE'))}\n\n`;
-
-            // SECURITY
-            msg += `🛡️ *SECURITY*\n`;
-            msg += `▸ Anti Call: ${on(get('ANTICALL'))}\n`;
-            msg += `▸ Anti Delete: ${getAntiDeleteMode()}\n`;
-            msg += `▸ Anti Edit: ${on(get('ANTI_EDIT'))}\n`;
-            msg += `▸ Warn Limit: ${show(get('WARN_LIMIT', '3'))}\n`;
-            msg += `▸ Ghost Mode: ${on(get('GHOST_MODE', false))}\n\n`;
-
-            // OTHER SETTINGS
-            msg += `🔧 *OTHER SETTINGS*\n`;
-            msg += `▸ Timezone: ${show(get('TIME_ZONE', 'Africa/Nairobi'))}\n`;
-            msg += `▸ Menu Theme: ${show(get('MENU_THEME', 'ultra'))}\n`;
-            msg += `▸ DM Presence: ${show(get('DM_PRESENCE', 'online'))}\n`;
-
-            // SUDO USERS
-            let sudoUsers = get(
-                'SUDO_NUMBERS',
-                config.SUDO_NUMBERS ?? config.SUDO_USERS ?? 'None'
-            );
-
-            if (Array.isArray(sudoUsers)) {
-                sudoUsers = sudoUsers.length ? sudoUsers.join(', ') : 'None';
+            for (const key of allSettings) {
+                const value = getValue(key);
+                text += `▸ *${key}:* ${formatValue(value)}\n`;
             }
 
-            msg += `\n╭══〘〘 👑 *SUDO USERS* 〙〙═⊷\n`;
-            msg += `${show(sudoUsers)}\n`;
-            msg += `╰═════════════════⊷\n`;
+            const sudoUsers = getValue('SUDO_USERS');
+            text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
 
-            // GROUP SETTINGS
-            msg += `\n╭══〘〘 📋 *GROUP SETTINGS* 〙〙═⊷\n`;
+            const groupSettings = getGroupSettings(ctx.from) || {};
 
-            let groupSettings = {};
-
-            if (ctx.isGroup && ctx.from) {
-                groupSettings = getGroupSettings(ctx.from) || {};
-            }
-
-            const groupOptions = [
-                ['Welcome', 'welcomeMessage', 'welcome'],
-                ['Goodbye', 'goodbyeMessage', 'goodbye'],
-                ['AntiLink', 'antilink'],
-                ['AntiBad', 'antibad'],
-                ['AntiFlood', 'antiflood'],
-                ['AntiSticker', 'antisticker']
-            ];
-
-            if (ctx.isGroup) {
-                for (const [label, ...keys] of groupOptions) {
-                    let value;
-
-                    for (const key of keys) {
-                        if (groupSettings[key] !== undefined) {
-                            value = groupSettings[key];
-                            break;
-                        }
+            const groupValue = (...keys) => {
+                for (const key of keys) {
+                    if (groupSettings[key] !== undefined && groupSettings[key] !== null) {
+                        return formatValue(groupSettings[key]);
                     }
-
-                    msg += `┃ ${label}: ${show(value)}\n`;
                 }
-            } else {
-                msg += `┃ Run inside a group to view its settings.\n`;
-            }
+                return 'None';
+            };
 
-            msg += `╰═════════════════⊷\n\n`;
-            msg += `${footer}`;
+            text +=
+                `\n╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `      📋 *GROUP SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
 
-            await ctx.sock.sendMessage(
-                ctx.from,
-                { text: msg },
-                { quoted: ctx.m }
-            );
+            text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
+            text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
+            text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
+            text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
+            text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
+            text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
 
+            text += 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
+
+            await ctx.reply(text);
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
-            await ctx.reply(`❌ Failed to load settings.\n${error.message}`);
+            await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
         }
-    }
+    },
 });
-
 // ═══════════════════════════════════════════════════════════════
 //  AUTO-RECORDING
 //  Show "recording..." in chat — toggle independently of typing
