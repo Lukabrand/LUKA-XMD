@@ -209,6 +209,8 @@ addCmd({
                 'AUTO_REPLY',
                 'AUTO_REPLY_STATUS',
                 'AUTO_UPDATE',
+                'AUTO_TYPING',
+                'AUTO_RECORDING',
                 'BOT_BIO',
                 'BOT_LANG',
                 'BOT_NAME',
