@@ -10,11 +10,11 @@
 //    • botsettings — view all settings at a glance
 // ╚══════════════════════════════════════════════════════════════╝
 
-const { addCmd, addTrigger } = require('../../guru/handlers/loader');
-const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../guru/db/database');
-const config = require('../../guru/config/settings');
+const { addCmd, addTrigger } = require('../../luka/handlers/loader');
+const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
+const config = require('../../luka/config/settings');
 const moment = require('moment-timezone');
-const { channelCtx, sendButtons } = require('../../guru/utils/gmdFunctions2');
+const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
 
 // ═══════════════════════════════════════════════════════════════
 //  OWNER BOOL TOGGLE HELPER
