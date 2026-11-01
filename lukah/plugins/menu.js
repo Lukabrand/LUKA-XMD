@@ -547,7 +547,7 @@ async function sendCategoryDetail(ctx, cat, allCmds) {
 
 addCmd({
     name: 'fullcmds',
-    aliases: ['allcmds', 'cmdlist', 'commands'],
+    aliases: ['allcmds', 'cmdlist', 'commands', 'list'],
     desc: 'Show every command with description and usage, grouped by category',
     usage: 'fullcmds | fullcmds <category>',
     category: 'general',
