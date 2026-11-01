@@ -8,39 +8,56 @@ const state = global.autoPresenceState ||= {
     sockets: new WeakSet()
 };
 
+function getSocket(ctx) {
+    return ctx.sock || ctx.conn || ctx.client ||
+        global.sock || global.conn;
+}
+
 function attachPresenceListener(sock) {
-    if (!sock?.ev || state.sockets.has(sock)) return;
+    if (!sock?.ev || typeof sock.sendPresenceUpdate !== 'function') {
+        console.error('[AUTOPRESENCE] Socket or sendPresenceUpdate unavailable');
+        return false;
+    }
+
+    if (state.sockets.has(sock)) return true;
 
     state.sockets.add(sock);
 
-    sock.ev.on('messages.upsert', async ({ messages }) => {
+    sock.ev.on('messages.upsert', async ({ messages, type: eventType }) => {
+        // Process only newly received messages
+        if (eventType && eventType !== 'notify') return;
+
         for (const msg of messages || []) {
             const jid = msg.key?.remoteJid;
 
-            if (!jid || msg.key?.fromMe || jid === 'status@broadcast') continue;
-            if (jid.endsWith('@g.us') && !state.typing && !state.recording) continue;
+            if (!jid || msg.key?.fromMe) continue;
+            if (jid === 'status@broadcast') continue;
+            if (jid.endsWith('@newsletter')) continue;
 
-            const mode = state.typing
-                ? 'composing'
-                : state.recording
-                    ? 'recording'
-                    : null;
+            let presence = null;
 
-            if (!mode) continue;
+            if (state.typing) {
+                presence = 'composing';
+            } else if (state.recording) {
+                presence = 'recording';
+            }
+
+            if (!presence) continue;
 
             try {
-                await sock.sendPresenceUpdate(mode, jid);
+                await sock.sendPresenceUpdate(presence, jid);
 
-                setTimeout(async () => {
-                    try {
-                        await sock.sendPresenceUpdate('paused', jid);
-                    } catch {}
-                }, 2000);
+                setTimeout(() => {
+                    sock.sendPresenceUpdate('paused', jid).catch(() => {});
+                }, 2500);
             } catch (err) {
-                console.error('[AUTOPRESENCE]', err.message);
+                console.error('[AUTOPRESENCE]', err?.message || err);
             }
         }
     });
+
+    console.log('[AUTOPRESENCE] Listener attached');
+    return true;
 }
 
 function registerCommand(pattern, description, type) {
@@ -50,20 +67,22 @@ function registerCommand(pattern, description, type) {
         desc: description,
         category: 'owner',
         fromMe: true,
-        async handler(ctx) {
-            const sock = ctx.sock || ctx.conn || ctx.client ||
-                global.sock || global.conn;
 
-            const action = (ctx.args || [])
-                .join(' ')
-                .trim()
-                .toLowerCase();
+        async handler(ctx) {
+            const sock = getSocket(ctx);
 
             if (!sock) {
                 return ctx.reply('WhatsApp connection is unavailable.');
             }
 
-            attachPresenceListener(sock);
+            if (!attachPresenceListener(sock)) {
+                return ctx.reply('Presence feature is not supported by this connection.');
+            }
+
+            const action = (ctx.args || [])
+                .join(' ')
+                .trim()
+                .toLowerCase();
 
             if (action === 'on') {
                 state[type] = true;
