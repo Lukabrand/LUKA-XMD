@@ -1,10 +1,20 @@
 'use strict';
+// ╔══════════════════════════════════════════════════════════════╗
+//  🐾  BLACK PANTHER MD  —  Settings Plugin
+//  Owner & group settings commands:
+//    • autoreact / autoread / autolike / autobio toggles
+//    • autotyping  — show typing indicator before replies
+//    • antiflood   — kick members who flood messages
+//    • setlimit    — configure warn-kick threshold
+//    • settz       — change timezone at runtime
+//    • botsettings — view all settings at a glance
+// ╚══════════════════════════════════════════════════════════════╝
 
-const { addCmd, addTrigger } = require('../../luka/handlers/loader');
-const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
-const config = require('../../luka/config/settings');
+const { addCmd, addTrigger } = require('../../guru/handlers/loader');
+const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../guru/db/database');
+const config = require('../../guru/config/settings');
 const moment = require('moment-timezone');
-const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
+const { channelCtx, sendButtons } = require('../../guru/utils/gmdFunctions2');
 
 // ═══════════════════════════════════════════════════════════════
 //  OWNER BOOL TOGGLE HELPER
@@ -66,6 +76,43 @@ ownerToggle({
     configKey: 'AUTO_BIO',
     onMsg:     '✅ *Auto-Bio ON*\n\nProfile bio will rotate every 10 minutes.',
     offMsg:    '🔕 *Auto-Bio OFF*\n\nBio rotation has been stopped.',
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTO-TYPING
+//  Show "typing..." in chat before every bot reply
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'autotyping',
+    aliases:   ['toggletyping', 'typing'],
+    desc:      'Toggle typing indicator before bot replies',
+    category:  'owner',
+    ownerOnly: true,
+    handler:   async (ctx) => {
+        const current = getSetting('AUTO_TYPING', 'false') === 'true';
+        const newVal  = !current;
+        setSetting('AUTO_TYPING', String(newVal));
+        config.AUTO_TYPING = newVal;
+        await ctx.reply(
+            newVal
+                ? '⌨️ *Auto-Typing ON*\n\nI will show a typing indicator before every reply.'
+                : '🔕 *Auto-Typing OFF*\n\nTyping indicator disabled.'
+        );
+    },
+});
+
+// Inject typing presence before every command execution
+// Check isCmd FIRST before the expensive trigger lookup path
+addTrigger({
+    pattern: /.*/,
+    handler: async (ctx) => {
+        if (!ctx.m?.isCmd) return;   // ← early exit — skips 99% of messages
+        if (getSetting('AUTO_TYPING', 'false') !== 'true') return;
+        await ctx.sock.sendPresenceUpdate('composing', ctx.from).catch(() => {});
+        await new Promise(r => setTimeout(r, 400));  // reduced from 600ms
+        await ctx.sock.sendPresenceUpdate('paused', ctx.from).catch(() => {});
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -209,8 +256,6 @@ addCmd({
                 'AUTO_REPLY',
                 'AUTO_REPLY_STATUS',
                 'AUTO_UPDATE',
-                'AUTO_TYPING',
-                'AUTO_RECORDING',
                 'BOT_BIO',
                 'BOT_LANG',
                 'BOT_NAME',
@@ -224,8 +269,22 @@ addCmd({
                 'DM_PERMIT_ACTION',
                 'DM_PERMIT_MSG',
                 'DM_PRESENCE',
+                'FOOTER',
+                'GC_JID',
+                'GC_PRESENCE',
+                'GLOBAL_SPAM_FILTER',
+                'GREETINGS_AUTOTRACK',
+                'GREETINGS_ENABLED',
+                'GREETINGS_GM_MSG',
+                'GREETINGS_GM_TIME',
+                'GREETINGS_GN_MSG',
+                'GREETINGS_GN_TIME',
+                'GROUP_JOIN_ACTION',
                 'MENU_THEME',
                 'MODE',
+                'MSG_COUNTER',
+                'NEWSLETTER_JID',
+                'NEWSLETTER_URL',
                 'OWNER_NAME',
                 'OWNER_NUMBER',
                 'PACK_AUTHOR',
@@ -242,6 +301,8 @@ addCmd({
                 'TIME_ZONE',
                 'VERSION',
                 'VV_TRACKER',
+                'WARN_COUNT',
+                'WARN_LIMIT',
                 'YT',
             ];
 
@@ -342,6 +403,30 @@ addCmd({
             console.error('[BOT SETTINGS ERROR]', error);
             await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
         }
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTO-RECORDING
+//  Show "recording..." in chat — toggle independently of typing
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'autorecording',
+    aliases:   ['togglerecording', 'recording'],
+    desc:      'Toggle recording indicator before bot replies',
+    category:  'owner',
+    ownerOnly: true,
+    handler:   async (ctx) => {
+        const current = getSetting('AUTO_RECORDING', 'false') === 'true';
+        const newVal  = !current;
+        setSetting('AUTO_RECORDING', String(newVal));
+        config.AUTO_RECORDING = newVal;
+        await ctx.reply(
+            newVal
+                ? '🎙️ *Auto-Recording ON*\n\nI will show a recording indicator before every reply.'
+                : '🔕 *Auto-Recording OFF*\n\nRecording indicator disabled.'
+        );
     },
 });
 
@@ -577,7 +662,4 @@ addCmd({
         await ctx.reply(`✅ *Owner Name Updated*\n\nNew name: *${name}*`);
     },
 });
-
-
-
 
