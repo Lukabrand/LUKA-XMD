@@ -13,6 +13,7 @@ const config = {
     OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
+    BOT_PIC: env(BOT_PIC', 'https://files.catbox.moe/pj9a34.png')',
     BOT_VERSION: '5.0.0',
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
@@ -26,6 +27,7 @@ const config = {
     // 🔐 CONNECTION
     SESSION_ID: env('SESSION_ID'),
     MODE: env('MODE', 'public'),
+    CAPTION: env('CAPTION', '⚡ LUKA-XMD Premium | Ultra Fast | Ultra Secure'),
     TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
 
     // ⚙️ AUTO FEATURES
