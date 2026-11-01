@@ -1,11 +1,4 @@
 'use strict';
-// ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Message Handler (High-Speed)
-//  • Concurrent message processing (Promise.allSettled)
-//  • De-dup Set with auto-expiry
-//  • Non-blocking command dispatch
-//  • SILENT MODE — No message spam logs
-// ╚══════════════════════════════════════════════════════════════╝
 
 const { serialize }                   = require('../utils/serialize');
 const { findCmd, triggers }           = require('./loader');
