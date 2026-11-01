@@ -72,26 +72,47 @@ async function processOne(raw, sock) {
             }).catch(() => {});
         }
 
-        // Auto-typing / Auto-recording presence — toggle via runtime flags
-        if (!m.fromMe && !m.isStatus) {
-            if (!global.autoPresenceFlags) global.autoPresenceFlags = { typing: null, recording: null };
+        // Auto-typing / Auto-recording presence — NO AUTO REACTION
+if (!m.fromMe && !m.isStatus) {
+    global.autoPresenceFlags ||= {
+        typing: null,
+        recording: null
+    };
 
-            const typingOn    = global.autoPresenceFlags.typing    ?? config.AUTO_TYPING;
-            const recordingOn = global.autoPresenceFlags.recording ?? config.AUTO_RECORDING;
+    const flags = global.autoPresenceFlags;
 
-            // Recording wins over typing — they share the same presence channel
-            const presence = recordingOn ? 'recording' : (typingOn ? 'composing' : null);
+    const typingOn = flags.typing ?? config.AUTO_TYPING;
+    const recordingOn = flags.recording ?? config.AUTO_RECORDING;
 
-            if (presence) {
-                sock.sendPresenceUpdate(presence, m.from).catch(() => {});
-                setTimeout(() => {
-                    sock.sendPresenceUpdate('paused', m.from).catch(() => {});
-                }, 5_000);
-            }
-        }
+    // Recording wins over typing
+    const presence = recordingOn
+        ? 'recording'
+        : typingOn
+            ? 'composing'
+            : null;
 
-        const ctx = buildCtx(m, sock);
+    if (presence) {
+        sock.sendPresenceUpdate(presence, m.from).catch(() => {});
 
+        setTimeout(() => {
+            const currentTyping = flags.typing ?? config.AUTO_TYPING;
+            const currentRecording = flags.recording ?? config.AUTO_RECORDING;
+
+            const currentPresence = currentRecording
+                ? 'recording'
+                : currentTyping
+                    ? 'composing'
+                    : null;
+
+            sock.sendPresenceUpdate(currentPresence || 'paused', m.from)
+                .catch(() => {});
+        }, 3000);
+    } else {
+        sock.sendPresenceUpdate('paused', m.from).catch(() => {});
+    }
+}
+
+const ctx = buildCtx(m, sock);
         // ── AFK: auto-unafk when user sends any message ───────────
         if (!m.fromMe && !m.isStatus) {
             const AFK_MAP = getAfkMap();
