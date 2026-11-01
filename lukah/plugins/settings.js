@@ -1,10 +1,20 @@
 'use strict';
+// ╔══════════════════════════════════════════════════════════════╗
+//  🐾  BLACK PANTHER MD  —  Settings Plugin
+//  Owner & group settings commands:
+//    • autoreact / autoread / autolike / autobio toggles
+//    • autotyping  — show typing indicator before replies
+//    • antiflood   — kick members who flood messages
+//    • setlimit    — configure warn-kick threshold
+//    • settz       — change timezone at runtime
+//    • botsettings — view all settings at a glance
+// ╚══════════════════════════════════════════════════════════════╝
 
-const { addCmd, addTrigger } = require('../../luka/handlers/loader');
-const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
-const config = require('../../luka/config/settings');
+const { addCmd, addTrigger } = require('../../guru/handlers/loader');
+const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../guru/db/database');
+const config = require('../../guru/config/settings');
 const moment = require('moment-timezone');
-const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
+const { channelCtx, sendButtons } = require('../../guru/utils/gmdFunctions2');
 
 // ═══════════════════════════════════════════════════════════════
 //  OWNER BOOL TOGGLE HELPER
@@ -66,6 +76,30 @@ ownerToggle({
     configKey: 'AUTO_BIO',
     onMsg:     '✅ *Auto-Bio ON*\n\nProfile bio will rotate every 10 minutes.',
     offMsg:    '🔕 *Auto-Bio OFF*\n\nBio rotation has been stopped.',
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTO-TYPING
+//  Show "typing..." in chat before every bot reply
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'autotyping',
+    aliases:   ['toggletyping', 'typing'],
+    desc:      'Toggle typing indicator before bot replies',
+    category:  'owner',
+    ownerOnly: true,
+    handler:   async (ctx) => {
+        const current = getSetting('AUTO_TYPING', 'false') === 'true';
+        const newVal  = !current;
+        setSetting('AUTO_TYPING', String(newVal));
+        config.AUTO_TYPING = newVal;
+        await ctx.reply(
+            newVal
+                ? '⌨️ *Auto-Typing ON*\n\nI will show a typing indicator before every reply.'
+                : '🔕 *Auto-Typing OFF*\n\nTyping indicator disabled.'
+        );
+    },
 });
 
 // Inject typing presence before every command execution
@@ -206,74 +240,92 @@ addCmd({
         try {
             const allSettings = [
                 'ANTICALL',
+                'ANTICALL_MSG',
                 'ANTIDELETE',
                 'ANTIVIEWONCE',
                 'ANTI_EDIT',
                 'AUTO_BIO',
-                'AUTO_TYPING',
-                'AUTO_RECORDING',
+                'AUTO_BLOCK',
+                'AUTO_CHANNEL_LIKE',
+                'AUTO_JOIN',
                 'AUTO_LIKE_STATUS',
                 'AUTO_MUTE',
                 'AUTO_REACT',
                 'AUTO_READ_MESSAGES',
                 'AUTO_READ_STATUS',
+                'AUTO_REPLY',
+                'AUTO_REPLY_STATUS',
                 'AUTO_UPDATE',
+                'BOT_BIO',
+                'BOT_LANG',
                 'BOT_NAME',
                 'BOT_PIC',
                 'BOT_PREFIX',
                 'BOT_REPO',
                 'BOT_VERSION',
                 'CAPTION',
+                'CHATBOT',
+                'CHATBOT_MODE',
+                'DM_PERMIT_ACTION',
+                'DM_PERMIT_MSG',
                 'DM_PRESENCE',
+                'FOOTER',
+                'GC_JID',
+                'GC_PRESENCE',
+                'GLOBAL_SPAM_FILTER',
+                'GREETINGS_AUTOTRACK',
+                'GREETINGS_ENABLED',
+                'GREETINGS_GM_MSG',
+                'GREETINGS_GM_TIME',
+                'GREETINGS_GN_MSG',
+                'GREETINGS_GN_TIME',
+                'GROUP_JOIN_ACTION',
                 'MENU_THEME',
                 'MODE',
+                'MSG_COUNTER',
+                'NEWSLETTER_JID',
+                'NEWSLETTER_URL',
                 'OWNER_NAME',
                 'OWNER_NUMBER',
-                'PACK_NAME',
                 'PACK_AUTHOR',
+                'PACK_NAME',
+                'PM_PERMIT',
+                'PREFIX',
+                'REJECT_CALL',
+                'STARTING_MESSAGE',
+                'STATUS_LIKE_EMOJIS',
+                'STATUS_REACT_EMOJI',
+                'STATUS_REPLY_TEXT',
                 'SUDO_NUMBERS',
+                'TAG_PROTECT',
                 'TIME_ZONE',
-                'GHOST_MODE',
-                'FREEZE_LAST_SEEN',
-                'STATUS_REPLY',
-                'STATUS_MSG',
-                'CUSTOM_REACT_EMOJIS',
-                'WARN_LIMIT'
+                'VERSION',
+                'VV_TRACKER',
+                'WARN_COUNT',
+                'WARN_LIMIT',
+                'YT',
             ];
+
+            const onOff = (value) => {
+                if (value === true || String(value).toLowerCase() === 'true') return 'true';
+                if (value === false || String(value).toLowerCase() === 'false') return 'false';
+                return value;
+            };
 
             const formatValue = (value) => {
                 if (value === undefined || value === null || value === '') {
                     return 'Not Set';
                 }
 
-                if (typeof value === 'boolean') {
-                    return value ? 'ON' : 'OFF';
-                }
-
                 if (typeof value === 'object') {
-                    try {
-                        return JSON.stringify(value);
-                    } catch {
-                        return String(value);
-                    }
+                    return JSON.stringify(value);
                 }
 
-                const normalized = String(value).toLowerCase();
-
-                if (normalized === 'true') return 'ON';
-                if (normalized === 'false') return 'OFF';
-
-                return String(value);
+                return String(onOff(value));
             };
 
             const getValue = (key) => {
-                let dbValue;
-
-                try {
-                    dbValue = getSetting(key, undefined);
-                } catch (error) {
-                    console.error(`[BOT SETTINGS] Failed to read ${key}:`, error);
-                }
+                const dbValue = getSetting(key, undefined);
 
                 if (dbValue !== undefined && dbValue !== null) {
                     return dbValue;
@@ -286,100 +338,96 @@ addCmd({
                 return 'Not Set';
             };
 
-            const botName = config.BOT_NAME || 'LUKA-XMD';
-
             let text =
-                `╭══〘〘 *${botName}* 〙〙═⊷\n` +
-                `      ⚙️ *BOT SETTINGS*\n` +
+                `╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `      *BOT SETTINGS*\n` +
                 `╰══✦ ✦══⊷\n\n`;
 
             for (const key of allSettings) {
-                text += `▸ *${key}:* ${formatValue(getValue(key))}\n`;
+                const value = getValue(key);
+                text += `▸ *${key}:* ${formatValue(value)}\n`;
             }
 
             const sudoUsers = getValue('SUDO_USERS');
-            const sudoNumbers = getValue('SUDO_NUMBERS');
+            text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
 
-            text += `▸ *SUDO_USERS:* ${formatValue(
-                sudoUsers !== 'Not Set' ? sudoUsers : sudoNumbers
-            )}\n`;
+            const groupSettings = getGroupSettings(ctx.from) || {};
 
-            // Display group settings only when used inside a group
-            if (ctx.isGroup) {
-                let groupSettings = {};
-
-                try {
-                    groupSettings = getGroupSettings(ctx.from) || {};
-                } catch (error) {
-                    console.error('[BOT SETTINGS] Failed to read group settings:', error);
-                }
-
-                const groupValue = (...keys) => {
-                    for (const key of keys) {
-                        if (
-                            groupSettings[key] !== undefined &&
-                            groupSettings[key] !== null
-                        ) {
-                            return formatValue(groupSettings[key]);
-                        }
+            const groupValue = (...keys) => {
+                for (const key of keys) {
+                    if (groupSettings[key] !== undefined && groupSettings[key] !== null) {
+                        return formatValue(groupSettings[key]);
                     }
-                    return 'Not Set';
-                };
+                }
+                return 'None';
+            };
 
-                text +=
-                    `\n╭══〘〘 *${botName}* 〙〙═⊷\n` +
-                    `      📋 *GROUP SETTINGS*\n` +
-                    `╰══✦ ✦══⊷\n\n`;
+            text +=
+                `\n╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `      📋 *GROUP SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
 
-                text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
-                text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
-                text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
-                text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
-                text += `*🚫 ANTI-BADWORD:*\n${groupValue('antibad', 'badwords', 'antibadword')}\n\n`;
-                text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
-                text += `*🌊 ANTI-FLOOD:*\n${groupValue('antiflood')}\n\n`;
-                text += `*🚫 ANTI-STICKER:*\n${groupValue('antisticker')}\n\n`;
-            } else {
-                text += '\nℹ️ Group settings are displayed when this command is used inside a group.\n\n';
-            }
+            text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
+            text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
+            text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
+            text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
+            text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
+            text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
 
             text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
             const card = {
-                title: `⚙️ ${botName} SETTINGS`,
+                title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
                 text,
-                footer: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
+                footer: config.BOT_NAME || 'LUKA-XMD',
                 buttons: []
             };
 
-            try {
-                await sendButtons(
-                    ctx.sock,
-                    ctx.from,
-                    card,
-                    { quoted: ctx.m }
-                );
-            } catch (error) {
-                console.error('[BOT SETTINGS CARD ERROR]', error);
-
+            await sendButtons(
+                ctx.sock,
+                ctx.from,
+                card,
+                { quoted: ctx.m }
+            ).catch(async () => {
                 await ctx.sock.sendMessage(
                     ctx.from,
                     {
-                        text: `${card.title}\n\n${card.text}`,
+                        text,
                         contextInfo: channelCtx()
                     },
                     { quoted: ctx.m }
                 );
-            }
+            });
 
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
-
-            await ctx.reply(
-                '❌ Failed to retrieve bot settings. Please check the terminal for errors.'
-            );
+            await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
         }
-    }
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  AUTO-RECORDING
+//  Show "recording..." in chat — toggle independently of typing
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'autorecording',
+    aliases:   ['togglerecording', 'recording'],
+    desc:      'Toggle recording indicator before bot replies',
+    category:  'owner',
+    ownerOnly: true,
+    handler:   async (ctx) => {
+        const current = getSetting('AUTO_RECORDING', 'false') === 'true';
+        const newVal  = !current;
+        setSetting('AUTO_RECORDING', String(newVal));
+        config.AUTO_RECORDING = newVal;
+        await ctx.reply(
+            newVal
+                ? '🎙️ *Auto-Recording ON*\n\nI will show a recording indicator before every reply.'
+                : '🔕 *Auto-Recording OFF*\n\nRecording indicator disabled.'
+        );
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -615,3 +663,36 @@ addCmd({
     },
 });
 
+// ═══════════════════════════════════════════════════════════════
+//  PING  — response speed / latency check
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'ping',
+    aliases:   ['speed', 'latency'],
+    desc:      'Check bot response speed and system health',
+    category:  'general',
+    handler:   async (ctx) => {
+        const start  = Date.now();
+        const mem    = process.memoryUsage();
+        const uptime = process.uptime();
+        const days   = Math.floor(uptime / 86400);
+        const hours  = Math.floor((uptime % 86400) / 3600);
+        const mins   = Math.floor((uptime % 3600) / 60);
+
+        const sent = await ctx.reply('🏓 Pinging...');
+        const ms   = Date.now() - start;
+
+        await ctx.sock.sendMessage(ctx.from, {
+            text:
+                `🏓 *Pong!*\n\n` +
+                `⚡ *Response :* ${ms}ms\n` +
+                `🧠 *Memory  :* ${Math.round(mem.heapUsed / 1024 / 1024)}MB / ${Math.round(mem.heapTotal / 1024 / 1024)}MB\n` +
+                `⏱️ *Uptime   :* ${days}d ${hours}h ${mins}m\n` +
+                `🖥️ *Platform :* ${require('../../guru/utils/logger').PLATFORM}\n` +
+                `🤖 *Version  :* ${config.BOT_VERSION}\n\n` +
+                `_${config.BOT_NAME}_`,
+            edit: sent.key,
+        });
+    },
+});
