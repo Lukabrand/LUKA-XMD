@@ -9,7 +9,7 @@ const { cleanJid } = require('../utils/helpers');
 const { channelCtx } = require('../utils/gmdFunctions2');
 
 function getAfkMap() {
-    try { return require('../../guruh/plugins/extras').AFK_MAP; }
+    try { return require('../../lukah/plugins/extras').AFK_MAP; }
     catch { return null; }
 }
 
