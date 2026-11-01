@@ -78,30 +78,6 @@ ownerToggle({
     offMsg:    '🔕 *Auto-Bio OFF*\n\nBio rotation has been stopped.',
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  AUTO-TYPING
-//  Show "typing..." in chat before every bot reply
-// ═══════════════════════════════════════════════════════════════
-
-addCmd({
-    name:      'autotyping',
-    aliases:   ['toggletyping', 'typing'],
-    desc:      'Toggle typing indicator before bot replies',
-    category:  'owner',
-    ownerOnly: true,
-    handler:   async (ctx) => {
-        const current = getSetting('AUTO_TYPING', 'false') === 'true';
-        const newVal  = !current;
-        setSetting('AUTO_TYPING', String(newVal));
-        config.AUTO_TYPING = newVal;
-        await ctx.reply(
-            newVal
-                ? '⌨️ *Auto-Typing ON*\n\nI will show a typing indicator before every reply.'
-                : '🔕 *Auto-Typing OFF*\n\nTyping indicator disabled.'
-        );
-    },
-});
-
 // Inject typing presence before every command execution
 // Check isCmd FIRST before the expensive trigger lookup path
 addTrigger({
