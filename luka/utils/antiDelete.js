@@ -1,6 +1,7 @@
 'use strict';
 
 const messageCache = new Map();
+
 const CACHE_TTL = 30 * 60 * 1000;
 const MAX_CACHE = 5000;
 
@@ -13,14 +14,21 @@ function getOwnerJid(config) {
     return `${number}@s.whatsapp.net`;
 }
 
-function getMessageText(message) {
-    if (!message) return '';
+function unwrapMessage(message) {
+    if (!message) return null;
 
-    const msg =
+    return (
         message.ephemeralMessage?.message ||
         message.viewOnceMessage?.message ||
         message.viewOnceMessageV2?.message ||
-        message;
+        message.viewOnceMessageV2Extension?.message ||
+        message
+    );
+}
+
+function getMessageText(message) {
+    const msg = unwrapMessage(message);
+    if (!msg) return '';
 
     return (
         msg.conversation ||
@@ -32,27 +40,25 @@ function getMessageText(message) {
         msg.buttonsResponseMessage?.selectedDisplayText ||
         msg.listResponseMessage?.title ||
         msg.templateButtonReplyMessage?.selectedDisplayText ||
+        msg.interactiveResponseMessage?.body?.text ||
         ''
     );
 }
 
 function getMessageType(message) {
-    if (!message) return 'Unknown';
-
-    const msg =
-        message.ephemeralMessage?.message ||
-        message.viewOnceMessage?.message ||
-        message.viewOnceMessageV2?.message ||
-        message;
+    const msg = unwrapMessage(message);
+    if (!msg) return 'Unknown';
 
     if (msg.conversation || msg.extendedTextMessage) return 'Text';
     if (msg.imageMessage) return 'Image';
     if (msg.videoMessage) return 'Video';
     if (msg.audioMessage) return 'Audio';
-    if (msg.documentMessage) return 'Document';
+    if (msg.documentMessage || msg.documentWithCaptionMessage) return 'Document';
     if (msg.stickerMessage) return 'Sticker';
     if (msg.contactMessage || msg.contactsArrayMessage) return 'Contact';
     if (msg.locationMessage || msg.liveLocationMessage) return 'Location';
+    if (msg.buttonsMessage || msg.templateMessage) return 'Interactive';
+    if (msg.reactionMessage) return 'Reaction';
 
     return 'Other';
 }
@@ -63,14 +69,6 @@ function getSenderJid(message) {
         message.participant ||
         message.key?.remoteJid ||
         'Unknown'
-    );
-}
-
-function getChatName(message) {
-    return (
-        message.pushName ||
-        message.key?.remoteJid ||
-        'Unknown chat'
     );
 }
 
@@ -89,8 +87,43 @@ function isRevoke(update) {
 
     if (!protocol) return false;
 
-    // Baileys ProtocolMessage.Type.REVOKE is normally 0.
+    // Baileys REVOKE type is normally 0.
     return protocol.type === 0 || protocol.type === 'REVOKE';
+}
+
+function cleanCache() {
+    const now = Date.now();
+
+    for (const [id, item] of messageCache) {
+        if (now - item.timestamp > CACHE_TTL) {
+            messageCache.delete(id);
+        }
+    }
+
+    while (messageCache.size > MAX_CACHE) {
+        const oldestKey = messageCache.keys().next().value;
+        if (!oldestKey) break;
+        messageCache.delete(oldestKey);
+    }
+}
+
+async function getAntiDeleteMode(config, getSetting) {
+    let savedMode = null;
+
+    try {
+        if (typeof getSetting === 'function') {
+            savedMode = await getSetting('ANTIDELETE');
+        }
+    } catch (error) {
+        console.error(
+            '[ANTI-DELETE] Could not read database setting:',
+            error.message
+        );
+    }
+
+    return String(
+        savedMode || config.ANTI_DELETE || 'indm'
+    ).trim().toLowerCase();
 }
 
 function attachAntiDelete(sock, config, getSetting) {
@@ -103,7 +136,7 @@ function attachAntiDelete(sock, config, getSetting) {
 
     sock.__lukaAntiDeleteAttached = true;
 
-    // Save incoming messages before they are deleted.
+    // Cache incoming messages before they are deleted.
     sock.ev.on('messages.upsert', ({ messages }) => {
         if (!Array.isArray(messages)) return;
 
@@ -119,25 +152,15 @@ function attachAntiDelete(sock, config, getSetting) {
                     message,
                     timestamp: Date.now(),
                 });
-
-                // Remove old entries.
-                const now = Date.now();
-
-                for (const [cachedId, item] of messageCache) {
-                    if (now - item.timestamp > CACHE_TTL) {
-                        messageCache.delete(cachedId);
-                    }
-                }
-
-                // Prevent unlimited memory usage.
-                while (messageCache.size > MAX_CACHE) {
-                    const oldestKey = messageCache.keys().next().value;
-                    messageCache.delete(oldestKey);
-                }
             } catch (error) {
-                console.error('[ANTI-DELETE] Cache error:', error.message);
+                console.error(
+                    '[ANTI-DELETE] Cache error:',
+                    error.message
+                );
             }
         }
+
+        cleanCache();
     });
 
     // Detect messages deleted for everyone.
@@ -148,12 +171,9 @@ function attachAntiDelete(sock, config, getSetting) {
             try {
                 if (!isRevoke(update)) continue;
 
-                const mode = String(
-                    typeof getSetting === 'function'
-                        ? getSetting('ANTIDELETE', 'false')
-                        : 'false'
-                ).toLowerCase();
+                const mode = await getAntiDeleteMode(config, getSetting);
 
+                // Enabled for indm / true / on.
                 if (!['indm', 'true', 'on'].includes(mode)) continue;
 
                 const key = getMessageKey(update);
@@ -171,7 +191,7 @@ function attachAntiDelete(sock, config, getSetting) {
                     continue;
                 }
 
-                // Delete from cache immediately to prevent duplicate reports.
+                // Remove from cache to prevent duplicate reports.
                 messageCache.delete(id);
 
                 const original = cached.message;
@@ -193,7 +213,6 @@ function attachAntiDelete(sock, config, getSetting) {
                 const senderName = original.pushName || 'Unknown';
                 const messageType = getMessageType(original.message);
                 const messageText = getMessageText(original.message);
-
                 const isGroup = chatJid.endsWith('@g.us');
 
                 const report =
@@ -211,13 +230,12 @@ function attachAntiDelete(sock, config, getSetting) {
                     ) +
                     `_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_`;
 
-                // Send the report to the owner's private inbox.
+                // Send report to owner's private inbox.
                 await sock.sendMessage(ownerJid, {
                     text: report,
                 });
 
-                // Try forwarding the original message, including media.
-                // If forwarding fails, the text report above is still sent.
+                // Forward the original message, including media if supported.
                 try {
                     await sock.sendMessage(ownerJid, {
                         forward: original,
