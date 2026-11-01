@@ -560,3 +560,698 @@ addCmd({
     },
 });
 
+// ═══════════════════════════════════════════════════════════════
+//  ADDCMD CONVERSION — EXTRA OWNER SETTINGS
+//  Converted from gmd() to addCmd()
+// ═══════════════════════════════════════════════════════════════
+
+function parseBooleanInput(input) {
+    if (input === undefined || input === null) return null;
+
+    const value = String(input).trim().toLowerCase();
+
+    if (['on', 'true', 'yes', 'enable', 'enabled'].includes(value)) {
+        return 'true';
+    }
+
+    if (['off', 'false', 'no', 'disable', 'disabled'].includes(value)) {
+        return 'false';
+    }
+
+    return null;
+}
+
+function formatBoolDisplay(value) {
+    return String(value).toLowerCase() === 'true' ? 'ON' : 'OFF';
+}
+
+async function saveOwnerSetting(ctx, key, value, successMessage) {
+    await setSetting(key, String(value));
+    config[key] = value;
+    await ctx.reply(successMessage);
+}
+
+function addOwnerBoolCommand({
+    name,
+    aliases = [],
+    key,
+    description,
+    extraNote = '',
+}) {
+    addCmd({
+        name,
+        aliases,
+        desc: description,
+        category: 'owner',
+        ownerOnly: true,
+        handler: async (ctx) => {
+            const value = parseBooleanInput(ctx.text);
+
+            if (!value) {
+                return ctx.reply(`❌ Please specify: on or off\n\nExample: .${name} on`);
+            }
+
+            try {
+                const current = String(getSetting(key, config[key] ?? 'false'));
+
+                if (current === value) {
+                    return ctx.reply(
+                        `⚠️ ${name} is already: *${formatBoolDisplay(value)}*`
+                    );
+                }
+
+                await setSetting(key, value);
+                config[key] = value === 'true';
+
+                await ctx.reply(
+                    `✅ *${name}* set to: *${formatBoolDisplay(value)}*` +
+                    (extraNote ? `\n\n⚠️ ${extraNote}` : '')
+                );
+            } catch (error) {
+                await ctx.reply(`❌ Error: ${error.message}`);
+            }
+        },
+    });
+}
+
+// ── Set Auto-Like Status ───────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setautolikestatus',
+    aliases: ['autolikestatus', 'autostatuslike', 'statuslike', 'likestatus'],
+    key: 'AUTO_LIKE_STATUS',
+    description: 'Set auto-like status on/off',
+    extraNote: 'Auto-like works when autoreadstatus is also ON.',
+});
+
+// ── Set Auto-Read Status ───────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setautoreadstatus',
+    aliases: ['readstatus', 'viewstatus'],
+    key: 'AUTO_READ_STATUS',
+    description: 'Set auto-read status on/off',
+});
+
+// ── Set Status Emojis ──────────────────────────────────────────
+
+addCmd({
+    name: 'setstatusemojis',
+    aliases: ['statusemojis', 'likeemojis'],
+    desc: 'Set status like emojis, comma separated',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+
+        if (!value) {
+            return ctx.reply(
+                '❌ Please provide emojis separated by commas!\n' +
+                'Example: .setstatusemojis 💛,❤️,💜'
+            );
+        }
+
+        try {
+            const current = getSetting('STATUS_LIKE_EMOJIS', '');
+
+            if (String(current) === value) {
+                return ctx.reply(`⚠️ Status emojis are already set to: *${value}*`);
+            }
+
+            await setSetting('STATUS_LIKE_EMOJIS', value);
+            config.STATUS_LIKE_EMOJIS = value;
+
+            await ctx.reply(`✅ Status emojis set to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Status Reply Text ──────────────────────────────────────
+
+addCmd({
+    name: 'setstatusreplytext',
+    aliases: ['statusreplytext'],
+    desc: 'Set status reply text',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+
+        if (!value) return ctx.reply('❌ Please provide reply text!');
+
+        try {
+            const current = getSetting('STATUS_REPLY_TEXT', '');
+
+            if (String(current) === value) {
+                return ctx.reply('⚠️ Status reply text is already set to this value!');
+            }
+
+            await setSetting('STATUS_REPLY_TEXT', value);
+            config.STATUS_REPLY_TEXT = value;
+
+            await ctx.reply('✅ Status reply text updated!');
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Auto-React Mode ────────────────────────────────────────
+
+addCmd({
+    name: 'setautoreact',
+    aliases: ['react'],
+    desc: 'Set auto-react mode',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const input = (ctx.text || '').toLowerCase().trim();
+        const validModes = ['on', 'all', 'dm', 'groups', 'commands', 'off'];
+
+        if (!validModes.includes(input)) {
+            return ctx.reply(
+                '❌ Please specify a valid mode:\n' +
+                '• on/all - React to all messages\n' +
+                '• dm - React to private chats only\n' +
+                '• groups - React to group messages only\n' +
+                '• commands - React to bot commands only\n' +
+                '• off - Disable auto react'
+            );
+        }
+
+        const value = input === 'on' ? 'all' : input;
+
+        try {
+            const current = getSetting('AUTO_REACT', '');
+
+            if (String(current) === value) {
+                return ctx.reply(`⚠️ Auto react is already: *${value.toUpperCase()}*`);
+            }
+
+            await setSetting('AUTO_REACT', value);
+            config.AUTO_REACT = value;
+
+            await ctx.reply(`✅ Auto react set to: *${value.toUpperCase()}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Auto-Reply ─────────────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setautoreply',
+    aliases: [],
+    key: 'AUTO_REPLY',
+    description: 'Set auto-reply on/off',
+});
+
+// ── Set Auto-Bio ───────────────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setautobio',
+    aliases: ['bio'],
+    key: 'AUTO_BIO',
+    description: 'Set auto-bio on/off',
+});
+
+// ── Set Auto-Block Country Codes ───────────────────────────────
+
+addCmd({
+    name: 'setautoblock',
+    aliases: ['blockcountry'],
+    desc: 'Set auto-block country codes or disable it',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim() || '';
+
+        try {
+            const current = getSetting('AUTO_BLOCK', '');
+
+            if (String(current) === value) {
+                return ctx.reply(
+                    value
+                        ? `⚠️ Auto block is already set to: *${value}*`
+                        : '⚠️ Auto block is already disabled!'
+                );
+            }
+
+            await setSetting('AUTO_BLOCK', value);
+            config.AUTO_BLOCK = value;
+
+            await ctx.reply(
+                value
+                    ? `✅ Auto block set for country codes: *${value}*`
+                    : '✅ Auto block disabled'
+            );
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Auto-Read Messages Mode ────────────────────────────────
+
+addCmd({
+    name: 'setautoread',
+    aliases: ['readmessages'],
+    desc: 'Set auto-read messages mode',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const input = (ctx.text || '').toLowerCase().trim();
+        const validModes = ['on', 'all', 'dm', 'groups', 'commands', 'off'];
+
+        if (!validModes.includes(input)) {
+            return ctx.reply(
+                '❌ Please specify a valid mode:\n' +
+                '• on/all - Read all messages\n' +
+                '• dm - Read private chats only\n' +
+                '• groups - Read group messages only\n' +
+                '• commands - Read bot commands only\n' +
+                '• off - Disable auto read'
+            );
+        }
+
+        const value = input === 'on' ? 'all' : input;
+
+        try {
+            const current = getSetting('AUTO_READ_MESSAGES', '');
+
+            if (String(current) === value) {
+                return ctx.reply(
+                    `⚠️ Auto read messages is already: *${value.toUpperCase()}*`
+                );
+            }
+
+            await setSetting('AUTO_READ_MESSAGES', value);
+            config.AUTO_READ_MESSAGES = value;
+
+            await ctx.reply(`✅ Auto read messages set to: *${value.toUpperCase()}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set YouTube Link ───────────────────────────────────────────
+
+addCmd({
+    name: 'setytlink',
+    aliases: ['ytlink', 'youtube', 'setyt'],
+    desc: 'Set YouTube channel link',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a YouTube link!');
+
+        try {
+            const current = getSetting('YT', '');
+
+            if (String(current) === value) {
+                return ctx.reply(`⚠️ YouTube link is already set to: *${value}*`);
+            }
+
+            await setSetting('YT', value);
+            config.YT = value;
+
+            await ctx.reply(`✅ YouTube link set to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Newsletter JID ────────────────────────────────────────
+
+addCmd({
+    name: 'setnewsletterjid',
+    aliases: ['newsletterjid', 'channeljid'],
+    desc: 'Set newsletter JID',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a newsletter JID!');
+
+        try {
+            await setSetting('NEWSLETTER_JID', value);
+            config.NEWSLETTER_JID = value;
+            await ctx.reply('✅ Newsletter JID set!');
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Group JID ──────────────────────────────────────────────
+
+addCmd({
+    name: 'setgcjid',
+    aliases: ['gcjid', 'groupjid', 'supportgc'],
+    desc: 'Set group chat JID or invite code',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a group JID or invite code!');
+
+        try {
+            await setSetting('GC_JID', value);
+            config.GC_JID = value;
+            await ctx.reply('✅ Group JID set!');
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Newsletter URL ────────────────────────────────────────
+
+addCmd({
+    name: 'setnewsletterurl',
+    aliases: ['newsletterurl', 'channelurl'],
+    desc: 'Set newsletter URL',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a newsletter URL!');
+
+        try {
+            await setSetting('NEWSLETTER_URL', value);
+            config.NEWSLETTER_URL = value;
+            await ctx.reply('✅ Newsletter URL set!');
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Sticker Pack Name ──────────────────────────────────────
+
+addCmd({
+    name: 'setpackname',
+    aliases: ['packname', 'stickerpack', 'stickername'],
+    desc: 'Set sticker pack name',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a pack name!');
+
+        try {
+            await setSetting('PACK_NAME', value);
+            config.PACK_NAME = value;
+            await ctx.reply(`✅ Pack name set to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Sticker Pack Author ────────────────────────────────────
+
+addCmd({
+    name: 'setpackauthor',
+    aliases: ['packauthor', 'stickerauthor'],
+    desc: 'Set sticker pack author',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+        if (!value) return ctx.reply('❌ Please provide a pack author!');
+
+        try {
+            await setSetting('PACK_AUTHOR', value);
+            config.PACK_AUTHOR = value;
+            await ctx.reply(`✅ Pack author set to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Get Setting ────────────────────────────────────────────────
+
+addCmd({
+    name: 'getsetting',
+    aliases: ['getconfig', 'viewsetting'],
+    desc: 'Get a setting value',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const key = ctx.args[0]?.toUpperCase().trim();
+        if (!key) {
+            return ctx.reply('❌ Please provide a setting key!\nExample: .getsetting PREFIX');
+        }
+
+        try {
+            const value = getSetting(key, config[key] ?? 'Not Set');
+            await ctx.reply(`⚙️ *${key}:* ${value ?? 'Not Set'}`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Any Setting ────────────────────────────────────────────
+
+addCmd({
+    name: 'setsetting',
+    aliases: ['setconfig'],
+    desc: 'Set any setting using key and value',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const key = ctx.args[0]?.toUpperCase().trim();
+        const value = ctx.args.slice(1).join(' ').trim();
+
+        if (!key || !value) {
+            return ctx.reply('❌ Usage: .setsetting <key> <value>\nExample: .setsetting PREFIX !');
+        }
+
+        try {
+            const current = getSetting(key, '');
+
+            if (String(current) === value) {
+                return ctx.reply(`⚠️ *${key}* is already set to: *${value}*`);
+            }
+
+            await setSetting(key, value);
+            config[key] = value;
+
+            await ctx.reply(`✅ *${key}* set to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Reset One Setting ──────────────────────────────────────────
+
+addCmd({
+    name: 'resetsetting',
+    aliases: ['resetconfig', 'defaultsetting'],
+    desc: 'Reset a setting to its default',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const key = ctx.args[0]?.toUpperCase().trim();
+        if (!key) return ctx.reply('❌ Please provide a setting key to reset!');
+
+        try {
+            if (typeof resetSetting !== 'function') {
+                return ctx.reply('❌ resetSetting() is not exported by your database module.');
+            }
+
+            const defaultValue = await resetSetting(key);
+            if (config[key] !== undefined) config[key] = defaultValue;
+
+            await ctx.reply(
+                `✅ *${key}* reset to default: *${defaultValue ?? 'Not Set'}*`
+            );
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Reset All Settings ─────────────────────────────────────────
+
+addCmd({
+    name: 'resetallsettings',
+    aliases: ['resetsettings', 'resetall', 'defaultsettings'],
+    desc: 'Reset all settings to defaults',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        try {
+            if (typeof resetAllSettings !== 'function') {
+                return ctx.reply('❌ resetAllSettings() is not exported by your database module.');
+            }
+
+            await resetAllSettings();
+            await ctx.reply('✅ All settings have been reset to defaults!');
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Auto-Reply Status ──────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setautoreplystatus',
+    aliases: ['autoreplystatus', 'replystatusauto'],
+    key: 'AUTO_REPLY_STATUS',
+    description: 'Set auto-reply to status on/off',
+    extraNote: 'Auto reply to status works when autoreadstatus is ON.',
+});
+
+// ── Set PM Permit ──────────────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setpmpermit',
+    aliases: ['pmpermit'],
+    key: 'PM_PERMIT',
+    description: 'Set PM permit on/off',
+});
+
+// ── Reset Sudo Numbers ─────────────────────────────────────────
+
+addCmd({
+    name: 'resetsudo',
+    aliases: ['deleteallsudos', 'resetsudos', 'clearsudo', 'clearsudos'],
+    desc: 'Remove all sudo numbers from database',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        try {
+            if (
+                typeof getSudoNumbers !== 'function' ||
+                typeof clearAllSudo !== 'function'
+            ) {
+                return ctx.reply(
+                    '❌ getSudoNumbers() or clearAllSudo() is missing from database module.'
+                );
+            }
+
+            const sudoList = await getSudoNumbers();
+
+            if (!sudoList || sudoList.length === 0) {
+                return ctx.reply('⚠️ No sudo numbers to remove.');
+            }
+
+            const count = await clearAllSudo();
+            await ctx.reply(`✅ Removed *${count ?? sudoList.length}* sudo number(s) from database.`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Owner Number ───────────────────────────────────────────
+
+addCmd({
+    name: 'setownernumber',
+    aliases: ['ownernumber'],
+    desc: 'Set bot owner number',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const number = ctx.text?.replace(/\D/g, '');
+
+        if (!number || number.length < 7) {
+            return ctx.reply('❌ Provide a valid number.\nExample: .setownernumber 255712345678');
+        }
+
+        try {
+            await setSetting('OWNER_NUMBER', number);
+            config.OWNER_NUMBER = number;
+            await ctx.reply(`✅ Owner number updated: +${number}`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Set Anti-Call ──────────────────────────────────────────────
+
+addOwnerBoolCommand({
+    name: 'setanticall',
+    aliases: ['anticall'],
+    key: 'ANTICALL',
+    description: 'Set anti-call on/off',
+});
+
+// ── Set Prefix ────────────────────────────────────────────────
+
+addCmd({
+    name: 'setprefix',
+    aliases: ['prefix'],
+    desc: 'Set bot command prefix',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const value = ctx.text?.trim();
+
+        if (!value || value.length > 5) {
+            return ctx.reply('❌ Provide a prefix (1-5 characters).\nExample: .setprefix !');
+        }
+
+        try {
+            await setSetting('BOT_PREFIX', value);
+            config.BOT_PREFIX = value;
+            config.PREFIX = value;
+
+            await ctx.reply(`✅ Bot prefix updated to: *${value}*`);
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ── Reset Database ─────────────────────────────────────────────
+
+addCmd({
+    name: 'resetdb',
+    aliases: ['resetdatabase', 'wipedatabase', 'wipedb', 'factoryreset'],
+    desc: 'Reset bot settings database',
+    category: 'owner',
+    ownerOnly: true,
+    handler: async (ctx) => {
+        const confirm = ctx.args[0]?.toLowerCase();
+
+        if (confirm !== 'confirm') {
+            return ctx.reply(
+                '⚠️ *WARNING: This will reset bot settings!*\n\n' +
+                'To confirm, type:\n*.resetdb confirm*'
+            );
+        }
+
+        try {
+            if (typeof resetAllSettings !== 'function') {
+                return ctx.reply('❌ resetAllSettings() is not exported by your database module.');
+            }
+
+            await resetAllSettings();
+
+            if (typeof clearAllSudo === 'function') {
+                await clearAllSudo();
+            }
+
+            await ctx.reply(
+                '✅ Bot settings database has been reset.\n' +
+                'Group settings are not modified by this command.'
+            );
+        } catch (error) {
+            await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
