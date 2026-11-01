@@ -233,7 +233,6 @@ addCmd({
                 'PACK_AUTHOR',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
-                'VERSION',
             ];
 
             const onOff = (value) => {
