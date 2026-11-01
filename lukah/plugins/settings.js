@@ -233,28 +233,47 @@ addCmd({
                 'PACK_AUTHOR',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
+                'GHOST_MODE',
+                'FREEZE_LAST_SEEN',
+                'STATUS_REPLY',
+                'STATUS_MSG',
+                'CUSTOM_REACT_EMOJIS',
+                'WARN_LIMIT'
             ];
-
-            const onOff = (value) => {
-                if (value === true || String(value).toLowerCase() === 'true') return 'true';
-                if (value === false || String(value).toLowerCase() === 'false') return 'false';
-                return value;
-            };
 
             const formatValue = (value) => {
                 if (value === undefined || value === null || value === '') {
                     return 'Not Set';
                 }
 
-                if (typeof value === 'object') {
-                    return JSON.stringify(value);
+                if (typeof value === 'boolean') {
+                    return value ? 'ON' : 'OFF';
                 }
 
-                return String(onOff(value));
+                if (typeof value === 'object') {
+                    try {
+                        return JSON.stringify(value);
+                    } catch {
+                        return String(value);
+                    }
+                }
+
+                const normalized = String(value).toLowerCase();
+
+                if (normalized === 'true') return 'ON';
+                if (normalized === 'false') return 'OFF';
+
+                return String(value);
             };
 
             const getValue = (key) => {
-                const dbValue = getSetting(key, undefined);
+                let dbValue;
+
+                try {
+                    dbValue = getSetting(key, undefined);
+                } catch (error) {
+                    console.error(`[BOT SETTINGS] Failed to read ${key}:`, error);
+                }
 
                 if (dbValue !== undefined && dbValue !== null) {
                     return dbValue;
@@ -267,47 +286,67 @@ addCmd({
                 return 'Not Set';
             };
 
+            const botName = config.BOT_NAME || 'LUKA-XMD';
+
             let text =
-                `╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
-                `      *BOT SETTINGS*\n` +
+                `╭══〘〘 *${botName}* 〙〙═⊷\n` +
+                `      ⚙️ *BOT SETTINGS*\n` +
                 `╰══✦ ✦══⊷\n\n`;
 
             for (const key of allSettings) {
-                const value = getValue(key);
-                text += `▸ *${key}:* ${formatValue(value)}\n`;
+                text += `▸ *${key}:* ${formatValue(getValue(key))}\n`;
             }
 
             const sudoUsers = getValue('SUDO_USERS');
-            text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
+            const sudoNumbers = getValue('SUDO_NUMBERS');
 
-            const groupSettings = getGroupSettings(ctx.from) || {};
+            text += `▸ *SUDO_USERS:* ${formatValue(
+                sudoUsers !== 'Not Set' ? sudoUsers : sudoNumbers
+            )}\n`;
 
-            const groupValue = (...keys) => {
-                for (const key of keys) {
-                    if (groupSettings[key] !== undefined && groupSettings[key] !== null) {
-                        return formatValue(groupSettings[key]);
-                    }
+            // Display group settings only when used inside a group
+            if (ctx.isGroup) {
+                let groupSettings = {};
+
+                try {
+                    groupSettings = getGroupSettings(ctx.from) || {};
+                } catch (error) {
+                    console.error('[BOT SETTINGS] Failed to read group settings:', error);
                 }
-                return 'None';
-            };
 
-            text +=
-                `\n╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
-                `      📋 *GROUP SETTINGS*\n` +
-                `╰══✦ ✦══⊷\n\n`;
+                const groupValue = (...keys) => {
+                    for (const key of keys) {
+                        if (
+                            groupSettings[key] !== undefined &&
+                            groupSettings[key] !== null
+                        ) {
+                            return formatValue(groupSettings[key]);
+                        }
+                    }
+                    return 'Not Set';
+                };
 
-            text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
-            text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
-            text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
-            text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
-            text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
-            text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
+                text +=
+                    `\n╭══〘〘 *${botName}* 〙〙═⊷\n` +
+                    `      📋 *GROUP SETTINGS*\n` +
+                    `╰══✦ ✦══⊷\n\n`;
 
+                text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
+                text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
+                text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
+                text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
+                text += `*🚫 ANTI-BADWORD:*\n${groupValue('antibad', 'badwords', 'antibadword')}\n\n`;
+                text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
+                text += `*🌊 ANTI-FLOOD:*\n${groupValue('antiflood')}\n\n`;
+                text += `*🚫 ANTI-STICKER:*\n${groupValue('antisticker')}\n\n`;
+            } else {
+                text += '\nℹ️ Group settings are displayed when this command is used inside a group.\n\n';
+            }
 
-           text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
+            text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
             const card = {
-                title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
+                title: `⚙️ ${botName} SETTINGS`,
                 text,
                 footer: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
                 buttons: []
@@ -326,12 +365,19 @@ addCmd({
                 await ctx.sock.sendMessage(
                     ctx.from,
                     {
-                        text: `${card.title}\n\n${card.text}\n\n${card.footer}`,
+                        text: `${card.title}\n\n${card.text}`,
                         contextInfo: channelCtx()
                     },
                     { quoted: ctx.m }
                 );
             }
+
+        } catch (error) {
+            console.error('[BOT SETTINGS ERROR]', error);
+
+            await ctx.reply(
+                '❌ Failed to retrieve bot settings. Please check the terminal for errors.'
+            );
         }
     }
 });
