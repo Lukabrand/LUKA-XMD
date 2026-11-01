@@ -4,7 +4,7 @@ const { addCmd, addTrigger } = require('../../luka/handlers/loader');
 const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
 const config = require('../../luka/config/settings');
 const moment = require('moment-timezone');
-const { channelCtx } = require('../../luka/utils/gmdFunctions2');
+const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
 
 // ═══════════════════════════════════════════════════════════════
 //  OWNER BOOL TOGGLE HELPER
@@ -327,13 +327,31 @@ addCmd({
             text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
             text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
 
-            text += 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
+            text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
-            await ctx.sock.sendMessage(
-            ctx.from,
-            { text },
-          { quoted: ctx.m }
-          );
+            const card = {
+                title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
+                text,
+                footer: config.BOT_NAME || 'LUKA-XMD',
+                buttons: []
+            };
+
+            await sendButtons(
+                ctx.sock,
+                ctx.from,
+                card,
+                { quoted: ctx.m }
+            ).catch(async () => {
+                await ctx.sock.sendMessage(
+                    ctx.from,
+                    {
+                        text,
+                        contextInfo: channelCtx()
+                    },
+                    { quoted: ctx.m }
+                );
+            });
+
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
             await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
