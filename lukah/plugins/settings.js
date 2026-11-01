@@ -340,29 +340,6 @@ addCmd({
         }
     },
 });
-// ═══════════════════════════════════════════════════════════════
-//  AUTO-RECORDING
-//  Show "recording..." in chat — toggle independently of typing
-// ═══════════════════════════════════════════════════════════════
-
-addCmd({
-    name:      'autorecording',
-    aliases:   ['togglerecording', 'recording'],
-    desc:      'Toggle recording indicator before bot replies',
-    category:  'owner',
-    ownerOnly: true,
-    handler:   async (ctx) => {
-        const current = getSetting('AUTO_RECORDING', 'false') === 'true';
-        const newVal  = !current;
-        setSetting('AUTO_RECORDING', String(newVal));
-        config.AUTO_RECORDING = newVal;
-        await ctx.reply(
-            newVal
-                ? '🎙️ *Auto-Recording ON*\n\nI will show a recording indicator before every reply.'
-                : '🔕 *Auto-Recording OFF*\n\nRecording indicator disabled.'
-        );
-    },
-});
 
 // ═══════════════════════════════════════════════════════════════
 //  GHOST MODE
