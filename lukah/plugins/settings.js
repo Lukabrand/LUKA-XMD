@@ -303,36 +303,37 @@ addCmd({
             text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
             text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
 
-            text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
+
+           text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
             const card = {
                 title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
                 text,
-                footer: config.BOT_NAME || 'LUKA-XMD',
+                footer: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
                 buttons: []
             };
 
-            await sendButtons(
-                ctx.sock,
-                ctx.from,
-                card,
-                { quoted: ctx.m }
-            ).catch(async () => {
+            try {
+                await sendButtons(
+                    ctx.sock,
+                    ctx.from,
+                    card,
+                    { quoted: ctx.m }
+                );
+            } catch (error) {
+                console.error('[BOT SETTINGS CARD ERROR]', error);
+
                 await ctx.sock.sendMessage(
                     ctx.from,
                     {
-                        text,
+                        text: `${card.title}\n\n${card.text}\n\n${card.footer}`,
                         contextInfo: channelCtx()
                     },
                     { quoted: ctx.m }
                 );
-            });
-
-        } catch (error) {
-            console.error('[BOT SETTINGS ERROR]', error);
-            await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
+            }
         }
-    },
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════
