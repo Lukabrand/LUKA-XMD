@@ -17,6 +17,10 @@ const config = {
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
 
+    // 🎨 MENU
+    MENU_THEME: env('MENU_THEME', 'LUKABRAND'),
+    MENU_THEMES: ['LUKABRAND', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
+
     // 📡 CHANNEL
     CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
@@ -40,20 +44,21 @@ const config = {
     STATUS_REPLY: bool('STATUS_REPLY', false),
     AUTO_STICKER: bool('AUTO_STICKER', false),
 
-    // 👁️ STATUS MANAGER
+    // 👁️ STATUS
     AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
     AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
     STATUS_MSG: env('STATUS_MSG'),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💛,❤️,💜,💚,💙,🤍'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
     DATABASE_URL: process.env.DATABASE_URL || null,
     PORT: parseInt(process.env.PORT, 10) || 5000,
 
-    // 🛡️ SECURITY & AUTOMATION
+    // 🛡️ SECURITY
     ANTI_VV: bool('ANTI_VV', true),
     ANTI_DELETE: bool('ANTI_DELETE', true),
     AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
