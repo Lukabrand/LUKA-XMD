@@ -3,67 +3,121 @@ require('dotenv').config();
 
 const bool = (key, def = true) => {
     const v = process.env[key];
-    return v == null || v === '' ? def : v.toLowerCase() === 'true';
+    return v === undefined || v === '' ? def : v.toLowerCase() === 'true';
 };
-const env = (key, def = '') => process.env[key] || def;
 
 const config = {
-    // 🤖 BOT IDENTITY
-    BOT_NAME: env('BOT_NAME', 'LUKA-XMD'),
-    OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
-    OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
-    BOT_PREFIX: env('BOT_PREFIX', '.'),
-    BOT_VERSION: '5.0.0',
-    PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
-    PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
+    // Bot Identity
+    BOT_NAME: process.env.BOT_NAME || 'LUKA-XMD',
+    OWNER_NAME: process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
+    OWNER_NUMBER: process.env.OWNER_NUMBER || '255768619068',
+    BOT_PREFIX: process.env.BOT_PREFIX || '.',
+    PREFIX: process.env.BOT_PREFIX || '.',
+    BOT_VERSION: process.env.BOT_VERSION || '5.0.0',
+    VERSION: process.env.BOT_VERSION || '5.0.0',
+    PACK_NAME: process.env.PACK_NAME || process.env.BOT_NAME || 'LUKA-XMD',
+    PACK_AUTHOR: process.env.PACK_AUTHOR || process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
+    BOT_LANG: process.env.BOT_LANG || 'en',
+    BOT_BIO: process.env.BOT_BIO || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
+    BOT_PIC: process.env.BOT_PIC || 'https://i.imgur.com/9VP31oG.png',
+    BOT_REPO: process.env.BOT_REPO || 'Lukabrand/LUKA-XMD',
+    CAPTION: process.env.CAPTION || '⚡ LUKA-XMDMD Premium | Ultra Fast',
+    FOOTER: process.env.FOOTER || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
+    MENU_THEME: process.env.MENU_THEME || 'ultra',
 
-    // 📡 CHANNEL
-    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
-    CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
-    CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
-    CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
+    // Channel
+    CHANNEL_URL: process.env.CHANNEL_URL || 'https://whatsapp.com/channel/0029VbCl2UX3ZZilMSvxN1e',
+    CHANNEL_NAME: process.env.CHANNEL_NAME || 'LUKA-XMD Channel',
+    CHANNEL_JID: process.env.CHANNEL_JID || '120363427012090993@newsletter',
+    CHANNEL_NEWSLETTER_NAME: process.env.CHANNEL_NEWSLETTER_NAME || '『 LUKA-XMD 』',
+    NEWSLETTER_JID: process.env.NEWSLETTER_JID || process.env.CHANNEL_JID || '120363427012090993@newsletter',
+    YT: process.env.YT || 'youtube.com/@lucvoice',
 
-    // 🔐 CONNECTION
-    SESSION_ID: env('SESSION_ID'),
-    MODE: env('MODE', 'public'),
-    TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
+    // Connection
+    SESSION_ID: process.env.SESSION_ID || '',
 
-    // ⚙️ AUTO FEATURES
+    // Mode
+    MODE: process.env.MODE || 'public',
+    TIME_ZONE: process.env.TIME_ZONE || 'Africa/Nairobi',
+
+    // Auto Features
     AUTO_READ_STATUS: bool('AUTO_READ_STATUS', true),
+    AUTO_READ_MESSAGES: process.env.AUTO_READ_MESSAGES || 'off',
     AUTO_LIKE_STATUS: bool('AUTO_LIKE_STATUS', true),
-    AUTO_REACT: bool('AUTO_REACT', false),
+    AUTO_REACT: process.env.AUTO_REACT || 'off',
     AUTO_BIO: bool('AUTO_BIO', true),
     AUTO_TYPING: bool('AUTO_TYPING', false),
     AUTO_RECORDING: bool('AUTO_RECORDING', false),
-    GHOST_MODE: bool('GHOST_MODE', false),
-    FREEZE_LAST_SEEN: bool('FREEZE_LAST_SEEN', false),
+    AUTO_CHANNEL_LIKE: bool('AUTO_CHANNEL_LIKE', true),
+    AUTO_JOIN: bool('AUTO_JOIN', true),
+    AUTO_MUTE: bool('AUTO_MUTE', false),
+    AUTO_BLOCK: process.env.AUTO_BLOCK || 'Not Set',
+    AUTO_REPLY: bool('AUTO_REPLY', false),
+    AUTO_REPLY_STATUS: bool('AUTO_REPLY_STATUS', false),
+    AUTO_UPDATE: bool('AUTO_UPDATE', true),
+    STARTING_MESSAGE: bool('STARTING_MESSAGE', true),
+
+    // Privacy / Protection
+    ANTICALL: bool('ANTICALL', false),
+    ANTICALL_MSG: process.env.ANTICALL_MSG || '*📞 Auto Call Reject Mode Active. 📵 No calls are accepted.*',
+    ANTIDELETE: process.env.ANTIDELETE || 'indm',
+    ANTIVIEWONCE: process.env.ANTIVIEWONCE || 'indm',
+    ANTI_EDIT: process.env.ANTI_EDIT || 'indm',
+    ANTI_VV: bool('ANTI_VV', true),
+    REJECT_CALL: bool('REJECT_CALL', false),
+    TAG_PROTECT: bool('TAG_PROTECT', false),
+    GLOBAL_SPAM_FILTER: bool('GLOBAL_SPAM_FILTER', false),
+    PM_PERMIT: bool('PM_PERMIT', false),
+    DM_PERMIT_ACTION: process.env.DM_PERMIT_ACTION || 'warn',
+    DM_PERMIT_MSG: process.env.DM_PERMIT_MSG || '⚠️ PM Permit Active! You are not allowed to message repeatedly.',
+    DM_PRESENCE: process.env.DM_PRESENCE || 'online',
+    GC_PRESENCE: process.env.GC_PRESENCE || 'online',
+    CHATBOT: bool('CHATBOT', false),
+    CHATBOT_MODE: process.env.CHATBOT_MODE || 'inbox',
+
+    // Status Manager
+    AUTO_STATUS_SEEN: process.env.AUTO_STATUS_SEEN || String(bool('AUTO_READ_STATUS', true)),
+    AUTO_STATUS_REACT: process.env.AUTO_STATUS_REACT || String(bool('AUTO_LIKE_STATUS', true)),
+    AUTO_STATUS_MSG: process.env.AUTO_STATUS_MSG || '',
+    Status_Saver: process.env.Status_Saver || 'false',
+    Status_Saver_Owner_Notify: process.env.Status_Saver_Owner_Notify || 'false',
     STATUS_REPLY: bool('STATUS_REPLY', false),
-    AUTO_STICKER: bool('AUTO_STICKER', false),
+    STATUS_MSG: process.env.STATUS_MSG || '',
+    STATUS_REPLY_TEXT: process.env.STATUS_REPLY_TEXT || '✨ Your status viewed successfully! ✨',
+    STATUS_REACT_EMOJI: process.env.STATUS_REACT_EMOJI || 'Not Set',
+    STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜,💙,❤️,💛,🦠',
+    CUSTOM_REACT_EMOJIS: process.env.CUSTOM_REACT_EMOJIS || '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖',
 
-    // 👁️ STATUS MANAGER
-    AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
-    AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
-    AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
-    Status_Saver: env('Status_Saver', 'false'),
-    Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
-    STATUS_MSG: env('STATUS_MSG'),
-    CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
+    // Greetings
+    GREETINGS_AUTOTRACK: bool('GREETINGS_AUTOTRACK', true),
+    GREETINGS_ENABLED: bool('GREETINGS_ENABLED', false),
+    GREETINGS_GM_MSG: process.env.GREETINGS_GM_MSG || 'Not Set',
+    GREETINGS_GM_TIME: process.env.GREETINGS_GM_TIME || '06:00',
+    GREETINGS_GN_MSG: process.env.GREETINGS_GN_MSG || 'Not Set',
+    GREETINGS_GN_TIME: process.env.GREETINGS_GN_TIME || '22:00',
 
-    // 🗄️ DATABASE & SERVER
+    // Group / Newsletter
+    GC_JID: process.env.GC_JID || '',
+    GROUP_JOIN_ACTION: process.env.GROUP_JOIN_ACTION || 'join',
+    AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
+    AUTO_JOIN_GROUPS: process.env.AUTO_JOIN_GROUPS || '',
+
+    // Database / Server
     DATABASE_URL: process.env.DATABASE_URL || null,
     PORT: parseInt(process.env.PORT, 10) || 5000,
 
-    // 🛡️ SECURITY & AUTOMATION
-    ANTI_VV: bool('ANTI_VV', true),
-    ANTI_DELETE: bool('ANTI_DELETE', true),
-    AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
-    AUTO_JOIN_GROUPS: env('AUTO_JOIN_GROUPS'),
-    AUTO_UPDATE: bool('AUTO_UPDATE', true),
+    // Warnings
+    WARN_COUNT: parseInt(process.env.WARN_COUNT, 10) || 3,
+    WARN_LIMIT: parseInt(process.env.WARN_LIMIT, 10) || 3,
+    MSG_COUNTER: parseInt(process.env.MSG_COUNTER, 10) || 0,
 
-    // 📅 LICENSE
-    EXPIRY_DATE: env('EXPIRY_DATE')
+    // Sudo
+    SUDO_NUMBERS: process.env.SUDO_NUMBERS || '',
+    SUDO_USERS: process.env.SUDO_USERS || '',
+
+    // Auto ViewOnce / Expiry
+    VV_TRACKER: bool('VV_TRACKER', true),
+    EXPIRY_DATE: process.env.EXPIRY_DATE || '',
 };
 
 module.exports = config;
-
-// ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ
