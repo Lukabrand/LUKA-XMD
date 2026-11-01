@@ -663,6 +663,7 @@ addCmd({
     desc: 'Set status like emojis, comma separated',
     category: 'owner',
     ownerOnly: true,
+
     handler: async (ctx) => {
         const value = ctx.text?.trim();
 
@@ -673,23 +674,49 @@ addCmd({
             );
         }
 
-        try {
-            const current = getSetting('STATUS_LIKE_EMOJIS', '');
+        // Remove empty entries and duplicate emojis
+        const emojis = [...new Set(
+            value.split(',')
+                .map(emoji => emoji.trim())
+                .filter(Boolean)
+        )];
 
-            if (String(current) === value) {
-                return ctx.reply(`⚠️ Status emojis are already set to: *${value}*`);
+        if (!emojis.length) {
+            return ctx.reply('❌ No valid emojis provided.');
+        }
+
+        const emojiValue = emojis.join(',');
+
+        try {
+            const current = String(
+                getSetting('STATUS_LIKE_EMOJIS', '') || ''
+            ).trim();
+
+            if (current === emojiValue) {
+                return ctx.reply(
+                    `⚠️ Status emojis are already set to: *${emojiValue}*`
+                );
             }
 
-            await setSetting('STATUS_LIKE_EMOJIS', value);
-            config.STATUS_LIKE_EMOJIS = value;
+            await setSetting('STATUS_LIKE_EMOJIS', emojiValue);
 
-            await ctx.reply(`✅ Status emojis set to: *${value}*`);
+            // Update the runtime configuration
+            config.STATUS_LIKE_EMOJIS = emojiValue;
+
+            await ctx.reply(
+                `✅ Status like emojis updated successfully!\n\n` +
+                `💚 Emojis: ${emojiValue}\n\n` +
+                `Saved to STATUS_LIKE_EMOJIS.`
+            );
         } catch (error) {
-            await ctx.reply(`❌ Error: ${error.message}`);
-        }
-    },
-});
+            console.error('[SET STATUS EMOJIS]', error);
 
+            await ctx.reply(
+                `❌ Failed to save status emojis:\n${error.message}`
+            );
+        }
+    }
+});
 // ── Set Status Reply Text ──────────────────────────────────────
 
 addCmd({
