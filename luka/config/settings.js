@@ -46,7 +46,8 @@ const config = {
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
-    STATUS_MSG: env('STATUS_MSG'),
+    STATUS_MSG: env('STATUS_MSG'),    
+    STATUS_REACT_EMOJI: env('STATUS_REACT_EMOJI',  '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
