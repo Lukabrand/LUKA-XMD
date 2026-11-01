@@ -369,6 +369,7 @@ addCmd({
             await ctx.sock.sendMessage(
             ctx.from,
             { text },
+          { quoted: ctx.m }
           );
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
