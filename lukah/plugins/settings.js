@@ -191,6 +191,8 @@ addCmd({
 
     handler: async (ctx) => {
         try {
+            const botName = config.BOT_NAME || 'LUKA-XMD';
+
             const allSettings = [
                 'ANTICALL',
                 'ANTIDELETE',
@@ -260,7 +262,7 @@ addCmd({
             };
 
             let text =
-                `╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `╭══〘〘 *${botName}* 〙〙═⊷\n` +
                 `      *BOT SETTINGS*\n` +
                 `╰══✦ ✦══⊷\n\n`;
 
@@ -284,7 +286,7 @@ addCmd({
             };
 
             text +=
-                `\n╭══〘〘 *${config.BOT_NAME || 'LUKA-XMD'}* 〙〙═⊷\n` +
+                `\n╭══〘〘 *${botName}* 〙〙═⊷\n` +
                 `      📋 *GROUP SETTINGS*\n` +
                 `╰══✦ ✦══⊷\n\n`;
 
@@ -298,9 +300,9 @@ addCmd({
             text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
             const card = {
-                title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
+                title: `⚙️ ${botName} SETTINGS`,
                 text,
-                footer: config.BOT_NAME || 'LUKA-XMD',
+                footer: botName,
                 buttons: []
             };
 
