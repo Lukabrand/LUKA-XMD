@@ -221,7 +221,6 @@ addCmd({
                 'AUTO_REPLY',
                 'AUTO_REPLY_STATUS',
                 'AUTO_UPDATE',
-                'BOT_BIO',
                 'BOT_NAME',
                 'BOT_PIC',
                 'BOT_PREFIX',
@@ -231,9 +230,6 @@ addCmd({
                 'DM_PRESENCE',
                 'MENU_THEME',
                 'MODE',
-                'MSG_COUNTER',
-                'NEWSLETTER_JID',
-                'NEWSLETTER_URL',
                 'OWNER_NAME',
                 'OWNER_NUMBER',
                 'PACK_NAME',
@@ -245,7 +241,6 @@ addCmd({
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
                 'VERSION',
-                'VV_TRACKER',
             ];
 
             const onOff = (value) => {
