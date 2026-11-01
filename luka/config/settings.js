@@ -18,8 +18,8 @@ const config = {
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
 
     // 🎨 MENU
-    MENU_THEME: env('MENU_THEME', 'LUKABRAND'),
-    MENU_THEMES: ['LUKABRAND', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
+    MENU_THEME: env('MENU_THEME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
+    MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
 
     // 📡 CHANNEL
     CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
