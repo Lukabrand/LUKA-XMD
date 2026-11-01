@@ -13,7 +13,7 @@ const config = {
     OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
-    BOT_PIC: env('BOT_PIC', 'https://files.catbox.moe/pj9a34.png')',
+    BOT_PIC: env('BOT_PIC', 'https://files.catbox.moe/pj9a34.png'),
     BOT_VERSION: '5.0.0',
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
@@ -48,8 +48,8 @@ const config = {
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
-    STATUS_MSG: env('STATUS_MSG'),    
-    STATUS_LIKE_EMOJI: env('STATUS_LIKE_EMOJI',  '💚,💜'),
+    STATUS_MSG: env('STATUS_MSG'),
+    STATUS_LIKE_EMOJI: env('STATUS_LIKE_EMOJI', '💚,💜'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
