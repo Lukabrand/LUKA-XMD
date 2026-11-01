@@ -798,14 +798,6 @@ addOwnerBoolCommand({
     description: 'Set auto-reply on/off',
 });
 
-// ── Set Auto-Bio ───────────────────────────────────────────────
-
-addOwnerBoolCommand({
-    name: 'setautobio',
-    aliases: ['bio'],
-    key: 'AUTO_BIO',
-    description: 'Set auto-bio on/off',
-});
 
 // ── Set Auto-Block Country Codes ───────────────────────────────
 
@@ -1193,19 +1185,38 @@ addCmd({
     desc: 'Set bot owner number',
     category: 'owner',
     ownerOnly: true,
+
     handler: async (ctx) => {
         const number = ctx.text?.replace(/\D/g, '');
 
         if (!number || number.length < 7) {
-            return ctx.reply('❌ Provide a valid number.\nExample: .setownernumber 255712345678');
+            return ctx.reply(
+                '❌ Please provide a valid phone number.\n' +
+                'Example: .setownernumber 255712345678'
+            );
         }
 
         try {
             await setSetting('OWNER_NUMBER', number);
+
+            // Update runtime config
             config.OWNER_NUMBER = number;
-            await ctx.reply(`✅ Owner number updated: +${number}`);
+
+            // Update other commonly used owner number fields
+            config.OWNER = number;
+            config.ownerNumber = number;
+
+            await ctx.reply(
+                `✅ Owner number updated successfully!\n\n` +
+                `📱 New number: +${number}\n\n` +
+                `⚠️ If owner permissions still use the old number, restart the bot.`
+            );
         } catch (error) {
-            await ctx.reply(`❌ Error: ${error.message}`);
+            console.error('[SET OWNER NUMBER]', error);
+
+            await ctx.reply(
+                `❌ Failed to update owner number:\n${error.message}`
+            );
         }
     },
 });
