@@ -21,7 +21,7 @@ const config = {
     BOT_BIO: process.env.BOT_BIO || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
     BOT_PIC: process.env.BOT_PIC || 'https://i.imgur.com/9VP31oG.png',
     BOT_REPO: process.env.BOT_REPO || 'Lukabrand/LUKA-XMD',
-    CAPTION: process.env.CAPTION || '⚡ LUKA-XMDMD Premium | Ultra Fast',
+    CAPTION: process.env.CAPTION || '⚡ LUKA-XMD Premium | Ultra Fast',
     FOOTER: process.env.FOOTER || 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
     MENU_THEME: process.env.MENU_THEME || 'ultra',
 
@@ -85,7 +85,7 @@ const config = {
     STATUS_MSG: process.env.STATUS_MSG || '',
     STATUS_REPLY_TEXT: process.env.STATUS_REPLY_TEXT || '✨ Your status viewed successfully! ✨',
     STATUS_REACT_EMOJI: process.env.STATUS_REACT_EMOJI || 'Not Set',
-    STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜,💙,❤️,💛,🦠',
+    STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜,',
     CUSTOM_REACT_EMOJIS: process.env.CUSTOM_REACT_EMOJIS || '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖',
 
     // Greetings
