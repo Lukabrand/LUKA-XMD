@@ -13,8 +13,6 @@ const config = {
     OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
-    BOT_PIC: env('BOT_PIC', 'https://files.catbox.moe/pj9a34.png'),
-    BOT_REPO: env('BOT_REPO', 'Lukabrand/LUKA-XMD'),
     BOT_VERSION: '5.0.0',
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
@@ -28,7 +26,6 @@ const config = {
     // 🔐 CONNECTION
     SESSION_ID: env('SESSION_ID'),
     MODE: env('MODE', 'public'),
-    CAPTION: env('CAPTION', '⚡ LUKA-XMD Premium | Ultra Fast | Ultra Secure'),
     TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
 
     // ⚙️ AUTO FEATURES
@@ -50,7 +47,6 @@ const config = {
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
     STATUS_MSG: env('STATUS_MSG'),
-    STATUS_LIKE_EMOJI: env('STATUS_LIKE_EMOJI', '💚,💜'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
@@ -59,7 +55,7 @@ const config = {
 
     // 🛡️ SECURITY & AUTOMATION
     ANTI_VV: bool('ANTI_VV', true),
-    ANTI_DELETE: env('ANTI_DELETE', 'indm'),
+    ANTI_DELETE: bool('ANTI_DELETE', true),
     AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
     AUTO_JOIN_GROUPS: env('AUTO_JOIN_GROUPS'),
     AUTO_UPDATE: bool('AUTO_UPDATE', true),
