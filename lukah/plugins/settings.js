@@ -366,7 +366,10 @@ addCmd({
 
             text += 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
-            await ctx.reply(text);
+            await ctx.sock.sendMessage(
+            ctx.from,
+            { text },
+          );
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
             await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
