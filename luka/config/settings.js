@@ -13,7 +13,7 @@ const config = {
     OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
-    BOT_PIC: env(BOT_PIC', 'https://files.catbox.moe/pj9a34.png')',
+    BOT_PIC: env('BOT_PIC', 'https://files.catbox.moe/pj9a34.png')',
     BOT_VERSION: '5.0.0',
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
