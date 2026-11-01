@@ -23,7 +23,7 @@ setInterval(() => {
     if (processed.size > 500) processed.clear();
 }, 600000);
 
-// AUTO PRESENCE
+// AUTO TYPING / RECORDING
 async function updatePresence(sock, jid) {
     if (!sock || !jid) return;
 
@@ -32,18 +32,18 @@ async function updatePresence(sock, jid) {
         recording: null
     };
 
-    const recording = flags.recording ?? config.AUTO_RECORDING;
-    const typing = flags.typing ?? config.AUTO_TYPING;
+    const getPresence = () => {
+        const recording = flags.recording ?? config.AUTO_RECORDING;
+        const typing = flags.typing ?? config.AUTO_TYPING;
 
-    const presence = recording
-        ? 'recording'
-        : typing
-            ? 'composing'
-            : null;
+        return recording ? 'recording' : typing ? 'composing' : null;
+    };
+
+    const presence = getPresence();
+    const oldTimer = presenceTimers.get(jid);
 
     if (!presence) {
-        const timer = presenceTimers.get(jid);
-        if (timer) clearInterval(timer);
+        if (oldTimer) clearInterval(oldTimer);
         presenceTimers.delete(jid);
 
         try {
@@ -55,15 +55,12 @@ async function updatePresence(sock, jid) {
     try {
         await sock.sendPresenceUpdate(presence, jid);
 
-        if (presenceTimers.has(jid)) {
-            clearInterval(presenceTimers.get(jid));
-        }
+        if (oldTimer) clearInterval(oldTimer);
 
         const timer = setInterval(async () => {
-            const currentRecording = flags.recording ?? config.AUTO_RECORDING;
-            const currentTyping = flags.typing ?? config.AUTO_TYPING;
+            const currentPresence = getPresence();
 
-            if (!currentRecording && !currentTyping) {
+            if (!currentPresence) {
                 clearInterval(timer);
                 presenceTimers.delete(jid);
 
@@ -73,14 +70,10 @@ async function updatePresence(sock, jid) {
                 return;
             }
 
-            const currentPresence = currentRecording
-                ? 'recording'
-                : 'composing';
-
             try {
                 await sock.sendPresenceUpdate(currentPresence, jid);
             } catch {}
-        }, 10000);
+        }, 3000);
 
         presenceTimers.set(jid, timer);
     } catch (err) {
@@ -111,7 +104,7 @@ async function processOne(raw, sock) {
         const m = await serialize(raw, sock);
         if (!m) return;
 
-        // AUTO TYPING / RECORDING - NO AUTO REACTION
+        // AUTO PRESENCE - NO AUTO REACTION
         if (!m.fromMe && !m.isStatus) {
             await updatePresence(sock, m.from);
         }
@@ -173,17 +166,13 @@ async function processOne(raw, sock) {
         // TRIGGERS
         if (triggers.length) {
             const matched = triggers.filter(({ pattern }) =>
-                pattern.test(m.body)
+                pattern.test(m.body || '')
             );
 
-            if (matched.length) {
-                Promise.allSettled(
-                    matched.map(({ handler }) =>
-                        handler(ctx).catch(err =>
-                            logger.error('TRIGGER', err.message)
-                        )
-                    )
-                );
+            for (const trigger of matched) {
+                Promise.resolve()
+                    .then(() => trigger.handler(ctx))
+                    .catch(err => logger.error('TRIGGER', err.message));
             }
         }
 
@@ -193,28 +182,20 @@ async function processOne(raw, sock) {
         const cmd = findCmd(m.command);
         if (!cmd) return;
 
-        const ownerJid = config.OWNER_NUMBER + '@s.whatsapp.net';
-        const isOwner =
-            m.sender === cleanJid(ownerJid) || m.fromMe;
-
+        const ownerJid = cleanJid(config.OWNER_NUMBER + '@s.whatsapp.net');
+        const isOwner = m.sender === ownerJid || m.fromMe;
         const isSuperUser = isOwner || isSudo(m.sender);
 
         if (cmd.ownerOnly && !isOwner) {
-            return ctx.reply(
-                '❌ This command is for the *bot owner* only.'
-            ).catch(() => {});
+            return ctx.reply('❌ This command is for the *bot owner* only.');
         }
 
         if (cmd.groupOnly && !m.isGroup) {
-            return ctx.reply(
-                '❌ This command can only be used in *groups*.'
-            ).catch(() => {});
+            return ctx.reply('❌ This command can only be used in *groups*.');
         }
 
         if (cmd.adminOnly && !m.isAdmin && !isSuperUser) {
-            return ctx.reply(
-                '❌ This command requires *group admin* privileges.'
-            ).catch(() => {});
+            return ctx.reply('❌ This command requires *group admin* privileges.');
         }
 
         const mode = (config.MODE || 'public').toLowerCase().trim();
@@ -230,9 +211,9 @@ async function processOne(raw, sock) {
 
         trackCmd(cmd.name);
 
-        cmd.handler(ctx).catch(err =>
-            logger.error('CMD_ERR', `${m.command}: ${err.message}`)
-        );
+        Promise.resolve()
+            .then(() => cmd.handler(ctx))
+            .catch(err => logger.error('CMD_ERR', `${m.command}: ${err.message}`));
 
     } catch (err) {
         logger.error('MESSAGE', err.message);
