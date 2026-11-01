@@ -73,7 +73,7 @@ async function updatePresence(sock, jid) {
             try {
                 await sock.sendPresenceUpdate(currentPresence, jid);
             } catch {}
-        }, 3000);
+        }, 1000);
 
         presenceTimers.set(jid, timer);
     } catch (err) {
