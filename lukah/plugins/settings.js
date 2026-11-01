@@ -206,7 +206,6 @@ addCmd({
         try {
             const allSettings = [
                 'ANTICALL',
-                'ANTICALL_MSG',
                 'ANTIDELETE',
                 'ANTIVIEWONCE',
                 'ANTI_EDIT',
@@ -218,8 +217,6 @@ addCmd({
                 'AUTO_REACT',
                 'AUTO_READ_MESSAGES',
                 'AUTO_READ_STATUS',
-                'AUTO_REPLY',
-                'AUTO_REPLY_STATUS',
                 'AUTO_UPDATE',
                 'BOT_NAME',
                 'BOT_PIC',
@@ -234,10 +231,6 @@ addCmd({
                 'OWNER_NUMBER',
                 'PACK_NAME',
                 'PACK_AUTHOR',
-                'PREFIX',
-                'REJECT_CALL',
-                'STARTING_MESSAGE',
-                'STATUS_LIKE_EMOJIS',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
                 'VERSION',
