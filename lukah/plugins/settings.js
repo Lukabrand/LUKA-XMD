@@ -1,14 +1,4 @@
 'use strict';
-// ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Settings Plugin
-//  Owner & group settings commands:
-//    • autoreact / autoread / autolike / autobio toggles
-//    • autotyping  — show typing indicator before replies
-//    • antiflood   — kick members who flood messages
-//    • setlimit    — configure warn-kick threshold
-//    • settz       — change timezone at runtime
-//    • botsettings — view all settings at a glance
-// ╚══════════════════════════════════════════════════════════════╝
 
 const { addCmd, addTrigger } = require('../../guru/handlers/loader');
 const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../guru/db/database');
