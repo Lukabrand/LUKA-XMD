@@ -91,7 +91,7 @@ function printBanner(name, owner, num, prefix, mode, ver) {
     console.log(line('Host   ', PLATFORM));
     console.log(line('Time   ', ts()));
     console.log(`${C.cyan}│${C.reset}`);
-    console.log(`${C.cyan}╰─❖${C.reset} ${C.bold}Powered by GuruTech${C.reset} ${C.cyan}❖─╯${C.reset}\n`);
+    console.log(`${C.cyan}╰─❖${C.reset} ${C.bold}ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ${C.reset} ${C.cyan}❖─╯${C.reset}\n`);
 }
 
 module.exports = {
