@@ -22,7 +22,7 @@ const config = {
     MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
 
     // 📡 CHANNEL
-    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
+    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h'),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
     CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
     CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
