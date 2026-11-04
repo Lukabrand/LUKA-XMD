@@ -703,11 +703,7 @@ addCmd({
             // Update the runtime configuration
             config.STATUS_LIKE_EMOJIS = emojiValue;
 
-            await ctx.reply(
-                `✅ Status like emojis updated successfully!\n\n` +
-                `💚 Emojis: ${emojiValue}\n\n` +
-                `Saved to STATUS_LIKE_EMOJIS.`
-            );
+            await ctx.reply(`✅ Status emojis updated!\n💚 ${emojiValue}`);
         } catch (error) {
             console.error('[SET STATUS EMOJIS]', error);
 
