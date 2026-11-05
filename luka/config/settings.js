@@ -17,6 +17,9 @@ const config = {
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
 
+    // 👤 WHATSAPP USERNAME
+    WHATSAPP_USERNAME: env('WHATSAPP_USERNAME', ''),
+
     // 🎨 MENU
     MENU_THEME: env('MENU_THEME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
