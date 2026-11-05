@@ -227,13 +227,8 @@ addCmd({
                 'STATUS_REPLY_TEXT',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
+                'WHATSAPP_USERNAME',
             ];
-
-            const onOff = (value) => {
-                if (value === true || String(value).toLowerCase() === 'true') return 'true';
-                if (value === false || String(value).toLowerCase() === 'false') return 'false';
-                return value;
-            };
 
             const formatValue = (value) => {
                 if (value === undefined || value === null || value === '') {
@@ -244,17 +239,25 @@ addCmd({
                     return JSON.stringify(value);
                 }
 
-                return String(onOff(value));
+                if (value === true || String(value).toLowerCase() === 'true') {
+                    return 'true';
+                }
+
+                if (value === false || String(value).toLowerCase() === 'false') {
+                    return 'false';
+                }
+
+                return String(value);
             };
 
             const getValue = (key) => {
                 const dbValue = getSetting(key, undefined);
 
-                if (dbValue !== undefined && dbValue !== null) {
+                if (dbValue !== undefined && dbValue !== null && dbValue !== '') {
                     return dbValue;
                 }
 
-                if (config[key] !== undefined && config[key] !== null) {
+                if (config[key] !== undefined && config[key] !== null && config[key] !== '') {
                     return config[key];
                 }
 
@@ -267,7 +270,12 @@ addCmd({
                 `╰══✦ ✦══⊷\n\n`;
 
             for (const key of allSettings) {
-                const value = getValue(key);
+                let value = getValue(key);
+
+                if (key === 'WHATSAPP_USERNAME' && value !== 'Not Set') {
+                    value = `@${String(value).replace(/^@/, '')}`;
+                }
+
                 text += `▸ *${key}:* ${formatValue(value)}\n`;
             }
 
@@ -1288,6 +1296,85 @@ addCmd({
             );
         } catch (error) {
             await ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  WHATSAPP USERNAME SETTINGS
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name: 'setusername',
+    aliases: ['setwausername', 'wausername'],
+    desc: 'Set WhatsApp username',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        const username = ctx.text?.trim();
+
+        if (!username) {
+            return ctx.reply(
+                '❌ Provide a username.\nExample: `.setusername lukabrand`\nDisable: `.setusername off`'
+            );
+        }
+
+        try {
+            if (username.toLowerCase() === 'off') {
+                await setSetting('WHATSAPP_USERNAME', '');
+                config.WHATSAPP_USERNAME = '';
+
+                return ctx.reply('✅ Username cleared.');
+            }
+
+            if (!/^[a-zA-Z0-9._]{3,30}$/.test(username)) {
+                return ctx.reply(
+                    '❌ Invalid username. Use 3–30 letters, numbers, dots or underscores.'
+                );
+            }
+
+            await setSetting('WHATSAPP_USERNAME', username);
+            config.WHATSAPP_USERNAME = username;
+
+            return ctx.reply(`✅ Username saved: @${username}`);
+
+        } catch (error) {
+            console.error('[SET WHATSAPP USERNAME]', error);
+            return ctx.reply(`❌ Error: ${error.message}`);
+        }
+    },
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  GET WHATSAPP USERNAME
+// ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name: 'getusername',
+    aliases: ['myusername', 'wauser'],
+    desc: 'View saved WhatsApp username',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        try {
+            const username = getSetting(
+                'WHATSAPP_USERNAME',
+                config.WHATSAPP_USERNAME || ''
+            );
+
+            if (!username) {
+                return ctx.reply(
+                    '⚠️ No username saved. Use `.setusername <username>`'
+                );
+            }
+
+            return ctx.reply(`👤 @${username}`);
+
+        } catch (error) {
+            console.error('[GET WHATSAPP USERNAME]', error);
+            return ctx.reply(`❌ Error: ${error.message}`);
         }
     },
 });
