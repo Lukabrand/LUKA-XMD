@@ -1181,7 +1181,7 @@ addCmd({
     },
 });
 
-// ── Set Owner Number ───────────────────────────────────────────
+// ── Set Owner Number ──────────────────────────────────────────
 
 addCmd({
     name: 'setownernumber',
@@ -1194,33 +1194,20 @@ addCmd({
         const number = ctx.text?.replace(/\D/g, '');
 
         if (!number || number.length < 7) {
-            return ctx.reply(
-                '❌ Please provide a valid phone number.\n' +
-                'Example: .setownernumber 255712345678'
-            );
+            return ctx.reply('❌ Example: .setownernumber 255768619068');
         }
 
         try {
             await setSetting('OWNER_NUMBER', number);
 
-            // Update runtime config
             config.OWNER_NUMBER = number;
-
-            // Update other commonly used owner number fields
             config.OWNER = number;
             config.ownerNumber = number;
 
-            await ctx.reply(
-                `✅ Owner number updated successfully!\n\n` +
-                `📱 New number: +${number}\n\n` +
-                `⚠️ If owner permissions still use the old number, restart the bot.`
-            );
+            await ctx.reply(`✅ Owner number updated to +${number}`);
         } catch (error) {
             console.error('[SET OWNER NUMBER]', error);
-
-            await ctx.reply(
-                `❌ Failed to update owner number:\n${error.message}`
-            );
+            await ctx.reply(`❌ ${error.message}`);
         }
     },
 });
