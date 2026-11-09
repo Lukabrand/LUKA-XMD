@@ -51,6 +51,9 @@ const config = {
     CHATBOT: bool('CHATBOT', false),
     CHATBOT_MODE: env('CHATBOT_MODE', 'private'),
 
+    // 📵 ANTI CALL
+    ANTI_CALL: bool('ANTI_CALL', false),
+
     // 👁️ STATUS
     AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
     AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
