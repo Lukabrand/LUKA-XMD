@@ -2,6 +2,9 @@
 
 const { addCmd } = require('../../luka/handlers/loader');
 const config = require('../../luka/config/settings');
+const { sendButtons } = require('../../luka/utils/gmdFunctions2');
+
+const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
 addCmd({
     name: 'getchanneljid',
@@ -15,13 +18,13 @@ addCmd({
             const sock = ctx.sock;
 
             if (!sock) {
-                return ctx.reply('❌ WhatsApp connection haipatikani.');
+                return ctx.reply('❌ WhatsApp connection is unavailable.');
             }
 
             const channelUrl = config.CHANNEL_URL;
 
             if (!channelUrl) {
-                return ctx.reply('❌ CHANNEL_URL haijawekwa.');
+                return ctx.reply('❌ CHANNEL_URL is not configured.');
             }
 
             const inviteCode = channelUrl
@@ -30,7 +33,7 @@ addCmd({
                 .pop()
                 .split('?')[0];
 
-            await ctx.reply('🔍 Inatafuta Channel JID, subiri...');
+            await ctx.react('🔍');
 
             const metadata = await sock.newsletterMetadata(
                 'invite',
@@ -38,33 +41,64 @@ addCmd({
             );
 
             if (!metadata?.id) {
-                return ctx.reply('❌ Imeshindwa kupata Channel JID.');
+                return ctx.reply('❌ Failed to retrieve Channel JID.');
             }
 
-            const result =
-`📡 *WHATSAPP CHANNEL INFORMATION*
+            const channelName = metadata.name || 'Unknown';
+            const channelJid = metadata.id;
 
-📛 Channel Name: ${metadata.name || 'Unknown'}
+            const card =
+                `📡 *WHATSAPP CHANNEL INFORMATION*\n` +
+                `🐾 ${config.BOT_NAME || 'LUKA-XMD'}\n` +
+                `_Official Channel Details_\n\n` +
+                `✦ ───────────── ✦\n\n` +
+                `📛 *CHANNEL NAME*\n` +
+                `${channelName}\n\n` +
+                `🆔 *CHANNEL JID*\n` +
+                `${channelJid}\n\n` +
+                `🔗 *CHANNEL INVITE LINK*\n` +
+                `${channelUrl}\n\n` +
+                `✦ ───────────── ✦\n\n` +
+                `✅ Channel information retrieved successfully.\n\n` +
+                `_${FOOTER}_`;
 
-🆔 Channel JID:
-${metadata.id}
+            await sendButtons(sock, ctx.from, {
+                title: `📡 ${channelName} — Channel Information`,
+                text: card,
+                footer: FOOTER,
+                buttons: [
+                    {
+                        name: 'cta_url',
+                        buttonParamsJson: JSON.stringify({
+                            display_text: '📡 Open WhatsApp Channel',
+                            url: channelUrl,
+                            merchant_url: channelUrl,
+                        }),
+                    },
+                    {
+                        name: 'cta_copy',
+                        buttonParamsJson: JSON.stringify({
+                            display_text: '📋 Copy Channel JID',
+                            copy_code: channelJid,
+                        }),
+                    },
+                ],
+            }, { quoted: ctx.m });
 
-🔗 Channel URL:
-${channelUrl}
+            await ctx.react('✅');
 
-━━━━━━━━━━━━━━━━━━
-ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`;
-
-            await ctx.reply(result);
-
-            console.log('[CHANNEL JID]', metadata.id);
+            console.log('[CHANNEL JID]', channelJid);
 
         } catch (error) {
             console.error('[GET CHANNEL JID]', error);
 
+            await ctx.react('❌');
+
             await ctx.reply(
-                `❌ Error kupata Channel JID:\n${error.message}`
+                `❌ *CHANNEL INFORMATION ERROR*\n\n` +
+                `${error.message}\n\n` +
+                `${FOOTER}`
             );
         }
-    }
+    },
 });
