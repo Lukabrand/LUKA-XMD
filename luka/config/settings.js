@@ -27,7 +27,7 @@ const config = {
     // 📡 CHANNEL
     CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h'),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
-    CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
+    CHANNEL_JID: env('CHANNEL_JID', '120363432546073321@newsletter'),
     CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
 
     // 🔐 CONNECTION
