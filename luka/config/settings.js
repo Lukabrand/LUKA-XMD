@@ -47,6 +47,10 @@ const config = {
     STATUS_REPLY: bool('STATUS_REPLY', false),
     AUTO_STICKER: bool('AUTO_STICKER', false),
 
+    // 🤖 AI CHATBOT
+    CHATBOT: bool('CHATBOT', false),
+    CHATBOT_MODE: env('CHATBOT_MODE', 'private'),
+
     // 👁️ STATUS
     AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
     AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
