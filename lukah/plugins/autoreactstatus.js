@@ -7,23 +7,49 @@ const config = require('../../luka/config/settings');
 const { getSetting, setSetting } = require('../../luka/db/database');
 
 const CONFIG_DB_KEY = 'autoreact_config';
+const EMOJI_DB_KEY = 'STATUS_LIKE_EMOJIS';
+
+// ==========================================
+// DEFAULT EMOJIS
+// ==========================================
+
+const DEFAULT_STATUS_EMOJIS = [
+    '💚', '💜'
+];
+
+// ==========================================
+// DEFAULT CONFIGURATION
+// ==========================================
 
 const DEFAULT_REACT_CONFIG = {
     enabled: true,
     onlyOnOwnerReply: false,
+
     viewMode: 'view+react',
     mode: 'random',
+
     fixedEmoji: '💚',
-    reactions: ['💚', '💜'],
+
+    reactions: [...DEFAULT_STATUS_EMOJIS],
+
     cycleIndex: 0,
+
     excludedContacts: [],
+
     logs: [],
+
     totalReacted: 0,
+
     lastReacted: null,
+
     consecutiveReactions: 0,
+
     lastSender: null,
+
     lastReactionTime: 0,
+
     reactedStatuses: [],
+
     settings: {
         rateLimitDelay: 2000,
         reactToAll: true,
@@ -32,78 +58,148 @@ const DEFAULT_REACT_CONFIG = {
     }
 };
 
+// ==========================================
+// AUTO REACT MANAGER
+// ==========================================
+
 class AutoReactManager {
+
     constructor() {
         this.config = this.loadConfig();
-        this.lastReactionTime = this.config.lastReactionTime || 0;
-        this.reactedStatuses = new Set(this.config.reactedStatuses || []);
+
+        this.lastReactionTime =
+            this.config.lastReactionTime || 0;
+
+        this.reactedStatuses = new Set(
+            this.config.reactedStatuses || []
+        );
+
         this._queue = [];
+
         this._draining = false;
+
         this._saveTimer = null;
+
         this.cleanupOldReactedStatuses();
     }
 
+    // ======================================
+    // LOAD CONFIG
+    // ======================================
+
     loadConfig() {
         try {
-            const saved = db.getConfigSync(CONFIG_DB_KEY, DEFAULT_REACT_CONFIG) || {};
+            const saved =
+                db.getConfigSync(
+                    CONFIG_DB_KEY,
+                    DEFAULT_REACT_CONFIG
+                ) || {};
 
             const merged = {
                 ...DEFAULT_REACT_CONFIG,
                 ...saved,
+
                 reactions: Array.isArray(saved.reactions)
                     ? saved.reactions
-                    : [...DEFAULT_REACT_CONFIG.reactions],
+                    : [...DEFAULT_STATUS_EMOJIS],
+
                 excludedContacts: Array.isArray(saved.excludedContacts)
                     ? saved.excludedContacts
                     : [],
-                logs: Array.isArray(saved.logs) ? saved.logs : [],
+
+                logs: Array.isArray(saved.logs)
+                    ? saved.logs
+                    : [],
+
                 reactedStatuses: Array.isArray(saved.reactedStatuses)
                     ? saved.reactedStatuses
                     : [],
+
                 settings: {
                     ...DEFAULT_REACT_CONFIG.settings,
                     ...(saved.settings || {})
                 }
             };
 
-            merged.mode = ['random', 'fixed', 'cycle'].includes(merged.mode)
+            merged.mode = [
+                'random',
+                'fixed',
+                'cycle'
+            ].includes(merged.mode)
                 ? merged.mode
                 : 'random';
 
-            merged.viewMode = merged.viewMode === 'react-only'
-                ? 'react-only'
-                : 'view+react';
+            merged.viewMode =
+                merged.viewMode === 'react-only'
+                    ? 'react-only'
+                    : 'view+react';
 
-            merged.onlyOnOwnerReply = !!saved.onlyOnOwnerReply;
+            merged.onlyOnOwnerReply =
+                !!merged.onlyOnOwnerReply;
+
+            merged.enabled =
+                saved.enabled === undefined
+                    ? true
+                    : !!saved.enabled;
 
             return merged;
+
         } catch (error) {
-            console.error('[AUTOREACT] Load error:', error.message);
+            console.error(
+                '[AUTOREACT] Load error:',
+                error.message
+            );
 
             return {
                 ...DEFAULT_REACT_CONFIG,
-                reactions: [...DEFAULT_REACT_CONFIG.reactions],
-                settings: { ...DEFAULT_REACT_CONFIG.settings }
+
+                reactions: [...DEFAULT_STATUS_EMOJIS],
+
+                settings: {
+                    ...DEFAULT_REACT_CONFIG.settings
+                }
             };
         }
     }
 
+    // ======================================
+    // SAVE CONFIG
+    // ======================================
+
     saveConfig() {
-        if (this._saveTimer) clearTimeout(this._saveTimer);
+        if (this._saveTimer) {
+            clearTimeout(this._saveTimer);
+        }
 
         this._saveTimer = setTimeout(() => {
             try {
-                this.config.reactedStatuses = Array.from(this.reactedStatuses);
-                this.config.lastReactionTime = this.lastReactionTime;
+                this.config.reactedStatuses =
+                    Array.from(this.reactedStatuses);
+
+                this.config.lastReactionTime =
+                    this.lastReactionTime;
 
                 Promise.resolve(
-                    db.setConfig(CONFIG_DB_KEY, this.config)
-                ).catch(() => {});
+                    db.setConfig(
+                        CONFIG_DB_KEY,
+                        this.config
+                    )
+                ).catch(error => {
+                    console.error(
+                        '[AUTOREACT] Database save error:',
+                        error.message
+                    );
+                });
+
             } catch (error) {
-                console.error('[AUTOREACT] Save error:', error.message);
+                console.error(
+                    '[AUTOREACT] Save error:',
+                    error.message
+                );
             }
 
             this._saveTimer = null;
+
         }, 1000);
     }
 
@@ -114,24 +210,47 @@ class AutoReactManager {
         }
 
         try {
-            this.config.reactedStatuses = Array.from(this.reactedStatuses);
-            this.config.lastReactionTime = this.lastReactionTime;
+            this.config.reactedStatuses =
+                Array.from(this.reactedStatuses);
+
+            this.config.lastReactionTime =
+                this.lastReactionTime;
 
             Promise.resolve(
-                db.setConfig(CONFIG_DB_KEY, this.config)
-            ).catch(() => {});
+                db.setConfig(
+                    CONFIG_DB_KEY,
+                    this.config
+                )
+            ).catch(error => {
+                console.error(
+                    '[AUTOREACT] Database save error:',
+                    error.message
+                );
+            });
+
         } catch (error) {
-            console.error('[AUTOREACT] Save error:', error.message);
+            console.error(
+                '[AUTOREACT] Save error:',
+                error.message
+            );
         }
     }
 
+    // ======================================
+    // CLEAN OLD STATUSES
+    // ======================================
+
     cleanupOldReactedStatuses() {
         const now = Date.now();
+
         let cleaned = false;
 
         for (const key of Array.from(this.reactedStatuses)) {
             const parts = key.split('|');
-            const timestamp = Number(parts[parts.length - 1]);
+
+            const timestamp = Number(
+                parts[parts.length - 1]
+            );
 
             if (
                 parts.length >= 3 &&
@@ -143,15 +262,20 @@ class AutoReactManager {
             }
         }
 
-        if (cleaned) this.saveConfig();
+        if (cleaned) {
+            this.saveConfig();
+        }
     }
 
-    // Read emojis from STATUS_LIKE_EMOJIS
+    // ======================================
+    // GET STATUS EMOJIS
+    // ======================================
+
     getStatusEmojis() {
         try {
             const saved = getSetting(
-                'STATUS_LIKE_EMOJIS',
-                config.STATUS_LIKE_EMOJIS || ''
+                EMOJI_DB_KEY,
+                ''
             );
 
             const emojis = String(saved || '')
@@ -159,29 +283,59 @@ class AutoReactManager {
                 .map(emoji => emoji.trim())
                 .filter(Boolean);
 
-            return emojis.length
-                ? [...new Set(emojis)]
-                : [...this.config.reactions];
+            if (emojis.length) {
+                return [...new Set(emojis)];
+            }
+
+            // Use saved config if available.
+            if (
+                Array.isArray(this.config.reactions) &&
+                this.config.reactions.length
+            ) {
+                return [...new Set(this.config.reactions)];
+            }
+
+            // First deployment default.
+            return [...DEFAULT_STATUS_EMOJIS];
+
         } catch (error) {
-            return [...this.config.reactions];
+            return [...DEFAULT_STATUS_EMOJIS];
         }
     }
 
-    // Save emoji list for both status-react and settings command
-    async saveStatusEmojis(emojis) {
-        const value = [...new Set(emojis)]
-            .filter(Boolean)
-            .join(',');
+    // ======================================
+    // SAVE STATUS EMOJIS
+    // ======================================
 
-        await setSetting('STATUS_LIKE_EMOJIS', value);
+    async saveStatusEmojis(emojis) {
+        const unique = [...new Set(emojis)]
+            .filter(Boolean);
+
+        if (!unique.length) {
+            return false;
+        }
+
+        const value = unique.join(',');
+
+        await setSetting(
+            EMOJI_DB_KEY,
+            value
+        );
 
         config.STATUS_LIKE_EMOJIS = value;
-        this.config.reactions = [...new Set(emojis)];
+
+        this.config.reactions = unique;
+
         this.config.cycleIndex = 0;
 
         this.saveConfigImmediate();
+
         return value;
     }
+
+    // ======================================
+    // GETTERS
+    // ======================================
 
     get enabled() {
         return this.config.enabled;
@@ -211,12 +365,19 @@ class AutoReactManager {
         return this.config.totalReacted;
     }
 
+    // ======================================
+    // CONTACT HELPERS
+    // ======================================
+
     _normalizeNum(input) {
-        return String(input || '').replace(/[^0-9]/g, '');
+        return String(input || '')
+            .replace(/[^0-9]/g, '');
     }
 
     isExcluded(statusKey) {
-        const list = this.config.excludedContacts || [];
+        const list =
+            this.config.excludedContacts || [];
+
         if (!list.length) return false;
 
         const jids = [
@@ -230,16 +391,23 @@ class AutoReactManager {
             jid.split('@')[0].split(':')[0]
         );
 
-        return list.some(number => numbers.includes(number));
+        return list.some(number =>
+            numbers.includes(number)
+        );
     }
 
     excludeContact(input) {
         const number = this._normalizeNum(input);
+
         if (!number) return false;
 
-        if (!this.config.excludedContacts.includes(number)) {
+        if (
+            !this.config.excludedContacts.includes(number)
+        ) {
             this.config.excludedContacts.push(number);
+
             this.saveConfigImmediate();
+
             return true;
         }
 
@@ -248,71 +416,114 @@ class AutoReactManager {
 
     includeContact(input) {
         const number = this._normalizeNum(input);
-        const index = this.config.excludedContacts.indexOf(number);
+
+        const index =
+            this.config.excludedContacts.indexOf(number);
 
         if (index !== -1) {
             this.config.excludedContacts.splice(index, 1);
+
             this.saveConfigImmediate();
+
             return true;
         }
 
         return false;
     }
 
+    // ======================================
+    // REACTION TRACKING
+    // ======================================
+
     hasReacted(statusKey) {
-        const sender = statusKey.participant || statusKey.remoteJid || '';
-        const base = `${sender}|${statusKey.id}|`;
+        const sender =
+            statusKey.participant ||
+            statusKey.remoteJid ||
+            '';
+
+        const base =
+            `${sender}|${statusKey.id}|`;
 
         for (const key of this.reactedStatuses) {
-            if (key.startsWith(base)) return true;
+            if (key.startsWith(base)) {
+                return true;
+            }
         }
 
         return false;
     }
 
     markReacted(statusKey) {
-        const sender = statusKey.participant || statusKey.remoteJid || '';
-        const key = `${sender}|${statusKey.id}|${Date.now()}`;
+        const sender =
+            statusKey.participant ||
+            statusKey.remoteJid ||
+            '';
+
+        const key =
+            `${sender}|${statusKey.id}|${Date.now()}`;
 
         this.reactedStatuses.add(key);
 
         if (this.reactedStatuses.size > 500) {
-            const entries = Array.from(this.reactedStatuses);
-            this.reactedStatuses = new Set(entries.slice(-250));
+            const entries =
+                Array.from(this.reactedStatuses);
+
+            this.reactedStatuses =
+                new Set(entries.slice(-250));
         }
 
         this.saveConfig();
     }
 
+    // ======================================
+    // TOGGLE
+    // ======================================
+
     toggle(forceOff = false) {
         this.config.enabled = !forceOff;
+
         this.saveConfigImmediate();
+
         return this.config.enabled;
     }
 
     setOnlyOnOwnerReply(value) {
         this.config.onlyOnOwnerReply = !!value;
+
         this.saveConfigImmediate();
     }
 
     setViewMode(mode) {
-        if (!['view+react', 'react-only'].includes(mode)) return false;
+        if (
+            !['view+react', 'react-only'].includes(mode)
+        ) {
+            return false;
+        }
 
         this.config.viewMode = mode;
+
         this.saveConfigImmediate();
+
         return true;
     }
 
     setMode(mode) {
-        if (!['random', 'fixed', 'cycle'].includes(mode)) return false;
+        if (
+            !['random', 'fixed', 'cycle'].includes(mode)
+        ) {
+            return false;
+        }
 
         this.config.mode = mode;
+
         this.saveConfigImmediate();
+
         return true;
     }
 
     resetCycleIndex() {
         this.config.cycleIndex = 0;
+
         this.saveConfigImmediate();
     }
 
@@ -323,75 +534,108 @@ class AutoReactManager {
             [...emoji].length <= 4
         ) {
             this.config.fixedEmoji = emoji;
+
             this.saveConfigImmediate();
+
             return true;
         }
 
         return false;
     }
 
+    // ======================================
+    // ADD / REMOVE EMOJI
+    // ======================================
+
     async addReaction(emoji) {
         if (
-            typeof emoji === 'string' &&
-            !this.getStatusEmojis().includes(emoji) &&
-            [...emoji].length >= 1 &&
-            [...emoji].length <= 4
+            typeof emoji !== 'string' ||
+            !emoji ||
+            [...emoji].length > 4
         ) {
-            await this.saveStatusEmojis([
-                ...this.getStatusEmojis(),
-                emoji
-            ]);
-            return true;
+            return false;
         }
 
-        return false;
+        const reactions = this.getStatusEmojis();
+
+        if (reactions.includes(emoji)) {
+            return false;
+        }
+
+        await this.saveStatusEmojis([
+            ...reactions,
+            emoji
+        ]);
+
+        return true;
     }
 
     async removeReaction(emoji) {
         const reactions = this.getStatusEmojis();
-        const updated = reactions.filter(item => item !== emoji);
 
-        if (updated.length !== reactions.length) {
-            await this.saveStatusEmojis(updated);
-            return true;
+        const updated = reactions.filter(
+            item => item !== emoji
+        );
+
+        if (
+            updated.length === reactions.length ||
+            updated.length === 0
+        ) {
+            return false;
         }
 
-        return false;
+        await this.saveStatusEmojis(updated);
+
+        return true;
     }
 
     async resetReactions() {
-        const defaults = [
-            '💚', '💜', '❤️', '💙', '🔥',
-            '😂', '😍', '🥰', '💯', '✨',
-            '⚡', '🎉', '👏', '🫶', '🐺'
-        ];
+        await this.saveStatusEmojis(
+            DEFAULT_STATUS_EMOJIS
+        );
 
-        await this.saveStatusEmojis(defaults);
         this.config.cycleIndex = 0;
+
         this.saveConfigImmediate();
     }
 
-    // RANDOM / CYCLE use STATUS_LIKE_EMOJIS; FIXED uses fixedEmoji
+    // ======================================
+    // GET RANDOM / FIXED / CYCLE REACTION
+    // ======================================
+
     getReaction() {
         if (this.config.mode === 'fixed') {
             return this.config.fixedEmoji || '💚';
         }
 
         const reactions = this.getStatusEmojis();
-        if (!reactions.length) return '🐺';
+
+        if (!reactions.length) {
+            return '💚';
+        }
 
         if (this.config.mode === 'cycle') {
-            const index = this.config.cycleIndex % reactions.length;
+            const index =
+                this.config.cycleIndex % reactions.length;
+
             const emoji = reactions[index];
 
-            this.config.cycleIndex = (index + 1) % reactions.length;
+            this.config.cycleIndex =
+                (index + 1) % reactions.length;
+
             this.saveConfig();
 
             return emoji;
         }
 
-        return reactions[Math.floor(Math.random() * reactions.length)];
+        return reactions[
+            Math.floor(Math.random() * reactions.length)
+        ];
     }
+
+    // ======================================
+    // LOGS
+    // ======================================
 
     addLog(sender, reaction, statusId) {
         const entry = {
@@ -402,7 +646,9 @@ class AutoReactManager {
         };
 
         this.config.logs.push(entry);
+
         this.config.totalReacted++;
+
         this.config.lastReacted = entry;
 
         this.config.consecutiveReactions =
@@ -412,7 +658,10 @@ class AutoReactManager {
 
         this.config.lastSender = sender;
 
-        if (this.config.logs.length > 100) this.config.logs.shift();
+        if (this.config.logs.length > 100) {
+            this.config.logs.shift();
+        }
+
         this.saveConfig();
     }
 
@@ -426,31 +675,61 @@ class AutoReactManager {
         });
 
         this.reactedStatuses.clear();
+
         this.saveConfigImmediate();
     }
+
+    // ======================================
+    // STATISTICS
+    // ======================================
 
     getStats() {
         return {
             enabled: this.config.enabled,
-            onlyOnOwnerReply: this.config.onlyOnOwnerReply,
+
+            onlyOnOwnerReply:
+                this.config.onlyOnOwnerReply,
+
             viewMode: this.config.viewMode,
+
             mode: this.config.mode,
+
             fixedEmoji: this.config.fixedEmoji,
+
             reactions: this.getStatusEmojis(),
+
             totalReacted: this.config.totalReacted,
+
             lastReacted: this.config.lastReacted,
-            consecutiveReactions: this.config.consecutiveReactions,
-            reactedStatusesCount: this.reactedStatuses.size,
-            excludedCount: this.config.excludedContacts.length,
-            settings: { ...this.config.settings }
+
+            consecutiveReactions:
+                this.config.consecutiveReactions,
+
+            reactedStatusesCount:
+                this.reactedStatuses.size,
+
+            excludedCount:
+                this.config.excludedContacts.length,
+
+            settings: {
+                ...this.config.settings
+            }
         };
     }
 
+    // ======================================
+    // ENQUEUE STATUS
+    // ======================================
+
     enqueue(sock, statusKey) {
         if (!this.config.enabled) return;
+
         if (!statusKey || !statusKey.id) return;
+
         if (this.config.onlyOnOwnerReply) return;
+
         if (this.hasReacted(statusKey)) return;
+
         if (this.isExcluded(statusKey)) return;
 
         this.markReacted(statusKey);
@@ -461,11 +740,21 @@ class AutoReactManager {
             statusKey.remoteJid ||
             '';
 
-        const displayId = '+' + sender.split('@')[0].split(':')[0];
+        const displayId =
+            '+' + sender.split('@')[0].split(':')[0];
 
-        this._queue.push({ sock, statusKey, displayId });
+        this._queue.push({
+            sock,
+            statusKey,
+            displayId
+        });
+
         this._drain();
     }
+
+    // ======================================
+    // QUEUE MANAGER
+    // ======================================
 
     _drain() {
         if (this._draining) return;
@@ -474,11 +763,17 @@ class AutoReactManager {
 
         this._processNext()
             .catch(error => {
-                console.error('[AUTOREACT] Queue error:', error.message);
+                console.error(
+                    '[AUTOREACT] Queue error:',
+                    error.message
+                );
             })
             .finally(() => {
                 this._draining = false;
-                if (this._queue.length > 0) this._drain();
+
+                if (this._queue.length > 0) {
+                    this._drain();
+                }
             });
     }
 
@@ -488,13 +783,20 @@ class AutoReactManager {
 
             const delay = Math.max(
                 0,
-                Number(this.config.settings.rateLimitDelay) || 2000
+                Number(
+                    this.config.settings.rateLimitDelay
+                ) || 2000
             );
 
-            const wait = delay - (Date.now() - this.lastReactionTime);
+            const wait =
+                delay - (
+                    Date.now() - this.lastReactionTime
+                );
 
             if (wait > 0) {
-                await new Promise(resolve => setTimeout(resolve, wait));
+                await new Promise(resolve =>
+                    setTimeout(resolve, wait)
+                );
             }
 
             await this._sendReaction(
@@ -504,6 +806,10 @@ class AutoReactManager {
             );
         }
     }
+
+    // ======================================
+    // SEND REACTION
+    // ======================================
 
     async _sendReaction(sock, statusKey, displayId) {
         try {
@@ -521,7 +827,10 @@ class AutoReactManager {
 
             if (!resolvedJid) return;
 
-            if (this.config.viewMode === 'view+react') {
+            // VIEW STATUS
+            if (
+                this.config.viewMode === 'view+react'
+            ) {
                 try {
                     await sock.readMessages([{
                         remoteJid: 'status@broadcast',
@@ -529,23 +838,34 @@ class AutoReactManager {
                         fromMe: false,
                         participant: resolvedJid
                     }]);
+
                 } catch (error) {
-                    // Continue if marking the status as read fails.
+                    // Continue if viewing fails.
                 }
             }
 
+            // GET EMOJI
             const emoji = this.getReaction();
 
-            const rawBotId = sock.user?.id || sock.user?.jid || '';
+            // BOT JID
+            const rawBotId =
+                sock.user?.id ||
+                sock.user?.jid ||
+                '';
+
             const botJid = rawBotId
-                ? rawBotId.split(':')[0].split('@')[0] + '@s.whatsapp.net'
+                ? rawBotId
+                    .split(':')[0]
+                    .split('@')[0] + '@s.whatsapp.net'
                 : '';
 
+            // SEND STATUS REACTION
             await sock.sendMessage(
                 'status@broadcast',
                 {
                     react: {
                         text: emoji,
+
                         key: {
                             remoteJid: 'status@broadcast',
                             id: statusKey.id,
@@ -565,20 +885,32 @@ class AutoReactManager {
             );
 
             this.lastReactionTime = Date.now();
-            this.addLog(displayId, emoji, statusKey.id);
+
+            this.addLog(
+                displayId,
+                emoji,
+                statusKey.id
+            );
 
             console.log(
-                `✅ [AUTOREACT] Reacted ${emoji} to status from ${displayId}`
+                `✅ [AUTOREACT] Reacted ${emoji} to ${displayId}`
             );
+
         } catch (error) {
+
             if (
                 error.message?.includes('rate-overlimit') ||
                 error.message?.includes('rate limit')
             ) {
-                this.config.settings.rateLimitDelay = Math.min(
-                    (Number(this.config.settings.rateLimitDelay) || 2000) * 2,
-                    10000
-                );
+                this.config.settings.rateLimitDelay =
+                    Math.min(
+                        (
+                            Number(
+                                this.config.settings.rateLimitDelay
+                            ) || 2000
+                        ) * 2,
+                        10000
+                    );
 
                 this.saveConfig();
             }
@@ -590,31 +922,65 @@ class AutoReactManager {
     }
 }
 
-const autoReactManager = new AutoReactManager();
-globalThis._autoReactManager = autoReactManager;
+// ==========================================
+// INITIALIZE MANAGER
+// ==========================================
+
+const autoReactManager =
+    new AutoReactManager();
+
+globalThis._autoReactManager =
+    autoReactManager;
+
+// ==========================================
+// HOT RELOAD
+// ==========================================
 
 globalThis._autoReactReload = () => {
     try {
-        autoReactManager.config = autoReactManager.loadConfig();
+        autoReactManager.config =
+            autoReactManager.loadConfig();
+
         autoReactManager.lastReactionTime =
             autoReactManager.config.lastReactionTime || 0;
-        autoReactManager.reactedStatuses = new Set(
-            autoReactManager.config.reactedStatuses || []
-        );
+
+        autoReactManager.reactedStatuses =
+            new Set(
+                autoReactManager.config.reactedStatuses || []
+            );
+
     } catch (error) {
-        console.error('[AUTOREACT] Reload error:', error.message);
+        console.error(
+            '[AUTOREACT] Reload error:',
+            error.message
+        );
     }
 };
+
+// ==========================================
+// HANDLE NORMAL STATUS
+// ==========================================
 
 async function handleAutoReact(sock, statusKey) {
     autoReactManager.enqueue(sock, statusKey);
 }
 
-async function triggerReactFromOwnerReply(sock, statusKey) {
+// ==========================================
+// OWNER REPLY TRIGGER
+// ==========================================
+
+async function triggerReactFromOwnerReply(
+    sock,
+    statusKey
+) {
     if (!autoReactManager.config.enabled) return;
+
     if (!autoReactManager.config.onlyOnOwnerReply) return;
+
     if (!statusKey || !statusKey.id) return;
+
     if (autoReactManager.hasReacted(statusKey)) return;
+
     if (autoReactManager.isExcluded(statusKey)) return;
 
     autoReactManager.markReacted(statusKey);
@@ -625,76 +991,144 @@ async function triggerReactFromOwnerReply(sock, statusKey) {
         statusKey.remoteJid ||
         '';
 
-    const displayId = '+' + sender.split('@')[0].split(':')[0];
+    const displayId =
+        '+' + sender.split('@')[0].split(':')[0];
 
-    autoReactManager._queue.push({ sock, statusKey, displayId });
+    autoReactManager._queue.push({
+        sock,
+        statusKey,
+        displayId
+    });
+
     autoReactManager._drain();
 }
+
+// ==========================================
+// CHECK REACTED STATUS
+// ==========================================
 
 function wasAutoReacted(msgId) {
     if (!msgId) return false;
 
     for (const key of autoReactManager.reactedStatuses) {
-        if (key.split('|')[1] === msgId) return true;
+        if (key.split('|')[1] === msgId) {
+            return true;
+        }
     }
 
     return false;
 }
 
+// ==========================================
+// AUTO REACT COMMAND
+// ==========================================
+
 addCmd({
     name: 'autoreactstatus',
+
     aliases: [
-        'reactstatus', 'statusreact', 'sr',
-        'reacts', 'autoreact', 'autolike'
+        'reactstatus',
+        'statusreact',
+        'sr',
+        'reacts',
+        'autoreact',
+        'autolike'
     ],
+
     desc: 'Automatically react to WhatsApp statuses',
+
     category: 'owner',
+
     ownerOnly: true,
 
     handler: async (ctx) => {
         try {
-            const { args, reply, isOwner } = ctx;
-            const prefix = config.BOT_PREFIX || '.';
+            const {
+                args,
+                reply,
+                isOwner
+            } = ctx;
+
+            const prefix =
+                config.BOT_PREFIX || '.';
+
+            // ==================================
+            // HELP MENU
+            // ==================================
 
             if (args.length === 0) {
-                const s = autoReactManager.getStats();
+                const s =
+                    autoReactManager.getStats();
 
                 let text = `╭─⌈ 🎲 *AUTOREACT STATUS* ⌋\n`;
+
                 text += `│\n`;
+
                 text += `├─⊷ *${prefix}sr on / off*\n`;
+
                 text += `├─⊷ *${prefix}sr random*\n`;
+
                 text += `├─⊷ *${prefix}sr cycle*\n`;
+
                 text += `├─⊷ *${prefix}sr fixed*\n`;
+
                 text += `├─⊷ *${prefix}sr emoji ❤️*\n`;
+
                 text += `├─⊷ *${prefix}sr setrandom ❤️,🔥,😂*\n`;
+
                 text += `├─⊷ *${prefix}sr add ❤️*\n`;
+
                 text += `├─⊷ *${prefix}sr remove ❤️*\n`;
+
                 text += `├─⊷ *${prefix}sr view+react*\n`;
+
                 text += `├─⊷ *${prefix}sr react-only*\n`;
+
                 text += `├─⊷ *${prefix}sr exclude <number>*\n`;
+
                 text += `├─⊷ *${prefix}sr include <number>*\n`;
+
                 text += `├─⊷ *${prefix}sr excluded*\n`;
+
                 text += `├─⊷ *${prefix}sr ownerreply*\n`;
+
                 text += `├─⊷ *${prefix}sr list*\n`;
+
                 text += `├─⊷ *${prefix}sr stats*\n`;
+
                 text += `├─⊷ *${prefix}sr reset*\n`;
+
                 text += `│\n`;
+
                 text += `├─⊷ Status: ${s.enabled ? 'ACTIVE ✅' : 'INACTIVE ❌'}\n`;
+
                 text += `├─⊷ Mode: ${s.mode.toUpperCase()}\n`;
+
                 text += `├─⊷ Emoji pool: ${s.reactions.length}\n`;
+
                 text += `╰─⊷ *Powered by ${getBotName().toUpperCase()}*`;
 
                 await reply(text);
+
                 return;
             }
 
-            const action = args[0].toLowerCase();
+            const action =
+                args[0].toLowerCase();
 
             switch (action) {
+
+                // ==============================
+                // ON
+                // ==============================
+
                 case 'on':
                 case 'enable':
                 case 'start': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
 
                     autoReactManager.toggle(false);
 
@@ -704,20 +1138,41 @@ addCmd({
                         `🎭 Emoji pool: ${autoReactManager.reactions.length}\n` +
                         `👁️ View mode: ${autoReactManager.viewMode}`
                     );
+
                     break;
                 }
+
+                // ==============================
+                // OFF
+                // ==============================
 
                 case 'off':
                 case 'disable':
                 case 'stop': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     autoReactManager.toggle(true);
-                    await reply('❌ *AUTOREACT DISABLED*');
+
+                    await reply(
+                        '❌ *AUTOREACT DISABLED*'
+                    );
+
                     break;
                 }
 
+                // ==============================
+                // RANDOM
+                // ==============================
+
                 case 'random': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     autoReactManager.setMode('random');
 
                     await reply(
@@ -725,58 +1180,105 @@ addCmd({
                         `The bot will choose one random emoji for each status.\n\n` +
                         `${autoReactManager.reactions.join(' ')}`
                     );
+
                     break;
                 }
 
+                // ==============================
+                // CYCLE
+                // ==============================
+
                 case 'cycle':
                 case 'sequential': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     autoReactManager.setMode('cycle');
+
                     autoReactManager.resetCycleIndex();
 
                     await reply(
                         `🔄 *CYCLE MODE ENABLED*\n\n` +
                         autoReactManager.reactions
-                            .map((emoji, i) => `${i + 1}. ${emoji}`)
+                            .map((emoji, i) =>
+                                `${i + 1}. ${emoji}`
+                            )
                             .join('\n')
                     );
+
                     break;
                 }
 
+                // ==============================
+                // FIXED
+                // ==============================
+
                 case 'fixed': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     autoReactManager.setMode('fixed');
 
                     await reply(
                         `📌 *FIXED MODE ENABLED*\n\n` +
                         `Emoji: ${autoReactManager.fixedEmoji}`
                     );
+
                     break;
                 }
 
+                // ==============================
+                // SET FIXED EMOJI
+                // ==============================
+
                 case 'emoji': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     const emoji = args[1];
 
                     if (!emoji) {
-                        return reply(`Usage: ${prefix}sr emoji ❤️`);
+                        return reply(
+                            `Usage: ${prefix}sr emoji ❤️`
+                        );
                     }
 
-                    if (autoReactManager.setFixedEmoji(emoji)) {
+                    if (
+                        autoReactManager.setFixedEmoji(emoji)
+                    ) {
                         autoReactManager.setMode('fixed');
-                        await reply(`✅ Fixed emoji set to ${emoji}`);
+
+                        await reply(
+                            `✅ Fixed emoji set to ${emoji}`
+                        );
+
                     } else {
                         await reply('❌ Invalid emoji.');
                     }
+
                     break;
                 }
+
+                // ==============================
+                // SET EMOJI POOL
+                // ==============================
 
                 case 'setrandom':
                 case 'setemojis':
                 case 'setpool': {
-                    if (!isOwner) return reply('❌ Owner only!');
 
-                    const emojis = args.slice(1)
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
+                    const emojis = args
+                        .slice(1)
                         .join(' ')
                         .split(',')
                         .map(e => e.trim())
@@ -798,10 +1300,15 @@ addCmd({
                     )];
 
                     if (!valid.length) {
-                        return reply('❌ No valid emojis found.');
+                        return reply(
+                            '❌ No valid emojis found.'
+                        );
                     }
 
-                    await autoReactManager.saveStatusEmojis(valid);
+                    await autoReactManager.saveStatusEmojis(
+                        valid
+                    );
+
                     autoReactManager.setMode('random');
 
                     await reply(
@@ -810,53 +1317,96 @@ addCmd({
                         `${valid.join(' ')}\n\n` +
                         `🎲 Mode: RANDOM`
                     );
+
                     break;
                 }
 
+                // ==============================
+                // VIEW + REACT
+                // ==============================
+
                 case 'view+react':
                 case 'viewreact': {
-                    if (!isOwner) return reply('❌ Owner only!');
-                    autoReactManager.setViewMode('view+react');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
+                    autoReactManager.setViewMode(
+                        'view+react'
+                    );
 
                     await reply(
                         '👁️ *VIEW + REACT MODE*\n\n' +
                         'The bot will attempt to view the status before reacting.'
                     );
+
                     break;
                 }
 
+                // ==============================
+                // REACT ONLY
+                // ==============================
+
                 case 'react-only':
                 case 'reactonly': {
-                    if (!isOwner) return reply('❌ Owner only!');
-                    autoReactManager.setViewMode('react-only');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
+                    autoReactManager.setViewMode(
+                        'react-only'
+                    );
 
                     await reply(
                         '🎲 *REACT-ONLY MODE*\n\n' +
                         'The bot will attempt to react without first marking the status as read.'
                     );
+
                     break;
                 }
+
+                // ==============================
+                // OWNER REPLY MODE
+                // ==============================
 
                 case 'ownerreply':
                 case 'onlyownerreply':
                 case 'replymode': {
-                    if (!isOwner) return reply('❌ Owner only!');
 
-                    const current = autoReactManager.config.onlyOnOwnerReply;
-                    autoReactManager.setOnlyOnOwnerReply(!current);
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
+                    const current =
+                        autoReactManager.config.onlyOnOwnerReply;
+
+                    autoReactManager.setOnlyOnOwnerReply(
+                        !current
+                    );
 
                     await reply(
                         autoReactManager.config.onlyOnOwnerReply
                             ? '✅ *OWNER-REPLY MODE ON*\n\nThe bot will react only when the owner-reply trigger is called.'
                             : '🔄 *AUTO-REACT MODE ON*\n\nThe bot will process all eligible statuses.'
                     );
+
                     break;
                 }
+
+                // ==============================
+                // EXCLUDE CONTACT
+                // ==============================
 
                 case 'exclude':
                 case 'skip':
                 case 'block': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     const number = args[1];
 
                     if (!number) {
@@ -865,23 +1415,35 @@ addCmd({
                         );
                     }
 
-                    if (autoReactManager.excludeContact(number)) {
+                    if (
+                        autoReactManager.excludeContact(number)
+                    ) {
                         await reply(
                             `✅ Contact excluded.\n\n🚫 +${number.replace(/[^0-9]/g, '')}`
                         );
+
                     } else {
                         await reply(
                             '⚠️ Invalid number or contact already excluded.'
                         );
                     }
+
                     break;
                 }
+
+                // ==============================
+                // INCLUDE CONTACT
+                // ==============================
 
                 case 'include':
                 case 'unexclude':
                 case 'unblock':
                 case 'unskip': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     const number = args[1];
 
                     if (!number) {
@@ -890,132 +1452,234 @@ addCmd({
                         );
                     }
 
-                    if (autoReactManager.includeContact(number)) {
-                        await reply('✅ Contact removed from exclusion list.');
+                    if (
+                        autoReactManager.includeContact(number)
+                    ) {
+                        await reply(
+                            '✅ Contact removed from exclusion list.'
+                        );
+
                     } else {
-                        await reply('⚠️ Contact was not excluded.');
+                        await reply(
+                            '⚠️ Contact was not excluded.'
+                        );
                     }
+
                     break;
                 }
+
+                // ==============================
+                // EXCLUDED LIST
+                // ==============================
 
                 case 'excluded':
                 case 'skiplist':
                 case 'blocklist': {
-                    const list = autoReactManager.config.excludedContacts;
+
+                    const list =
+                        autoReactManager.config.excludedContacts;
 
                     if (!list.length) {
-                        return reply('📭 No excluded contacts.');
+                        return reply(
+                            '📭 No excluded contacts.'
+                        );
                     }
 
                     await reply(
                         `🚫 *EXCLUDED CONTACTS (${list.length})*\n\n` +
-                        list.map((n, i) => `${i + 1}. +${n}`).join('\n')
+                        list.map((n, i) =>
+                            `${i + 1}. +${n}`
+                        ).join('\n')
                     );
+
                     break;
                 }
 
+                // ==============================
+                // EMOJI LIST
+                // ==============================
+
                 case 'list':
                 case 'emojis': {
-                    const emojis = autoReactManager.getStatusEmojis();
+
+                    const emojis =
+                        autoReactManager.getStatusEmojis();
 
                     await reply(
                         `🎭 *STATUS EMOJIS (${emojis.length})*\n\n` +
                         `${emojis.join(' ')}\n\n` +
                         `Mode: ${autoReactManager.mode.toUpperCase()}`
                     );
+
                     break;
                 }
 
+                // ==============================
+                // ADD EMOJI
+                // ==============================
+
                 case 'add': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     const emoji = args[1];
 
-                    if (!emoji) return reply(`Usage: ${prefix}sr add ❤️`);
+                    if (!emoji) {
+                        return reply(
+                            `Usage: ${prefix}sr add ❤️`
+                        );
+                    }
 
-                    if (await autoReactManager.addReaction(emoji)) {
+                    if (
+                        await autoReactManager.addReaction(emoji)
+                    ) {
                         await reply(
                             `✅ ${emoji} added.\n\n` +
                             autoReactManager.reactions.join(' ')
                         );
+
                     } else {
-                        await reply('⚠️ Emoji already exists or is invalid.');
+                        await reply(
+                            '⚠️ Emoji already exists or is invalid.'
+                        );
                     }
+
                     break;
                 }
 
+                // ==============================
+                // REMOVE EMOJI
+                // ==============================
+
                 case 'remove': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
+
                     const emoji = args[1];
 
-                    if (!emoji) return reply(`Usage: ${prefix}sr remove ❤️`);
+                    if (!emoji) {
+                        return reply(
+                            `Usage: ${prefix}sr remove ❤️`
+                        );
+                    }
 
-                    if (await autoReactManager.removeReaction(emoji)) {
+                    if (
+                        await autoReactManager.removeReaction(emoji)
+                    ) {
                         await reply(
                             `✅ ${emoji} removed.\n\n` +
                             autoReactManager.reactions.join(' ')
                         );
+
                     } else {
-                        await reply('❌ Emoji not found.');
+                        await reply(
+                            '❌ Emoji not found, or you cannot remove the last emoji.'
+                        );
                     }
+
                     break;
                 }
+
+                // ==============================
+                // STATISTICS
+                // ==============================
 
                 case 'stats':
                 case 'statistics':
                 case 'info': {
-                    const s = autoReactManager.getStats();
-                    const modeLabel = s.mode === 'fixed'
-                        ? `FIXED (${s.fixedEmoji})`
-                        : s.mode.toUpperCase();
 
-                    let text = `╭─⌈ 📊 *AUTOREACT STATISTICS* ⌋\n`;
+                    const s =
+                        autoReactManager.getStats();
+
+                    const modeLabel =
+                        s.mode === 'fixed'
+                            ? `FIXED (${s.fixedEmoji})`
+                            : s.mode.toUpperCase();
+
+                    let text =
+                        `╭─⌈ 📊 *AUTOREACT STATISTICS* ⌋\n`;
+
                     text += `│\n`;
+
                     text += `├─⊷ Status: ${s.enabled ? 'ACTIVE ✅' : 'INACTIVE ❌'}\n`;
+
                     text += `├─⊷ Trigger: ${s.onlyOnOwnerReply ? 'Owner reply' : 'All statuses'}\n`;
+
                     text += `├─⊷ View mode: ${s.viewMode}\n`;
+
                     text += `├─⊷ Emoji mode: ${modeLabel}\n`;
+
                     text += `├─⊷ Emoji pool: ${s.reactions.length}\n`;
+
                     text += `├─⊷ Total reacted: ${s.totalReacted}\n`;
+
                     text += `├─⊷ Tracked statuses: ${s.reactedStatusesCount}\n`;
+
                     text += `├─⊷ Excluded contacts: ${s.excludedCount}\n`;
+
                     text += `├─⊷ Queue: ${autoReactManager._queue.length}\n`;
 
                     if (s.lastReacted) {
                         const minutes = Math.floor(
-                            (Date.now() - s.lastReacted.timestamp) / 60000
+                            (
+                                Date.now() -
+                                s.lastReacted.timestamp
+                            ) / 60000
                         );
 
                         text += `├─⊷ Last reaction: ${s.lastReacted.reaction}\n`;
+
                         text += `├─⊷ Last sender: ${s.lastReacted.sender}\n`;
+
                         text += `├─⊷ Time: ${minutes < 1 ? 'Just now' : `${minutes} min ago`}\n`;
                     }
 
                     text += `╰─⊷ *Powered by ${getBotName().toUpperCase()}*`;
 
                     await reply(text);
+
                     break;
                 }
 
+                // ==============================
+                // RESET
+                // ==============================
+
                 case 'reset':
                 case 'clear': {
-                    if (!isOwner) return reply('❌ Owner only!');
+
+                    if (!isOwner) {
+                        return reply('❌ Owner only!');
+                    }
 
                     autoReactManager.clearLogs();
+
                     await autoReactManager.resetReactions();
 
                     await reply(
                         '🔄 *RESET COMPLETE*\n\n' +
                         'Logs cleared and default emojis restored.'
                     );
+
                     break;
                 }
 
+                // ==============================
+                // UNKNOWN COMMAND
+                // ==============================
+
                 default: {
+
                     await reply(
                         `❓ Unknown option.\n\nUse ${prefix}sr to view available commands.`
                     );
                 }
             }
+
         } catch (error) {
             console.error(
                 '[AUTOREACTSTATUS] Handler error:',
@@ -1024,6 +1688,10 @@ addCmd({
         }
     }
 });
+
+// ==========================================
+// EXPORTS
+// ==========================================
 
 module.exports = {
     handleAutoReact,
