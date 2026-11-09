@@ -17,15 +17,12 @@ const config = {
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
     PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
 
-    // 👤 WHATSAPP USERNAME
-    WHATSAPP_USERNAME: env('WHATSAPP_USERNAME', ''),
-
     // 🎨 MENU
     MENU_THEME: env('MENU_THEME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
 
     // 📡 CHANNEL
-    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h'),
+    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
     CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
     CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
@@ -54,7 +51,7 @@ const config = {
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
     STATUS_MSG: env('STATUS_MSG'),
-    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '❤️,💜,💚),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💛,❤️,💜,💚,💙,🤍'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
