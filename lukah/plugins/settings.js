@@ -196,7 +196,7 @@ addCmd({
             const botName = getBotName();
 
             const allSettings = [
-                'ANTICALL',
+                'ANTI_CALL',
                 'ANTIDELETE',
                 'ANTI_VV',
                 'ANTI_EDIT',
