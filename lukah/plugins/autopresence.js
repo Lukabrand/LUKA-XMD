@@ -1,82 +1,52 @@
 'use strict';
 
-const {
-    getSetting
-} = require('../../luka/db/database');
+const { addCmd } = require('../../luka/handlers/loader');
 
-const config = require('../../luka/config/settings');
+global.autoPresenceFlags ||= {
+    typing: null,
+    recording: null
+};
 
-function toBoolean(value, fallback = false) {
-    if (value === undefined || value === null || value === '') {
-        return fallback;
-    }
+function registerCommand(name, description, type) {
+    addCmd({
+        name,
+        aliases: [],
+        desc: description,
+        category: 'owner',
+        ownerOnly: true,
 
-    if (typeof value === 'boolean') return value;
-    if (typeof value === 'number') return value === 1;
+        async handler(ctx) {
+            const action = (ctx.args || [])
+                .join(' ')
+                .trim()
+                .toLowerCase();
 
-    return ['true', '1', 'yes', 'on', 'enabled'].includes(
-        String(value).toLowerCase().trim()
-    );
+            const flags = global.autoPresenceFlags;
+
+            if (action === 'on') {
+                flags[type] = true;
+            } else if (action === 'off') {
+                flags[type] = false;
+            } else {
+                const status = flags[type] ?? false;
+
+                return ctx.reply(
+                    `*${description}*\n\n` +
+                    `Usage: .${name} on\n` +
+                    `Usage: .${name} off\n\n` +
+                    `Status: ${status ? 'ON' : 'OFF'}\n\n` +
+                    `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+                );
+            }
+
+            return ctx.reply(
+                `*${description}*\n\n` +
+                `Status: ${flags[type] ? 'ENABLED' : 'DISABLED'}\n\n` +
+                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+            );
+        }
+    });
 }
 
-async function getAutoSetting(key) {
-    try {
-        const value = await getSetting(key);
-
-        return toBoolean(value, Boolean(config[key]));
-    } catch (error) {
-        console.error(`[AUTOPRESENCE] ${key}:`, error.message);
-
-        return Boolean(config[key]);
-    }
-}
-
-async function autoPresence(sock, message) {
-    try {
-        if (!sock || typeof sock.sendPresenceUpdate !== 'function') {
-            return false;
-        }
-
-        const jid = message?.key?.remoteJid;
-
-        if (!jid) return false;
-
-        // Ignore status broadcasts
-        if (jid === 'status@broadcast') return false;
-
-        // Ignore messages sent by the bot
-        if (message?.key?.fromMe) return false;
-
-        // Read settings
-        const [autoTyping, autoRecording] = await Promise.all([
-            getAutoSetting('AUTO_TYPING'),
-            getAutoSetting('AUTO_RECORDING')
-        ]);
-
-        // Both disabled
-        if (!autoTyping && !autoRecording) {
-            return false;
-        }
-
-        // Recording takes priority when both are enabled
-        if (autoRecording) {
-            await sock.sendPresenceUpdate('recording', jid);
-            return true;
-        }
-
-        if (autoTyping) {
-            await sock.sendPresenceUpdate('composing', jid);
-            return true;
-        }
-
-        return false;
-
-    } catch (error) {
-        console.error('[AUTOPRESENCE ERROR]:', error.message);
-        return false;
-    }
-}
-
-module.exports = autoPresence;
-module.exports.autoPresence = autoPresence;
-module.exports.getAutoSetting = getAutoSetting;
+registerCommand('autotyping', 'AUTO TYPING SETTINGS', 'typing');
+registerCommand('autorecording', 'AUTO RECORDING SETTINGS', 'recording');
