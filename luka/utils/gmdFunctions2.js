@@ -26,33 +26,25 @@ const {
 
 function channelCtx() {
     return {
-        // Newsletter forwarding chip — shows "Forwarded from <channel>" tag
         forwardingScore: 999,
         isForwarded: true,
+
         forwardedNewsletterMessageInfo: {
-            newsletterJid:     config.CHANNEL_JID,
-            newsletterName:    config.CHANNEL_NEWSLETTER_NAME,
-            serverMessageId:   Math.floor(Math.random() * 9000) + 1000,
+            newsletterJid: config.CHANNEL_JID,
+            newsletterName: config.CHANNEL_NEWSLETTER_NAME || 'LUKA-XMD',
+            serverMessageId: 1,
         },
-        // External ad card — rich preview in DMs
+
         externalAdReply: {
-            title:                 config.BOT_NAME,
-            body:                  '⚡Follow our WhatsApp Channel',
-            mediaType:             1,
+            title: config.BOT_NAME || 'LUKA-XMD',
+            body: '⚡ Follow our WhatsApp Channel',
+            mediaType: 1,
             renderLargerThumbnail: false,
-            showAdAttribution:     true,
-            sourceUrl:             config.CHANNEL_URL,
-            thumbnailUrl:          'https://i.imgur.com/YbnhBIV.png',
+            showAdAttribution: false,
+            sourceUrl: config.CHANNEL_URL,
+            thumbnailUrl: 'https://i.imgur.com/YbnhBIV.png',
         },
     };
-}
-
-async function sendWithChannel(sock, jid, content, opts = {}) {
-    const ctx = channelCtx();
-    if (content.sticker !== undefined) {
-        return sock.sendMessage(jid, content, opts);
-    }
-    return sock.sendMessage(jid, { ...content, contextInfo: ctx }, opts);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -389,7 +381,7 @@ async function PantherPresence(sock, from, type = 'composing') {
 const BIO_TEMPLATES = [
     () => `🐾 ${config.BOT_NAME} | Online 24/7 🌍`,
     () => `⏰ ${new Date().toLocaleTimeString('en-KE',{ timeZone: config.TIME_ZONE })} | 🤖 ${config.BOT_NAME}`,
-    () => `🌟 Powered by GuruTech | ${new Date().toLocaleDateString('en-KE')}`,
+    () => `🌟 ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ | ${new Date().toLocaleDateString('en-KE')}`,
     () => `🔥 ${config.BOT_NAME} is live! | +${config.OWNER_NUMBER}`,
     () => `💚 Serving users 24/7 | ${config.BOT_NAME} 🐾`,
     () => `⚡LUKA-XMD | Lukabrand`,
