@@ -185,160 +185,180 @@ addCmd({
 const getBotName = () => config.BOT_NAME || 'LUKA-XMD';
 
 addCmd({
-name: 'botsettings',
-aliases: ['settings', 'bsettings', 'config'],
-desc: 'View all bot and group settings',
-category: 'owner',
-ownerOnly: true,
+    name: 'botsettings',
+    aliases: ['settings', 'bsettings', 'config'],
+    desc: 'View all bot and group settings',
+    category: 'owner',
+    ownerOnly: true,
 
-handler: async (ctx) => {
-    try {
-        const botName = getBotName();
+    handler: async (ctx) => {
+        try {
+            const botName = getBotName();
 
-        const allSettings = [
-            'ANTICALL',
-            'ANTIDELETE',
-            'ANTI_VV',
-            'ANTI_EDIT',
-            'AUTO_BIO',
-            'AUTO_BLOCK',
-            'AUTO_JOIN',
-            'AUTO_LIKE_STATUS',
-            'AUTO_MUTE',
-            'AUTO_REACT',
-            'AUTO_READ_MESSAGES',
-            'AUTO_READ_STATUS',
-            'AUTO_TYPING',
-            'AUTO_RECORDING',
-            'AUTO_UPDATE',
-            'BOT_NAME',
-            'BOT_PREFIX',
-            'BOT_VERSION',
-            'CHATBOT',
-            'CHATBOT_MODE',
-            'DM_PRESENCE',
-            'MENU_THEME',
-            'MODE',
-            'OWNER_NAME',
-            'OWNER_NUMBER',
-            'PACK_AUTHOR',
-            'PACK_NAME',
-            'STARTING_MESSAGE',
-            'STATUS_LIKE_EMOJIS',
-            'STATUS_REACT_EMOJI',
-            'STATUS_REPLY_TEXT',
-            'SUDO_NUMBERS',
-            'TIME_ZONE',
-            'WHATSAPP_USERNAME',
-        ];
+            const allSettings = [
+                'ANTICALL',
+                'ANTIDELETE',
+                'ANTI_VV',
+                'ANTI_EDIT',
+                'AUTO_BIO',
+                'AUTO_BLOCK',
+                'AUTO_JOIN',
+                'AUTO_LIKE_STATUS',
+                'AUTO_MUTE',
+                'AUTO_REACT',
+                'AUTO_READ_MESSAGES',
+                'AUTO_READ_STATUS',
+                'AUTO_TYPING',
+                'AUTO_RECORDING',
+                'AUTO_UPDATE',
+                'BOT_NAME',
+                'BOT_PREFIX',
+                'BOT_VERSION',
+                'CHATBOT',
+                'CHATBOT_MODE',
+                'DM_PRESENCE',
+                'MENU_THEME',
+                'MODE',
+                'OWNER_NAME',
+                'OWNER_NUMBER',
+                'PACK_AUTHOR',
+                'PACK_NAME',
+                'STARTING_MESSAGE',
+                'STATUS_LIKE_EMOJIS',
+                'STATUS_REACT_EMOJI',
+                'STATUS_REPLY_TEXT',
+                'SUDO_NUMBERS',
+                'TIME_ZONE',
+                'WHATSAPP_USERNAME',
+            ];
 
-        const formatValue = (value) => {
-            if (value === undefined || value === null || value === '') {
-                return 'Not Set';
-            }
-
-            if (typeof value === 'object') {
-                return JSON.stringify(value);
-            }
-
-            if (value === true || String(value).toLowerCase() === 'true') {
-                return 'true';
-            }
-
-            if (value === false || String(value).toLowerCase() === 'false') {
-                return 'false';
-            }
-
-            return String(value);
-        };
-
-        const getValue = (key) => {
-            if (config[key] !== undefined && config[key] !== null) {
-                return config[key];
-            }
-
-            const dbValue = getSetting(key, undefined);
-
-            if (dbValue !== undefined && dbValue !== null && dbValue !== '') {
-                return dbValue;
-            }
-
-            return 'Not Set';
-        };
-
-        let text =
-            `╭══✦ ✦═⊷\n` +
-            `      *BOT SETTINGS*\n` +
-            `╰══✦ ✦══⊷\n\n`;
-
-        for (const key of allSettings) {
-            let value = getValue(key);
-
-            if (key === 'WHATSAPP_USERNAME' && value !== 'Not Set') {
-                value = `@${String(value).replace(/^@/, '')}`;
-            }
-
-            text += `▸ *${key}:* ${formatValue(value)}\n`;
-        }
-
-        const sudoUsers = getValue('SUDO_USERS');
-        text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
-
-        const groupSettings = getGroupSettings(ctx.from) || {};
-
-        const groupValue = (...keys) => {
-            for (const key of keys) {
-                if (groupSettings[key] !== undefined && groupSettings[key] !== null) {
-                    return formatValue(groupSettings[key]);
+            const formatValue = (value) => {
+                if (value === undefined || value === null || value === '') {
+                    return 'Not Set';
                 }
+
+                if (typeof value === 'object') {
+                    return JSON.stringify(value);
+                }
+
+                if (value === true || String(value).toLowerCase() === 'true') {
+                    return 'ON';
+                }
+
+                if (value === false || String(value).toLowerCase() === 'false') {
+                    return 'OFF';
+                }
+
+                return String(value);
+            };
+
+            // Database first, config fallback
+            const getValue = (key) => {
+                const dbValue = getSetting(key, undefined);
+
+                if (
+                    dbValue !== undefined &&
+                    dbValue !== null &&
+                    dbValue !== ''
+                ) {
+                    return dbValue;
+                }
+
+                if (config[key] !== undefined && config[key] !== null) {
+                    return config[key];
+                }
+
+                return 'Not Set';
+            };
+
+            let text =
+                `╭══✦ ✦═⊷\n` +
+                `      *${botName} SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
+
+            for (const key of allSettings) {
+                let value = getValue(key);
+
+                if (key === 'WHATSAPP_USERNAME' && value !== 'Not Set') {
+                    value = `@${String(value).replace(/^@/, '')}`;
+                }
+
+                text += `▸ *${key}:* ${formatValue(value)}\n`;
             }
 
-            return 'None';
-        };
+            const sudoUsers = getValue('SUDO_USERS');
 
-        text +=
-            `\n╭══✦ ✦═⊷\n` +
-            `      📋 *GROUP SETTINGS*\n` +
-            `╰══✦ ✦══⊷\n\n`;
+            text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
 
-        text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
-        text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
-        text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
-        text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
-        text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
-        text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
+            const groupSettings = getGroupSettings(ctx.from) || {};
 
-        text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
+            const groupValue = (...keys) => {
+                for (const key of keys) {
+                    if (
+                        groupSettings[key] !== undefined &&
+                        groupSettings[key] !== null
+                    ) {
+                        return formatValue(groupSettings[key]);
+                    }
+                }
 
-        const card = {
-            title: `⚙️ ${botName} SETTINGS`,
-            text,
-            footer: botName,
-            buttons: []
-        };
+                return 'None';
+            };
 
-        await sendButtons(
-            ctx.sock,
-            ctx.from,
-            card,
-            { quoted: ctx.m }
-        ).catch(async () => {
-            await ctx.sock.sendMessage(
+            text +=
+                `\n╭══✦ ✦═⊷\n` +
+                `      📋 *GROUP SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
+
+            text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
+
+            text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
+
+            text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
+
+            text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
+
+            text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
+
+            text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
+
+            text += `*🌊 ANTI-FLOOD:*\n${groupValue('antiflood')}\n\n`;
+
+            text += `*🚫 ANTI-STICKER:*\n${groupValue('antisticker')}\n\n`;
+
+            text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
+
+            const card = {
+                title: `⚙️ ${botName} SETTINGS`,
+                text,
+                footer: botName,
+                buttons: []
+            };
+
+            await sendButtons(
+                ctx.sock,
                 ctx.from,
-                {
-                    text,
-                    contextInfo: channelCtx()
-                },
+                card,
                 { quoted: ctx.m }
+            ).catch(async () => {
+                await ctx.sock.sendMessage(
+                    ctx.from,
+                    {
+                        text,
+                        contextInfo: channelCtx()
+                    },
+                    { quoted: ctx.m }
+                );
+            });
+
+        } catch (error) {
+            console.error('[BOT SETTINGS ERROR]', error);
+
+            await ctx.reply(
+                `❌ Failed to load settings.\n${error.message || error}`
             );
-        });
-
-    } catch (error) {
-        console.error('[BOT SETTINGS ERROR]', error);
-        await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
-    }
-},
-
+        }
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
