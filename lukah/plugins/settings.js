@@ -1226,7 +1226,7 @@ addCmd({
 addOwnerBoolCommand({
     name: 'setanticall',
     aliases: ['anticall'],
-    key: 'ANTICALL',
+    key: 'ANTI_CALL',
     description: 'Set anti-call on/off',
 });
 
