@@ -1,4 +1,4 @@
-'use strict';
+ 'use strict';
 
 const {
     makeWASocket,
@@ -76,6 +76,10 @@ seedDefaults({
     AUTO_BIO: String(config.AUTO_BIO),
     AUTO_READ_STATUS: String(config.AUTO_READ_STATUS),
     AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS),
+
+    // AUTO TYPING & AUTO RECORDING
+    AUTO_TYPING: String(config.AUTO_TYPING ?? false),
+    AUTO_RECORDING: String(config.AUTO_RECORDING ?? false),
 });
 
 let sock;
@@ -86,6 +90,97 @@ const MAX_RECONNECT_DELAY = 30_000;
 const CONNECTION_MESSAGE_EXPIRATION = 180;
 
 let connectionMessageSent = false;
+
+// ==========================================
+// AUTO TYPING & AUTO RECORDING ENGINE
+// ==========================================
+
+const autoPresenceTimers = new Map();
+
+async function isPresenceEnabled(key, fallback = false) {
+    try {
+        const value = await getSetting(key);
+
+        if (
+            value === undefined ||
+            value === null ||
+            value === ''
+        ) {
+            return Boolean(fallback);
+        }
+
+        return value === true ||
+            value === 1 ||
+            String(value).toLowerCase() === 'true';
+
+    } catch (error) {
+        return Boolean(fallback);
+    }
+}
+
+async function applyAutoPresence(socket, message) {
+    try {
+        if (!socket || !message?.key) return;
+
+        const jid = message.key.remoteJid;
+
+        // Ignore invalid chats and bot's own messages
+        if (
+            !jid ||
+            typeof jid !== 'string' ||
+            message.key.fromMe ||
+            jid === 'status@broadcast' ||
+            jid.endsWith('@newsletter')
+        ) {
+            return;
+        }
+
+        const typingEnabled = await isPresenceEnabled(
+            'AUTO_TYPING',
+            config.AUTO_TYPING
+        );
+
+        const recordingEnabled = await isPresenceEnabled(
+            'AUTO_RECORDING',
+            config.AUTO_RECORDING
+        );
+
+        let presence = null;
+
+        // Recording takes priority if both are enabled
+        if (recordingEnabled) {
+            presence = 'recording';
+        } else if (typingEnabled) {
+            presence = 'composing';
+        }
+
+        if (!presence) return;
+
+        // Clear previous timer for this chat
+        if (autoPresenceTimers.has(jid)) {
+            clearTimeout(autoPresenceTimers.get(jid));
+        }
+
+        await socket.sendPresenceUpdate(presence, jid);
+
+        // Stop presence after a short period
+        const timer = setTimeout(async () => {
+            try {
+                await socket.sendPresenceUpdate('paused', jid);
+            } catch {}
+
+            autoPresenceTimers.delete(jid);
+        }, 5000);
+
+        autoPresenceTimers.set(jid, timer);
+
+    } catch (error) {
+        logger.warn(
+            'AUTO-PRESENCE',
+            error.message
+        );
+    }
+}
 
 // Prevent duplicate Anti-Delete initialization
 let antiDeleteAttached = false;
@@ -703,6 +798,15 @@ async function startBot() {
             }
         }
 
+        // ======================================
+        // AUTO TYPING & AUTO RECORDING
+        // ======================================
+
+        for (const message of upsert.messages) {
+            applyAutoPresence(sock, message).catch(() => {});
+        }
+
+        // Process commands and messages
         handleMessage(upsert, sock);
     });
 
