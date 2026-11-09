@@ -1,35 +1,17 @@
 'use strict';
 
-const { addCmd } = require('../../handlers/loader');
-
 const {
-    getSetting,
-    setSetting,
-} = require('../../db/database');
+    getSetting
+} = require('../../luka/db/database');
 
-const config = require('../../config/settings');
+const config = require('../../luka/config/settings');
 
-const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
-
-const PRESENCE_SETTINGS = {
-    autotyping: {
-        key: 'AUTO_TYPING',
-        title: 'AUTO TYPING',
-    },
-
-    autorecording: {
-        key: 'AUTO_RECORDING',
-        title: 'AUTO RECORDING',
-    },
-};
-
-function parseBoolean(value, fallback = false) {
+function toBoolean(value, fallback = false) {
     if (value === undefined || value === null || value === '') {
         return fallback;
     }
 
     if (typeof value === 'boolean') return value;
-
     if (typeof value === 'number') return value === 1;
 
     return ['true', '1', 'yes', 'on', 'enabled'].includes(
@@ -37,80 +19,64 @@ function parseBoolean(value, fallback = false) {
     );
 }
 
-async function getStatus(key) {
-    const dbValue = await getSetting(key);
+async function getAutoSetting(key) {
+    try {
+        const value = await getSetting(key);
 
-    return parseBoolean(dbValue, Boolean(config[key]));
+        return toBoolean(value, Boolean(config[key]));
+    } catch (error) {
+        console.error(`[AUTOPRESENCE] ${key}:`, error.message);
+
+        return Boolean(config[key]);
+    }
 }
 
-function registerPresenceCommand(name, setting) {
-    addCmd({
-        name,
-        aliases: [],
-        desc: `${setting.title} SETTINGS`,
-        category: 'owner',
-        ownerOnly: true,
-
-        async handler(ctx) {
-            try {
-                const args = ctx.args || [];
-
-                const action = args
-                    .join(' ')
-                    .trim()
-                    .toLowerCase();
-
-                const currentStatus = await getStatus(setting.key);
-
-                if (action !== 'on' && action !== 'off') {
-                    return await ctx.reply(
-                        `*${setting.title} SETTINGS*\n\n` +
-                        `Command: .${name} on\n` +
-                        `Command: .${name} off\n\n` +
-                        `Current Status: ${currentStatus ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
-                        FOOTER
-                    );
-                }
-
-                const enabled = action === 'on';
-
-                // Save to database
-                await setSetting(setting.key, String(enabled));
-
-                // Update runtime config
-                config[setting.key] = enabled;
-
-                // Verify saved value
-                const savedValue = await getSetting(setting.key);
-
-                console.log(
-                    `[PRESENCE SETTINGS] ${setting.key}:`,
-                    savedValue
-                );
-
-                return await ctx.reply(
-                    `*${setting.title} SETTINGS*\n\n` +
-                    `Status: ${enabled ? 'ENABLED 🟢' : 'DISABLED 🔴'}\n\n` +
-                    `Database: SAVED ✅\n\n` +
-                    FOOTER
-                );
-
-            } catch (error) {
-                console.error(`[${name.toUpperCase()} ERROR]`, error);
-
-                return await ctx.reply(
-                    `❌ Failed to update ${setting.title}.\n\n` +
-                    `Error: ${error.message}\n\n` +
-                    FOOTER
-                );
-            }
+async function autoPresence(sock, message) {
+    try {
+        if (!sock || typeof sock.sendPresenceUpdate !== 'function') {
+            return false;
         }
-    });
+
+        const jid = message?.key?.remoteJid;
+
+        if (!jid) return false;
+
+        // Ignore status broadcasts
+        if (jid === 'status@broadcast') return false;
+
+        // Ignore messages sent by the bot
+        if (message?.key?.fromMe) return false;
+
+        // Read settings
+        const [autoTyping, autoRecording] = await Promise.all([
+            getAutoSetting('AUTO_TYPING'),
+            getAutoSetting('AUTO_RECORDING')
+        ]);
+
+        // Both disabled
+        if (!autoTyping && !autoRecording) {
+            return false;
+        }
+
+        // Recording takes priority when both are enabled
+        if (autoRecording) {
+            await sock.sendPresenceUpdate('recording', jid);
+            return true;
+        }
+
+        if (autoTyping) {
+            await sock.sendPresenceUpdate('composing', jid);
+            return true;
+        }
+
+        return false;
+
+    } catch (error) {
+        console.error('[AUTOPRESENCE ERROR]:', error.message);
+        return false;
+    }
 }
 
-// Register commands
-for (const [name, setting] of Object.entries(PRESENCE_SETTINGS)) {
-    registerPresenceCommand(name, setting);
-}
-
-console.log('[PRESENCE SETTINGS] Commands registered successfully.');
+module.exports = autoPresence;
+module.exports.autoPresence = autoPresence;
+module.exports.getAutoSetting = getAutoSetting;
