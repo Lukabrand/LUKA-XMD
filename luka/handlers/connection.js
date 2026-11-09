@@ -11,28 +11,17 @@ const {
 const fs = require('fs');
 const pino = require('pino');
 const NodeCache = require('node-cache');
-
 const config = require('../config/settings');
 const logger = require('../utils/logger');
+const { resolveSession, SESSION_DIR } = require('../utils/session');
 
-const {
-    resolveSession,
-    SESSION_DIR
-} = require('../utils/session');
-
-// ==========================================
-// DATABASE
-// ==========================================
-
+// Database
 const {
     seedDefaults,
     getSetting,
 } = require('../db/database');
 
-// ==========================================
-// HANDLERS
-// ==========================================
-
+// Handlers
 const { loadPlugins } = require('./loader');
 const { handleMessage } = require('./message');
 
@@ -43,10 +32,7 @@ const {
 
 const { autoUpdate } = require('../utils/autoUpdate');
 
-// ==========================================
-// PANTHER FEATURES
-// ==========================================
-
+// Existing Panther features
 const {
     PantherAntiCall,
     PantherAutoBio,
@@ -57,63 +43,40 @@ const {
     channelCtx,
 } = require('../utils/gmdFunctions2');
 
-// ==========================================
-// ANTI DELETE DM
-// ==========================================
-
+// New Anti-Delete DM
 const {
     attachAntiDelete,
 } = require('../utils/antiDelete');
 
-// ==========================================
-// STATUS ENGINE
-// ==========================================
-
+// Status engine
 const {
     initStatusEngine,
     enqueueAll,
 } = require('../utils/statusEngine');
 
-// ==========================================
-// GROUP CACHE
-// ==========================================
-
+// Group cache
 const {
     getCached,
     invalidate: invalidateGroupCache,
 } = require('../utils/groupCache');
 
-// ==========================================
-// STATUS MANAGER
-// ==========================================
-
+// Status manager
 const {
     handleStatusBroadcast,
 } = require('./statusManager');
 
-// ==========================================
-// DEFAULT SETTINGS
-// ==========================================
-
+// Initialize default settings
 seedDefaults({
     BOT_NAME: config.BOT_NAME,
     OWNER_NAME: config.OWNER_NAME,
     OWNER_NUMBER: config.OWNER_NUMBER,
     BOT_PREFIX: config.BOT_PREFIX,
     MODE: config.MODE,
-
     AUTO_REACT: String(config.AUTO_REACT),
     AUTO_BIO: String(config.AUTO_BIO),
     AUTO_READ_STATUS: String(config.AUTO_READ_STATUS),
     AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS),
-
-    AUTO_TYPING: String(config.AUTO_TYPING ?? false),
-    AUTO_RECORDING: String(config.AUTO_RECORDING ?? false),
 });
-
-// ==========================================
-// GLOBAL VARIABLES
-// ==========================================
 
 let sock;
 let reconnectCount = 0;
@@ -123,170 +86,18 @@ const MAX_RECONNECT_DELAY = 30_000;
 const CONNECTION_MESSAGE_EXPIRATION = 180;
 
 let connectionMessageSent = false;
+
+// Prevent duplicate Anti-Delete initialization
 let antiDeleteAttached = false;
 
-let cachedVersion = null;
-
-const autoPresenceTimers = new Map();
-
+// Track followed newsletters
 if (!global._followedNewsletters) {
     global._followedNewsletters = new Set();
 }
 
-// ==========================================
-// AUTO TYPING & AUTO RECORDING
-// ==========================================
+let cachedVersion = null;
 
-function parseBoolean(value, fallback = false) {
-    if (value === undefined || value === null || value === '') {
-        return Boolean(fallback);
-    }
-
-    if (typeof value === 'boolean') {
-        return value;
-    }
-
-    if (typeof value === 'number') {
-        return value === 1;
-    }
-
-    return [
-        'true',
-        '1',
-        'yes',
-        'on',
-        'enabled'
-    ].includes(
-        String(value).trim().toLowerCase()
-    );
-}
-
-async function isPresenceEnabled(key, fallback = false) {
-    try {
-        const value = await getSetting(key);
-
-        return parseBoolean(value, fallback);
-
-    } catch (error) {
-        logger.warn(
-            'AUTO-PRESENCE',
-            `${key}: ${error.message}`
-        );
-
-        return parseBoolean(fallback);
-    }
-}
-
-async function applyAutoPresence(socket, message) {
-    try {
-        if (!socket || !message?.key) {
-            return;
-        }
-
-        const jid = message.key.remoteJid;
-
-        if (
-            !jid ||
-            typeof jid !== 'string' ||
-            message.key.fromMe ||
-            jid === 'status@broadcast' ||
-            jid.endsWith('@newsletter')
-        ) {
-            return;
-        }
-
-        // Read current settings
-        const [
-            typingEnabled,
-            recordingEnabled
-        ] = await Promise.all([
-            isPresenceEnabled(
-                'AUTO_TYPING',
-                config.AUTO_TYPING
-            ),
-
-            isPresenceEnabled(
-                'AUTO_RECORDING',
-                config.AUTO_RECORDING
-            )
-        ]);
-
-        let presence = null;
-
-        // Recording has priority
-        if (recordingEnabled) {
-            presence = 'recording';
-
-        } else if (typingEnabled) {
-            presence = 'composing';
-        }
-
-        if (!presence) {
-            return;
-        }
-
-        // Clear previous timer
-        const oldTimer = autoPresenceTimers.get(jid);
-
-        if (oldTimer) {
-            clearTimeout(oldTimer);
-        }
-
-        // Show typing or recording
-        await socket.sendPresenceUpdate(
-            presence,
-            jid
-        );
-
-        logger.info(
-            'AUTO-PRESENCE',
-            `${presence} -> ${jid}`
-        );
-
-        // Stop presence after 5 seconds
-        const timer = setTimeout(async () => {
-            try {
-                await socket.sendPresenceUpdate(
-                    'paused',
-                    jid
-                );
-            } catch (error) {
-                logger.warn(
-                    'AUTO-PRESENCE',
-                    error.message
-                );
-            }
-
-            autoPresenceTimers.delete(jid);
-
-        }, 5000);
-
-        autoPresenceTimers.set(jid, timer);
-
-    } catch (error) {
-        logger.warn(
-            'AUTO-PRESENCE',
-            error.message
-        );
-    }
-}
-
-// ==========================================
-// CLEAR PRESENCE TIMERS
-// ==========================================
-
-function clearAutoPresenceTimers() {
-    for (const timer of autoPresenceTimers.values()) {
-        clearTimeout(timer);
-    }
-
-    autoPresenceTimers.clear();
-}
-
-// ==========================================
-// BAILEYS VERSION
-// ==========================================
-
+// Fetch and cache the latest Baileys version
 async function getBaileysVersion() {
     if (cachedVersion) {
         return cachedVersion;
@@ -294,9 +105,7 @@ async function getBaileysVersion() {
 
     try {
         const result = await fetchLatestBaileysVersion();
-
         cachedVersion = result.version;
-
     } catch {
         cachedVersion = [2, 3000, 1015901307];
     }
@@ -308,31 +117,20 @@ async function getBaileysVersion() {
     return cachedVersion;
 }
 
-// ==========================================
-// LOGGER
-// ==========================================
-
+// Silent logger for Baileys
 const silentLogger = pino({
     level: 'silent',
     enabled: false,
 });
 
-// ==========================================
-// DIRECTORY
-// ==========================================
-
+// Ensure directory exists
 function ensureDir(dir) {
     if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, {
-            recursive: true
-        });
+        fs.mkdirSync(dir, { recursive: true });
     }
 }
 
-// ==========================================
-// AUTO FOLLOW CHANNEL
-// ==========================================
-
+// Automatically follow the configured newsletter
 async function autoFollowChannel(socket) {
     if (!config.AUTO_FOLLOW_CHANNEL) {
         return;
@@ -357,7 +155,6 @@ async function autoFollowChannel(socket) {
             'CHANNEL',
             `Following channel: ${config.CHANNEL_NEWSLETTER_NAME || jid}`
         );
-
     } catch (error) {
         const message = error.message || '';
 
@@ -368,7 +165,6 @@ async function autoFollowChannel(socket) {
                 'CHANNEL',
                 `Already following channel: ${config.CHANNEL_NEWSLETTER_NAME || jid}`
             );
-
         } else {
             logger.warn(
                 'CHANNEL',
@@ -378,10 +174,7 @@ async function autoFollowChannel(socket) {
     }
 }
 
-// ==========================================
-// AUTO FOLLOW INBOUND
-// ==========================================
-
+// Automatically follow inbound newsletters
 async function autoFollowInbound(socket, newsletterJid) {
     if (!newsletterJid?.endsWith('@newsletter')) {
         return;
@@ -400,7 +193,6 @@ async function autoFollowInbound(socket, newsletterJid) {
             'CHANNEL',
             `Auto-followed inbound newsletter: ${newsletterJid}`
         );
-
     } catch (error) {
         const message = error.message || '';
 
@@ -410,10 +202,7 @@ async function autoFollowInbound(socket, newsletterJid) {
     }
 }
 
-// ==========================================
-// AUTO JOIN GROUPS
-// ==========================================
-
+// Automatically join configured groups
 async function autoJoinGroups(socket) {
     const raw = config.AUTO_JOIN_GROUPS || '';
 
@@ -434,7 +223,6 @@ async function autoJoinGroups(socket) {
                 'AUTOJOIN',
                 `Joined group: ${code}`
             );
-
         } catch (error) {
             const message = error.message || '';
 
@@ -443,7 +231,6 @@ async function autoJoinGroups(socket) {
                     'AUTOJOIN',
                     `Already in group: ${code}`
                 );
-
             } else {
                 logger.warn(
                     'AUTOJOIN',
@@ -454,10 +241,7 @@ async function autoJoinGroups(socket) {
     }
 }
 
-// ==========================================
-// CONNECTION MESSAGE
-// ==========================================
-
+// Send the connection message with disappearing-message options
 async function sendConnectionMessage(socket) {
     if (connectionMessageSent) {
         return;
@@ -466,10 +250,7 @@ async function sendConnectionMessage(socket) {
     connectionMessageSent = true;
 
     const botJid = socket.user?.id || '';
-
-    const selfNumber = botJid
-        .split(':')[0]
-        .split('@')[0];
+    const selfNumber = botJid.split(':')[0].split('@')[0];
 
     if (!selfNumber) {
         connectionMessageSent = false;
@@ -492,9 +273,8 @@ async function sendConnectionMessage(socket) {
         config.MODE || 'public'
     ).toUpperCase();
 
-    const totalCommands = require('./loader')
-        .getAllCmds()
-        .length;
+    // Count unique commands registered by the loader
+    const totalCommands = require('./loader').getAllCmds().length;
 
     const startText =
 `╭══〘〘 *${botName}* 〙〙═⊷
@@ -522,7 +302,6 @@ async function sendConnectionMessage(socket) {
             'CONNECTION',
             'Connection message sent successfully.'
         );
-
     } catch (error) {
         connectionMessageSent = false;
 
@@ -533,21 +312,17 @@ async function sendConnectionMessage(socket) {
     }
 }
 
-// ==========================================
-// START BOT
-// ==========================================
-
+// Start the WhatsApp bot
 async function startBot() {
     if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
     }
 
-    // Auto update
+    // Automatically check for updates
     if (config.AUTO_UPDATE) {
         try {
             await autoUpdate();
-
         } catch (error) {
             logger.warn(
                 'UPDATE',
@@ -556,7 +331,7 @@ async function startBot() {
         }
     }
 
-    // Banner
+    // Display bot information
     logger.banner(
         config.BOT_NAME,
         config.OWNER_NAME,
@@ -566,28 +341,20 @@ async function startBot() {
         config.BOT_VERSION
     );
 
-    // Session
-    logger.info(
-        'SESSION',
-        'Checking session...'
-    );
+    // Resolve the WhatsApp session
+    logger.info('SESSION', 'Checking session...');
 
     await resolveSession();
 
     // Load plugins
-    logger.info(
-        'LOADER',
-        'Loading plugins...'
-    );
+    logger.info('LOADER', 'Loading plugins...');
 
     loadPlugins();
 
     ensureDir(SESSION_DIR);
 
-    const {
-        state,
-        saveCreds
-    } = await useMultiFileAuthState(SESSION_DIR);
+    const { state, saveCreds } =
+        await useMultiFileAuthState(SESSION_DIR);
 
     const version = await getBaileysVersion();
 
@@ -596,22 +363,18 @@ async function startBot() {
         `Using WhatsApp Web v${version.join('.')}`
     );
 
-    // Device cache
+    // Cache user device information
     const userDevicesCache = new NodeCache({
         stdTTL: 600,
         useClones: false,
     });
 
-    // ======================================
-    // CREATE SOCKET
-    // ======================================
-
+    // Create the WhatsApp socket
     sock = makeWASocket({
         version,
 
         auth: {
             creds: state.creds,
-
             keys: makeCacheableSignalKeyStore(
                 state.keys,
                 silentLogger
@@ -640,8 +403,7 @@ async function startBot() {
         qrTimeout: 0,
         emitOwnEvents: true,
 
-        getMessage: async key =>
-            getStoredMessage(key?.id),
+        getMessage: async key => getStoredMessage(key?.id),
 
         cachedGroupMetadata: async jid =>
             getCached(jid) ?? undefined,
@@ -666,7 +428,6 @@ async function startBot() {
                             deviceListMetadataVersion: 2,
                             deviceListMetadata: {},
                         },
-
                         ...message,
                     },
                 },
@@ -674,31 +435,20 @@ async function startBot() {
         },
     });
 
-    // Save credentials
-    sock.ev.on(
-        'creds.update',
-        saveCreds
-    );
+    // Save authentication credentials
+    sock.ev.on('creds.update', saveCreds);
 
-    // ======================================
-    // ANTI DELETE DM
-    // ======================================
-
+    // Initialize Anti-Delete DM
+    // This uses the ANTIDELETE setting controlled by .antideletedm.
     if (!antiDeleteAttached) {
         try {
-            attachAntiDelete(
-                sock,
-                config,
-                getSetting
-            );
-
+            attachAntiDelete(sock, config, getSetting);
             antiDeleteAttached = true;
 
             logger.success(
                 'ANTIDELETE',
                 'Anti-Delete DM listener initialized.'
             );
-
         } catch (error) {
             logger.warn(
                 'ANTIDELETE',
@@ -707,19 +457,11 @@ async function startBot() {
         }
     }
 
-    // ======================================
-    // CONNECTION UPDATE
-    // ======================================
-
+    // Handle connection updates
     sock.ev.on(
         'connection.update',
-        async ({
-            connection,
-            lastDisconnect,
-            qr
-        }) => {
-
-            // QR
+        async ({ connection, lastDisconnect, qr }) => {
+            // Display QR code when required
             if (qr) {
                 if (logger.IS_HEROKU) {
                     logger.error(
@@ -740,7 +482,6 @@ async function startBot() {
                         qr,
                         { small: true }
                     );
-
                 } catch {
                     logger.warn(
                         'QR',
@@ -749,10 +490,8 @@ async function startBot() {
                 }
             }
 
-            // CLOSED
+            // Handle disconnection
             if (connection === 'close') {
-                clearAutoPresenceTimers();
-
                 const code =
                     lastDisconnect?.error?.output?.statusCode;
 
@@ -806,11 +545,10 @@ async function startBot() {
                             `Restart error: ${error.message}`
                         );
                     });
-
                 }, delay);
             }
 
-            // OPEN
+            // Handle successful connection
             if (connection === 'open') {
                 reconnectCount = 0;
 
@@ -838,33 +576,12 @@ async function startBot() {
                     `AntiVV: ${config.ANTI_VV} | AutoFollowChannel: ${config.AUTO_FOLLOW_CHANNEL}`
                 );
 
-                // Presence settings
-                const [
-                    typingEnabled,
-                    recordingEnabled
-                ] = await Promise.all([
-                    isPresenceEnabled(
-                        'AUTO_TYPING',
-                        config.AUTO_TYPING
-                    ),
-
-                    isPresenceEnabled(
-                        'AUTO_RECORDING',
-                        config.AUTO_RECORDING
-                    )
-                ]);
-
-                logger.info(
-                    'AUTO-PRESENCE',
-                    `Typing: ${typingEnabled} | Recording: ${recordingEnabled}`
-                );
-
-                // Connection message
+                // Send the connection message
                 if (config.STARTING_MESSAGE !== false) {
                     await sendConnectionMessage(sock);
                 }
 
-                // Auto Bio
+                // Start automatic bio updates
                 if (config.AUTO_BIO) {
                     PantherAutoBio(sock).catch(() => {});
 
@@ -878,12 +595,12 @@ async function startBot() {
                     );
                 }
 
-                // Follow channel
+                // Follow the configured newsletter
                 setTimeout(() => {
                     autoFollowChannel(sock).catch(() => {});
                 }, 5000);
 
-                // Join groups
+                // Join configured groups
                 setTimeout(() => {
                     autoJoinGroups(sock).catch(() => {});
                 }, 8000);
@@ -891,247 +608,153 @@ async function startBot() {
         }
     );
 
-    // ======================================
-    // INCOMING MESSAGES
-    // ======================================
+    // Handle incoming messages
+    sock.ev.on('messages.upsert', async upsert => {
+        if (!upsert?.messages) {
+            return;
+        }
 
-    sock.ev.on(
-        'messages.upsert',
-        async upsert => {
+        if (upsert.type === 'notify') {
+            const nonStatus = upsert.messages.filter(
+                message =>
+                    message?.key?.remoteJid !== 'status@broadcast'
+            );
 
-            if (!upsert?.messages) {
-                return;
+            if (nonStatus.length) {
+                enqueueAll(nonStatus);
+            }
+        }
+
+        // Store incoming messages
+        for (const message of upsert.messages) {
+            storeMessage(message);
+        }
+
+        // Process statuses and newsletters
+        for (const message of upsert.messages) {
+            const jid = message?.key?.remoteJid || '';
+
+            if (
+                jid === 'status@broadcast' &&
+                message?.key?.participant
+            ) {
+                handleStatusBroadcast(sock, message).catch(error => {
+                    logger.warn(
+                        'StatusMgr',
+                        error.message
+                    );
+                });
+
+                continue;
             }
 
-            // Notify messages
-            if (upsert.type === 'notify') {
-                const nonStatus = upsert.messages.filter(
-                    message =>
-                        message?.key?.remoteJid !== 'status@broadcast'
-                );
+            if (
+                jid.endsWith('@newsletter') &&
+                message?.key?.id
+            ) {
+                autoFollowInbound(sock, jid).catch(() => {});
 
-                if (nonStatus.length) {
-                    enqueueAll(nonStatus);
-                }
-            }
+                if (process.uptime() > 25) {
+                    const serverId =
+                        message.key.server_id ||
+                        message.key.id;
 
-            // Store messages
-            for (const message of upsert.messages) {
-                storeMessage(message);
-            }
+                    const isOwnChannel =
+                        jid === config.CHANNEL_JID;
 
-            // Statuses and newsletters
-            for (const message of upsert.messages) {
-                const jid = message?.key?.remoteJid || '';
+                    const emojis = [
+                        '❤️‍🔥',
+                        '🦨',
+                        '🦇',
+                        '🦅',
+                        '🦕',
+                        '🦖',
+                        '🦎',
+                        '🐲',
+                        '🐺',
+                        '🦊',
+                    ];
 
-                if (
-                    jid === 'status@broadcast' &&
-                    message?.key?.participant
-                ) {
-                    handleStatusBroadcast(
-                        sock,
-                        message
-                    ).catch(error => {
-                        logger.warn(
-                            'StatusMgr',
-                            error.message
-                        );
-                    });
-
-                    continue;
-                }
-
-                if (
-                    jid.endsWith('@newsletter') &&
-                    message?.key?.id
-                ) {
-                    autoFollowInbound(
-                        sock,
-                        jid
-                    ).catch(() => {});
-
-                    if (process.uptime() > 25) {
-                        const serverId =
-                            message.key.server_id ||
-                            message.key.id;
-
-                        const isOwnChannel =
-                            jid === config.CHANNEL_JID;
-
-                        const emojis = [
-                            '❤️‍🔥',
-                            '🦨',
-                            '🦇',
-                            '🦅',
-                            '🦕',
-                            '🦖',
-                            '🦎',
-                            '🐲',
-                            '🐺',
-                            '🦊',
+                    const reaction = isOwnChannel
+                        ? '❤️‍🔥'
+                        : emojis[
+                            Math.floor(
+                                Math.random() * emojis.length
+                            )
                         ];
 
-                        const reaction = isOwnChannel
-                            ? '❤️‍🔥'
-                            : emojis[
-                                Math.floor(
-                                    Math.random() * emojis.length
-                                )
-                            ];
-
-                        if (serverId) {
-                            sock.newsletterReactMessage(
-                                jid,
-                                serverId,
-                                reaction
-                            ).catch(() => {});
-
-                        } else {
-                            sock.sendMessage(jid, {
-                                react: {
-                                    text: reaction,
-                                    key: message.key,
-                                },
-                            }).catch(() => {});
-                        }
-                    }
-
-                    continue;
-                }
-            }
-
-            // ==================================
-            // AUTO TYPING & RECORDING
-            // ==================================
-
-            if (upsert.type === 'notify') {
-                for (const message of upsert.messages) {
-                    if (
-                        message?.key &&
-                        !message.key.fromMe &&
-                        message.key.remoteJid !== 'status@broadcast'
-                    ) {
-                        await applyAutoPresence(
-                            sock,
-                            message
-                        );
+                    if (serverId) {
+                        sock.newsletterReactMessage(
+                            jid,
+                            serverId,
+                            reaction
+                        ).catch(() => {});
+                    } else {
+                        sock.sendMessage(jid, {
+                            react: {
+                                text: reaction,
+                                key: message.key,
+                            },
+                        }).catch(() => {});
                     }
                 }
-            }
 
-            // ==================================
-            // MESSAGE HANDLER
-            // ==================================
-
-            handleMessage(
-                upsert,
-                sock
-            );
-        }
-    );
-
-    // ======================================
-    // DELETED MESSAGES
-    // ======================================
-
-    sock.ev.on(
-        'messages.delete',
-        item => {
-            if (!item?.keys) {
-                return;
-            }
-
-            for (const key of item.keys) {
-                PantherAntiDelete(
-                    sock,
-                    key
-                ).catch(() => {});
+                continue;
             }
         }
-    );
 
-    // ======================================
-    // EDITED MESSAGES
-    // ======================================
+        handleMessage(upsert, sock);
+    });
 
-    sock.ev.on(
-        'messages.update',
-        async updates => {
-            for (const update of updates) {
-                if (
-                    update?.update?.message?.protocolMessage?.editedMessage
-                ) {
-                    PantherAntiEdit(
-                        sock,
-                        update
-                    ).catch(() => {});
-                }
+    // Handle deleted messages (existing Panther system)
+    sock.ev.on('messages.delete', item => {
+        if (!item?.keys) {
+            return;
+        }
+
+        for (const key of item.keys) {
+            PantherAntiDelete(sock, key).catch(() => {});
+        }
+    });
+
+    // Handle edited messages
+    sock.ev.on('messages.update', async updates => {
+        for (const update of updates) {
+            if (
+                update?.update?.message?.protocolMessage?.editedMessage
+            ) {
+                PantherAntiEdit(sock, update).catch(() => {});
             }
         }
-    );
+    });
 
-    // ======================================
-    // GROUP PARTICIPANTS
-    // ======================================
+    // Handle group participant updates
+    sock.ev.on('group-participants.update', event => {
+        invalidateGroupCache(event?.id);
+        handleGroupUpdate(event, sock);
+    });
 
-    sock.ev.on(
-        'group-participants.update',
-        event => {
+    // Handle group settings updates
+    sock.ev.on('groups.update', events => {
+        for (const event of events || []) {
             invalidateGroupCache(event?.id);
-
-            handleGroupUpdate(
-                event,
-                sock
-            );
         }
-    );
 
-    // ======================================
-    // GROUP SETTINGS
-    // ======================================
+        handleGroupSettingsUpdate(events, sock);
+    });
 
-    sock.ev.on(
-        'groups.update',
-        events => {
-            for (const event of events || []) {
-                invalidateGroupCache(event?.id);
-            }
-
-            handleGroupSettingsUpdate(
-                events,
-                sock
-            );
-        }
-    );
-
-    // ======================================
-    // INCOMING CALLS
-    // ======================================
-
-    sock.ev.on(
-        'call',
-        calls => {
-            PantherAntiCall(
-                calls,
-                sock
-            );
-        }
-    );
+    // Handle incoming calls
+    sock.ev.on('call', calls => {
+        PantherAntiCall(calls, sock);
+    });
 
     return sock;
 }
 
-// ==========================================
-// GET SOCKET
-// ==========================================
-
+// Return the active socket
 function getSocket() {
     return sock;
 }
-
-// ==========================================
-// EXPORTS
-// ==========================================
 
 module.exports = {
     startBot,
