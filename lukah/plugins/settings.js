@@ -197,6 +197,7 @@ addCmd({
                 'ANTICALL',
                 'ANTIDELETE',
                 'ANTIVIEWONCE',
+                'ANTI_VV',
                 'ANTI_EDIT',
                 'AUTO_BIO',
                 'AUTO_BLOCK',
@@ -251,14 +252,14 @@ addCmd({
             };
 
             const getValue = (key) => {
+                if (config[key] !== undefined && config[key] !== null) {
+                    return config[key];
+                }
+
                 const dbValue = getSetting(key, undefined);
 
                 if (dbValue !== undefined && dbValue !== null && dbValue !== '') {
                     return dbValue;
-                }
-
-                if (config[key] !== undefined && config[key] !== null && config[key] !== '') {
-                    return config[key];
                 }
 
                 return 'Not Set';
