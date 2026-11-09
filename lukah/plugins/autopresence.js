@@ -1,32 +1,45 @@
 'use strict';
 
 const { addCmd } = require('../../luka/handlers/loader');
+
 const {
     getSetting,
-    setSetting
+    setSetting,
 } = require('../../luka/db/database');
+
+const config = require('../../luka/config/settings');
 
 const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
-const PRESENCE_KEYS = {
-    dm: 'DM_PRESENCE',
-    group: 'GC_PRESENCE'
+const PRESENCE_SETTINGS = {
+    autotyping: {
+        key: 'AUTO_TYPING',
+        title: 'AUTO TYPING',
+    },
+
+    autorecording: {
+        key: 'AUTO_RECORDING',
+        title: 'AUTO RECORDING',
+    },
 };
 
-async function getPresence(key) {
-    return (await getSetting(key)) || 'offline';
+async function getStatus(key) {
+    const value = await getSetting(key);
+
+    if (value === undefined || value === null || value === '') {
+        return Boolean(config[key]);
+    }
+
+    return value === true ||
+        value === 1 ||
+        String(value).toLowerCase() === 'true';
 }
 
-async function setPresence(value) {
-    await setSetting(PRESENCE_KEYS.dm, value);
-    await setSetting(PRESENCE_KEYS.group, value);
-}
-
-function registerPresenceCommand(name, description, presence) {
+function registerPresenceCommand(name, setting) {
     addCmd({
         name,
         aliases: [],
-        desc: description,
+        desc: `${setting.title} SETTINGS`,
         category: 'owner',
         ownerOnly: true,
 
@@ -37,41 +50,30 @@ function registerPresenceCommand(name, description, presence) {
                 .toLowerCase();
 
             if (!['on', 'off'].includes(action)) {
-                const dm = await getPresence(PRESENCE_KEYS.dm);
-                const group = await getPresence(PRESENCE_KEYS.group);
+                const enabled = await getStatus(setting.key);
 
                 return ctx.reply(
-                    `*${description}*\n\n` +
+                    `*${setting.title} SETTINGS*\n\n` +
                     `Usage: .${name} on\n` +
                     `Usage: .${name} off\n\n` +
-                    `DM Status: ${dm.toUpperCase()}\n` +
-                    `Group Status: ${group.toUpperCase()}\n\n` +
+                    `Status: ${enabled ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
                     FOOTER
                 );
             }
 
             try {
-                if (action === 'on') {
-                    await setPresence(presence);
-                } else {
-                    const dm = await getPresence(PRESENCE_KEYS.dm);
-                    const group = await getPresence(PRESENCE_KEYS.group);
+                const enabled = action === 'on';
 
-                    if (dm === presence) {
-                        await setSetting(PRESENCE_KEYS.dm, 'offline');
-                    }
+                await setSetting(
+                    setting.key,
+                    String(enabled)
+                );
 
-                    if (group === presence) {
-                        await setSetting(PRESENCE_KEYS.group, 'offline');
-                    }
-                }
-
-                const status = await getPresence(PRESENCE_KEYS.dm);
+                config[setting.key] = enabled;
 
                 return ctx.reply(
-                    `*${description}*\n\n` +
-                    `Status: ${action === 'on' ? 'ENABLED' : 'DISABLED'}\n` +
-                    `Presence: ${status.toUpperCase()}\n\n` +
+                    `*${setting.title} SETTINGS*\n\n` +
+                    `Status: ${enabled ? 'ENABLED 🟢' : 'DISABLED 🔴'}\n\n` +
                     FOOTER
                 );
 
@@ -79,26 +81,14 @@ function registerPresenceCommand(name, description, presence) {
                 console.error(`${name} error:`, error);
 
                 return ctx.reply(
-                    `❌ Failed to update ${name} settings.\n\n${FOOTER}`
+                    `❌ Failed to update ${setting.title} settings.\n\n` +
+                    FOOTER
                 );
             }
         }
     });
 }
 
-registerPresenceCommand(
-    'autotyping',
-    'AUTO TYPING SETTINGS',
-    'typing'
-);
-
-registerPresenceCommand(
-    'autorecording',
-    'AUTO RECORDING SETTINGS',
-    'recording'
-);
-
-module.exports = {
-    getPresence,
-    PRESENCE_KEYS
-};
+for (const [name, setting] of Object.entries(PRESENCE_SETTINGS)) {
+    registerPresenceCommand(name, setting);
+}
