@@ -198,7 +198,6 @@ handler: async (ctx) => {
         const allSettings = [
             'ANTICALL',
             'ANTIDELETE',
-
             'ANTI_VV',
             'ANTI_EDIT',
             'AUTO_BIO',
