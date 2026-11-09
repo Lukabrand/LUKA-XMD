@@ -1,13 +1,13 @@
 'use strict';
 
-const { addCmd } = require('../../luka/handlers/loader');
+const { addCmd } = require('../../handlers/loader');
 
 const {
     getSetting,
     setSetting,
-} = require('../../luka/db/database');
+} = require('../../db/database');
 
-const config = require('../../luka/config/settings');
+const config = require('../../config/settings');
 
 const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
@@ -49,19 +49,19 @@ function registerPresenceCommand(name, setting) {
                 .trim()
                 .toLowerCase();
 
-            if (!['on', 'off'].includes(action)) {
-                const enabled = await getStatus(setting.key);
-
-                return ctx.reply(
-                    `*${setting.title} SETTINGS*\n\n` +
-                    `Usage: .${name} on\n` +
-                    `Usage: .${name} off\n\n` +
-                    `Status: ${enabled ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
-                    FOOTER
-                );
-            }
-
             try {
+                const currentStatus = await getStatus(setting.key);
+
+                if (!['on', 'off'].includes(action)) {
+                    return ctx.reply(
+                        `*${setting.title} SETTINGS*\n\n` +
+                        `Usage: .${name} on\n` +
+                        `Usage: .${name} off\n\n` +
+                        `Status: ${currentStatus ? 'ON 🟢' : 'OFF 🔴'}\n\n` +
+                        FOOTER
+                    );
+                }
+
                 const enabled = action === 'on';
 
                 await setSetting(
