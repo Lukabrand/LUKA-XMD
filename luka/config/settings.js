@@ -61,7 +61,7 @@ const config = {
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
     STATUS_MSG: env('STATUS_MSG'),
-    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '❤️,💜,💚'),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💜,💚'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
