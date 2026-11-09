@@ -3,13 +3,12 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
+const config = require('../config/settings');
 
 const DB_DIR = path.join(__dirname, '../LukaTech/sessions');
 const DB_PATH = path.join(DB_DIR, 'panther.db');
 
-if (!fs.existsSync(DB_DIR)) {
-    fs.mkdirSync(DB_DIR, { recursive: true });
-}
+if (!fs.existsSync(DB_DIR)) fs.mkdirSync(DB_DIR, { recursive: true });
 
 const db = new Database(DB_PATH);
 
@@ -22,362 +21,246 @@ db.pragma('mmap_size = 67108864');
 db.pragma('busy_timeout = 5000');
 
 db.exec(`
-    CREATE TABLE IF NOT EXISTS settings (
-        key   TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS sudo (
-        jid      TEXT PRIMARY KEY,
-        added_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS group_settings (
-        jid          TEXT PRIMARY KEY,
-        antilink     INTEGER DEFAULT 0,
-        antispam     INTEGER DEFAULT 0,
-        antibadword  INTEGER DEFAULT 0,
-        anticall     INTEGER DEFAULT 0,
-        welcome      INTEGER DEFAULT 0,
-        goodbye      INTEGER DEFAULT 0,
-        antidelete   INTEGER DEFAULT 0,
-        mute         INTEGER DEFAULT 0,
-        antimention  INTEGER DEFAULT 0,
-        antiviewonce INTEGER DEFAULT 0,
-        antiforeign  INTEGER DEFAULT 0,
-        antisticker  INTEGER DEFAULT 0,
-        antiflood    INTEGER DEFAULT 0,
-        welcomeMsg   TEXT DEFAULT ''
-    );
-
-    CREATE TABLE IF NOT EXISTS warnings (
-        id        INTEGER PRIMARY KEY AUTOINCREMENT,
-        jid       TEXT NOT NULL,
-        group_jid TEXT NOT NULL,
-        reason    TEXT,
-        issued_at TEXT DEFAULT (datetime('now'))
-    );
-
-    CREATE TABLE IF NOT EXISTS notes (
-        id        INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_jid TEXT NOT NULL,
-        name      TEXT NOT NULL,
-        content   TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS cmd_stats (
-        command    TEXT PRIMARY KEY,
-        uses       INTEGER DEFAULT 0,
-        last_used  TEXT DEFAULT (datetime('now'))
-    );
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS sudo (jid TEXT PRIMARY KEY, added_at TEXT DEFAULT (datetime('now')));
+CREATE TABLE IF NOT EXISTS group_settings (
+    jid TEXT PRIMARY KEY, antilink INTEGER DEFAULT 0, antispam INTEGER DEFAULT 0,
+    antibadword INTEGER DEFAULT 0, anticall INTEGER DEFAULT 0, welcome INTEGER DEFAULT 0,
+    goodbye INTEGER DEFAULT 0, antidelete INTEGER DEFAULT 0, mute INTEGER DEFAULT 0,
+    antimention INTEGER DEFAULT 0, antiviewonce INTEGER DEFAULT 0, antiforeign INTEGER DEFAULT 0,
+    antisticker INTEGER DEFAULT 0, antiflood INTEGER DEFAULT 0, antiedit INTEGER DEFAULT 0,
+    welcomeMsg TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS warnings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, jid TEXT NOT NULL,
+    group_jid TEXT NOT NULL, reason TEXT, issued_at TEXT DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, group_jid TEXT NOT NULL,
+    name TEXT NOT NULL, content TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS cmd_stats (
+    command TEXT PRIMARY KEY, uses INTEGER DEFAULT 0,
+    last_used TEXT DEFAULT (datetime('now'))
+);
 `);
 
-db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_warnings_jid_group
-        ON warnings(jid, group_jid);
-
-    CREATE INDEX IF NOT EXISTS idx_notes_group
-        ON notes(group_jid, name);
-`);
-
-// Add newer columns to existing databases.
-const newCols = [
-    'antimention',
-    'antiviewonce',
-    'antiforeign',
-    'antisticker',
-    'antiflood',
-    'antiedit',
-    "welcomeMsg TEXT DEFAULT ''"
+const columns = [
+    ['antimention', 'INTEGER DEFAULT 0'],
+    ['antiviewonce', 'INTEGER DEFAULT 0'],
+    ['antiforeign', 'INTEGER DEFAULT 0'],
+    ['antisticker', 'INTEGER DEFAULT 0'],
+    ['antiflood', 'INTEGER DEFAULT 0'],
+    ['antiedit', 'INTEGER DEFAULT 0'],
+    ['welcomeMsg', "TEXT DEFAULT ''"]
 ];
 
-for (const col of newCols) {
-    try {
-        db.exec(`ALTER TABLE group_settings ADD COLUMN ${col}`);
-    } catch {}
+for (const [name, type] of columns) {
+    if (!db.prepare('PRAGMA table_info(group_settings)').all().some(c => c.name === name)) {
+        db.exec(`ALTER TABLE group_settings ADD COLUMN ${name} ${type}`);
+    }
 }
 
+db.exec(`
+CREATE INDEX IF NOT EXISTS idx_warnings_jid_group ON warnings(jid, group_jid);
+CREATE INDEX IF NOT EXISTS idx_notes_group ON notes(group_jid, name);
+`);
+
 const stmts = {
-    getSetting: db.prepare(
-        'SELECT value FROM settings WHERE key = ?'
-    ),
-
-    setSetting: db.prepare(
-        'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)'
-    ),
-
-    seedOne: db.prepare(
-        'INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)'
-    ),
-
-    addSudo: db.prepare(
-        'INSERT OR IGNORE INTO sudo (jid) VALUES (?)'
-    ),
-
-    removeSudo: db.prepare(
-        'DELETE FROM sudo WHERE jid = ?'
-    ),
-
-    getSudoList: db.prepare(
-        'SELECT jid FROM sudo'
-    ),
-
-    isSudo: db.prepare(
-        'SELECT 1 FROM sudo WHERE jid = ?'
-    ),
-
-    getGroupSettings: db.prepare(
-        'SELECT * FROM group_settings WHERE jid = ?'
-    ),
-
-    insertGroupRow: db.prepare(
-        'INSERT OR IGNORE INTO group_settings (jid) VALUES (?)'
-    ),
-
-    addWarning: db.prepare(
-        'INSERT INTO warnings (jid, group_jid, reason) VALUES (?, ?, ?)'
-    ),
-
-    countWarnings: db.prepare(
-        'SELECT COUNT(*) as c FROM warnings WHERE jid = ? AND group_jid = ?'
-    ),
-
-    clearWarnings: db.prepare(
-        'DELETE FROM warnings WHERE jid = ? AND group_jid = ?'
-    ),
-
-    allGroupWarnings: db.prepare(
-        'SELECT jid, reason, issued_at FROM warnings WHERE group_jid = ? ORDER BY issued_at DESC'
-    ),
-
-    saveNote: db.prepare(
-        'INSERT OR REPLACE INTO notes (group_jid, name, content) VALUES (?, ?, ?)'
-    ),
-
-    getNote: db.prepare(
-        'SELECT * FROM notes WHERE group_jid = ? AND name = ?'
-    ),
-
-    getAllNotes: db.prepare(
-        'SELECT * FROM notes WHERE group_jid = ?'
-    ),
-
-    deleteNote: db.prepare(
-        'DELETE FROM notes WHERE group_jid = ? AND name = ?'
-    ),
-
+    getSetting: db.prepare('SELECT value FROM settings WHERE key = ?'),
+    setSetting: db.prepare('INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)'),
+    seed: db.prepare('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)'),
+    addSudo: db.prepare('INSERT OR IGNORE INTO sudo (jid) VALUES (?)'),
+    removeSudo: db.prepare('DELETE FROM sudo WHERE jid = ?'),
+    sudoList: db.prepare('SELECT jid FROM sudo'),
+    isSudo: db.prepare('SELECT 1 FROM sudo WHERE jid = ?'),
+    getGroup: db.prepare('SELECT * FROM group_settings WHERE jid = ?'),
+    insertGroup: db.prepare('INSERT OR IGNORE INTO group_settings (jid) VALUES (?)'),
+    addWarning: db.prepare('INSERT INTO warnings (jid,group_jid,reason) VALUES (?,?,?)'),
+    countWarnings: db.prepare('SELECT COUNT(*) AS c FROM warnings WHERE jid = ? AND group_jid = ?'),
+    clearWarnings: db.prepare('DELETE FROM warnings WHERE jid = ? AND group_jid = ?'),
+    allWarnings: db.prepare('SELECT jid,reason,issued_at FROM warnings WHERE group_jid = ? ORDER BY issued_at DESC'),
+    saveNote: db.prepare('INSERT INTO notes (group_jid,name,content) VALUES (?,?,?)'),
+    getNote: db.prepare('SELECT * FROM notes WHERE group_jid = ? AND name = ?'),
+    allNotes: db.prepare('SELECT * FROM notes WHERE group_jid = ?'),
+    deleteNote: db.prepare('DELETE FROM notes WHERE group_jid = ? AND name = ?'),
     trackCmd: db.prepare(`
-        INSERT INTO cmd_stats (command, uses, last_used)
-        VALUES (?, 1, datetime('now'))
-        ON CONFLICT(command) DO UPDATE SET
-            uses = uses + 1,
-            last_used = datetime('now')
+        INSERT INTO cmd_stats (command,uses,last_used) VALUES (?,1,datetime('now'))
+        ON CONFLICT(command) DO UPDATE SET uses=uses+1,last_used=datetime('now')
     `),
-
-    getTopCmds: db.prepare(
-        'SELECT command, uses, last_used FROM cmd_stats ORDER BY uses DESC LIMIT ?'
-    ),
-
-    getCmdStat: db.prepare(
-        'SELECT uses, last_used FROM cmd_stats WHERE command = ?'
-    ),
-
-    getTotalUses: db.prepare(
-        'SELECT SUM(uses) as total FROM cmd_stats'
-    ),
-
-    resetCmdStats: db.prepare(
-        'DELETE FROM cmd_stats'
-    ),
+    topCmds: db.prepare('SELECT command,uses,last_used FROM cmd_stats ORDER BY uses DESC LIMIT ?'),
+    cmdStat: db.prepare('SELECT uses,last_used FROM cmd_stats WHERE command = ?'),
+    totalUses: db.prepare('SELECT SUM(uses) AS total FROM cmd_stats'),
+    resetCmds: db.prepare('DELETE FROM cmd_stats')
 };
 
-const groupSettingStmtCache = new Map();
+function seedDefaults(defaults = {}) {
+    const tx = db.transaction(rows => {
+        for (const [key, value] of rows) stmts.seed.run(key, String(value));
+    });
+    tx(Object.entries(defaults));
+}
+
+seedDefaults({
+    AUTO_TYPING: String(config.AUTO_TYPING ?? false),
+    AUTO_RECORDING: String(config.AUTO_RECORDING ?? false),
+    ANTI_VV: String(config.ANTI_VV ?? true),
+    AUTO_READ_STATUS: String(config.AUTO_READ_STATUS ?? true),
+    AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS ?? true),
+    AUTO_REACT: String(config.AUTO_REACT ?? false),
+    AUTO_BIO: String(config.AUTO_BIO ?? true),
+    ANTI_CALL: String(config.ANTI_CALL ?? false),
+    ANTI_DELETE: String(config.ANTI_DELETE ?? true),
+    ANTIDELETE: 'indm'
+});
 
 function getSetting(key, fallback = null) {
-    const row = stmts.getSetting.get(key);
-    return row ? row.value : fallback;
+    return stmts.getSetting.get(key)?.value ?? fallback;
 }
 
 function setSetting(key, value) {
     stmts.setSetting.run(key, String(value));
+    return true;
 }
 
-function seedDefaults(defaults = {}) {
-    const many = db.transaction((rows) => {
-        for (const [key, value] of rows) {
-            stmts.seedOne.run(key, String(value));
-        }
-    });
-
-    many(Object.entries(defaults));
+function getAllSettings() {
+    return Object.fromEntries(db.prepare('SELECT key,value FROM settings').all().map(r => [r.key, r.value]));
 }
 
-// Seed defaults only when the setting does not already exist.
-// This enables Anti-Delete in owner's inbox by default.
-seedDefaults({
-    ANTIDELETE: 'indm',
-});
-
-function addSudo(jid) {
-    stmts.addSudo.run(jid);
+function resetSetting(key) {
+    return db.prepare('DELETE FROM settings WHERE key = ?').run(key).changes > 0;
 }
 
-function removeSudo(jid) {
-    stmts.removeSudo.run(jid);
+function resetAllSettings() {
+    return db.prepare('DELETE FROM settings').run().changes;
 }
 
-function getSudoList() {
-    return stmts.getSudoList.all().map(row => row.jid);
-}
-
-function isSudo(jid) {
-    return !!stmts.isSudo.get(jid);
-}
+function addSudo(jid) { stmts.addSudo.run(jid); }
+function removeSudo(jid) { stmts.removeSudo.run(jid); }
+function getSudoList() { return stmts.sudoList.all().map(r => r.jid); }
+function isSudo(jid) { return !!stmts.isSudo.get(jid); }
 
 function getGroupSettings(jid) {
-    let row = stmts.getGroupSettings.get(jid);
-
+    let row = stmts.getGroup.get(jid);
     if (!row) {
-        stmts.insertGroupRow.run(jid);
-        row = stmts.getGroupSettings.get(jid);
+        stmts.insertGroup.run(jid);
+        row = stmts.getGroup.get(jid);
     }
-
     return row;
 }
 
+const allowedColumns = new Set([
+    'antilink', 'antispam', 'antibadword', 'anticall', 'welcome',
+    'goodbye', 'antidelete', 'antimention', 'antiviewonce',
+    'antiforeign', 'antisticker', 'antiflood', 'antiedit',
+    'mute', 'welcomeMsg'
+]);
+
+const groupCache = new Map();
+
 function setGroupSetting(jid, key, value) {
-    if (!groupSettingStmtCache.has(key)) {
-        groupSettingStmtCache.set(
-            key,
-            db.prepare(`UPDATE group_settings SET ${key} = ? WHERE jid = ?`)
-        );
+    if (!allowedColumns.has(key)) throw new Error(`Invalid group setting: ${key}`);
+    if (!groupCache.has(key)) {
+        groupCache.set(key, db.prepare(`UPDATE group_settings SET ${key} = ? WHERE jid = ?`));
     }
-
-    groupSettingStmtCache.get(key).run(value ? 1 : 0, jid);
+    const val = key === 'welcomeMsg' ? String(value ?? '') :
+        ([true, 1, '1', 'true', 'on'].includes(typeof value === 'string' ? value.toLowerCase() : value) ? 1 : 0);
+    return groupCache.get(key).run(val, jid);
 }
 
-function addWarning(jid, groupJid, reason = '') {
-    stmts.addWarning.run(jid, groupJid, reason);
+function getAllGroupSettings() {
+    return db.prepare('SELECT * FROM group_settings').all();
+}
+
+function getEnabledGroupSettings(key) {
+    if (!allowedColumns.has(key) || key === 'welcomeMsg') return [];
+    return db.prepare(`SELECT * FROM group_settings WHERE ${key} = 1`).all();
+}
+
+function resetAllGroupSettings(jid) {
+    const query = `UPDATE group_settings SET antilink=0,antispam=0,antibadword=0,
+        anticall=0,welcome=0,goodbye=0,antidelete=0,antimention=0,
+        antiviewonce=0,antiforeign=0,antisticker=0,antiflood=0,
+        antiedit=0,mute=0,welcomeMsg=''`;
+    return jid
+        ? db.prepare(`${query} WHERE jid = ?`).run(jid).changes
+        : db.prepare(query).run().changes;
+}
+
+function addWarning(jid, groupJid, reason = 'No reason provided') {
+    return stmts.addWarning.run(jid, groupJid, reason).lastInsertRowid;
+}
+
+function countWarnings(jid, groupJid) {
     return stmts.countWarnings.get(jid, groupJid).c;
-}
-
-function getWarnings(jid, groupJid) {
-    return stmts.countWarnings.get(jid, groupJid).c;
-}
-
-function getAllWarnings(groupJid) {
-    return stmts.allGroupWarnings.all(groupJid);
 }
 
 function clearWarnings(jid, groupJid) {
-    stmts.clearWarnings.run(jid, groupJid);
+    return stmts.clearWarnings.run(jid, groupJid).changes;
+}
+
+function getAllWarnings(groupJid) {
+    return stmts.allWarnings.all(groupJid);
+}
+
+function getWarnings(jid, groupJid) {
+    return db.prepare('SELECT * FROM warnings WHERE jid=? AND group_jid=? ORDER BY issued_at DESC').all(jid, groupJid);
 }
 
 function saveNote(groupJid, name, content) {
-    stmts.saveNote.run(groupJid, name, content);
+    const tx = db.transaction(() => {
+        db.prepare('DELETE FROM notes WHERE group_jid=? AND name=?').run(groupJid, name);
+        return stmts.saveNote.run(groupJid, name, content);
+    });
+    return tx();
 }
 
 function getNote(groupJid, name) {
-    return stmts.getNote.get(groupJid, name);
+    return stmts.getNote.get(groupJid, name) || null;
 }
 
 function getAllNotes(groupJid) {
-    return stmts.getAllNotes.all(groupJid);
+    return stmts.allNotes.all(groupJid);
 }
 
 function deleteNote(groupJid, name) {
-    stmts.deleteNote.run(groupJid, name);
+    return stmts.deleteNote.run(groupJid, name).changes > 0;
 }
 
-function trackCmd(command) {
-    try {
-        stmts.trackCmd.run(command);
-    } catch {}
+function trackCommand(command) { return stmts.trackCmd.run(command); }
+function getTopCommands(limit = 10) { return stmts.topCmds.all(limit); }
+function getCommandStat(command) { return stmts.cmdStat.get(command) || null; }
+function getTotalCommandUses() { return stmts.totalUses.get().total || 0; }
+function resetCommandStats() { return stmts.resetCmds.run().changes; }
+
+function getConfigSync(key, fallback = null) { return getSetting(key, fallback); }
+function setConfig(key, value) { return setSetting(key, value); }
+
+function checkpoint() { return db.pragma('wal_checkpoint(TRUNCATE)'); }
+
+function closeDatabase() {
+    if (db.open) db.close();
 }
 
-function getTopCmds(limit = 10) {
-    return stmts.getTopCmds.all(limit);
+for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.once(signal, () => {
+        try {
+            checkpoint();
+            closeDatabase();
+        } catch (err) {
+            console.error('[DATABASE]', err.message);
+        }
+        process.exit(0);
+    });
 }
-
-function getCmdStat(command) {
-    return stmts.getCmdStat.get(command);
-}
-
-function getTotalUses() {
-    return stmts.getTotalUses.get()?.total || 0;
-}
-
-function resetCmdStats() {
-    stmts.resetCmdStats.run();
-}
-
-function getConfigSync(key, defaultValue = {}) {
-    const row = stmts.getSetting.get(key);
-
-    if (!row) {
-        return { ...defaultValue };
-    }
-
-    try {
-        return JSON.parse(row.value);
-    } catch {
-        return { ...defaultValue };
-    }
-}
-
-async function setConfig(key, value) {
-    stmts.setSetting.run(key, JSON.stringify(value));
-}
-
-function checkpoint() {
-    try {
-        db.pragma('wal_checkpoint(TRUNCATE)');
-    } catch {}
-}
-
-process.on('exit', checkpoint);
-
-process.on('SIGTERM', () => {
-    checkpoint();
-    process.exit(0);
-});
-
-process.on('SIGINT', () => {
-    checkpoint();
-    process.exit(0);
-});
 
 module.exports = {
     db,
-
-    getSetting,
-    setSetting,
-    seedDefaults,
-
-    getConfigSync,
-    setConfig,
-
-    addSudo,
-    removeSudo,
-    getSudoList,
-    isSudo,
-
-    getGroupSettings,
-    setGroupSetting,
-
-    addWarning,
-    getWarnings,
-    getAllWarnings,
-    clearWarnings,
-
-    saveNote,
-    getNote,
-    getAllNotes,
-    deleteNote,
-
-    trackCmd,
-    getTopCmds,
-    getCmdStat,
-    getTotalUses,
-    resetCmdStats,
+    getSetting, setSetting, getAllSettings, resetSetting, resetAllSettings, seedDefaults,
+    addSudo, removeSudo, getSudoList, isSudo,
+    getGroupSettings, setGroupSetting, getAllGroupSettings, getEnabledGroupSettings, resetAllGroupSettings,
+    addWarning, countWarnings, clearWarnings, getAllWarnings, getWarnings,
+    saveNote, getNote, getAllNotes, deleteNote,
+    trackCommand, getTopCommands, getCommandStat, getTotalCommandUses, resetCommandStats,
+    getConfigSync, setConfig, checkpoint, closeDatabase
 };
