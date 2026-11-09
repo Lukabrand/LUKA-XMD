@@ -14,7 +14,7 @@ const DEFAULT_REACT_CONFIG = {
     viewMode: 'view+react',
     mode: 'random',
     fixedEmoji: '💚',
-    reactions: ['💚', '💜', '💙', '❤️', '🩵', '💛', '🩷'],
+    reactions: ['💚', '💜'],
     cycleIndex: 0,
     excludedContacts: [],
     logs: [],
