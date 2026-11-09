@@ -48,6 +48,31 @@ function channelCtx() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// 📢 SEND MESSAGE WITH CHANNEL CONTEXT
+// ═══════════════════════════════════════════════════════════════
+
+async function sendWithChannel(sock, jid, content = {}, options = {}) {
+    try {
+        const contextInfo = {
+            ...channelCtx(),
+            ...(content.contextInfo || {}),
+        };
+
+        return await sock.sendMessage(
+            jid,
+            {
+                ...content,
+                contextInfo,
+            },
+            options
+        );
+    } catch (err) {
+        logger.error('CHANNEL_SEND', err.message);
+        throw err;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  ✨  EMOJIS
 // ═══════════════════════════════════════════════════════════════
 
@@ -197,7 +222,7 @@ async function PantherAntiDelete(sock, key) {
 
         // Read setting from database first, then config.
         const dbSetting = getSetting('ANTIDELETE');
-        const setting = dbSetting ?? config.ANTIDELETE ?? false;
+        const setting = dbSetting ?? config.ANTI_DELETE ?? false;
 
         const enabled = [
             true, 'true', 'on', 'indm', '1'
