@@ -1,52 +1,38 @@
 'use strict';
 
 const { addCmd } = require('../../luka/handlers/loader');
+const { getSetting, setSetting } = require('../../luka/db/database');
+const config = require('../../luka/config/settings');
 
 global.autoPresenceFlags ||= {
-    typing: null,
-    recording: null
+    typing: String(getSetting('AUTO_TYPING', config.AUTO_TYPING ?? false)) === 'true',
+    recording: String(getSetting('AUTO_RECORDING', config.AUTO_RECORDING ?? false)) === 'true'
 };
 
-function registerCommand(name, description, type) {
+function registerCommand(name, type, key) {
     addCmd({
         name,
         aliases: [],
-        desc: description,
+        desc: `${name.toUpperCase()} SETTINGS`,
         category: 'owner',
         ownerOnly: true,
 
         async handler(ctx) {
-            const action = (ctx.args || [])
-                .join(' ')
-                .trim()
-                .toLowerCase();
-
+            const action = (ctx.args || []).join(' ').trim().toLowerCase();
             const flags = global.autoPresenceFlags;
 
-            if (action === 'on') {
-                flags[type] = true;
-            } else if (action === 'off') {
-                flags[type] = false;
-            } else {
-                const status = flags[type] ?? false;
-
-                return ctx.reply(
-                    `*${description}*\n\n` +
-                    `Usage: .${name} on\n` +
-                    `Usage: .${name} off\n\n` +
-                    `Status: ${status ? 'ON' : 'OFF'}\n\n` +
-                    `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
-                );
+            if (action === 'on' || action === 'off') {
+                flags[type] = action === 'on';
+                setSetting(key, String(flags[type]));
+                config[key] = flags[type];
             }
 
             return ctx.reply(
-                `*${description}*\n\n` +
-                `Status: ${flags[type] ? 'ENABLED' : 'DISABLED'}\n\n` +
-                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+                `*${name.toUpperCase()}*\nStatus: ${flags[type] ? 'ON' : 'OFF'}\n\nᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
             );
         }
     });
 }
 
-registerCommand('autotyping', 'AUTO TYPING SETTINGS', 'typing');
-registerCommand('autorecording', 'AUTO RECORDING SETTINGS', 'recording');
+registerCommand('autotyping', 'typing', 'AUTO_TYPING');
+registerCommand('autorecording', 'recording', 'AUTO_RECORDING');
