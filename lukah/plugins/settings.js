@@ -545,21 +545,6 @@ addCmd({
 // ═══════════════════════════════════════════════════════════════
 
 addCmd({
-    name:      'setowner',
-    aliases:   ['changeowner'],
-    desc:      'Change the bot owner number at runtime',
-    category:  'owner',
-    ownerOnly: true,
-    handler:   async (ctx) => {
-        const num = ctx.args[0]?.replace(/\D/g, '');
-        if (!num || num.length < 7) return ctx.reply('❌ Provide a valid number.\n\nExample: `.setowner 254712345678`');
-        setSetting('OWNER_NUMBER', num);
-        config.OWNER_NUMBER = num;
-        await ctx.reply(`✅ *Owner Number Updated*\n\nNew owner: +${num}`);
-    },
-});
-
-addCmd({
     name:      'setownername',
     aliases:   ['ownername'],
     desc:      'Change the bot owner name at runtime',
