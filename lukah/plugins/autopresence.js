@@ -1,71 +1,28 @@
 'use strict';
 
-const {
-    addCmd,
-    addTrigger
-} = require('../../luka/handlers/loader');
-
+const { addCmd } = require('../../luka/handlers/loader');
 const {
     getSetting,
-    setSetting,
-    getGroupSettings,
-    setGroupSetting
+    setSetting
 } = require('../../luka/db/database');
 
-const config = require('../../luka/config/settings');
-const moment = require('moment-timezone');
+const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
-const {
-    channelCtx,
-    sendButtons
-} = require('../../luka/utils/gmdFunctions2');
-
-// ═══════════════════════════════════════════════════════════════
-// AUTO PRESENCE
-// ═══════════════════════════════════════════════════════════════
-
-global.autoPresenceFlags ||= {
-    typing: null,
-    recording: null
+const PRESENCE_KEYS = {
+    dm: 'DM_PRESENCE',
+    group: 'GC_PRESENCE'
 };
 
-const SETTINGS = {
-    typing: 'AUTO_TYPING',
-    recording: 'AUTO_RECORDING'
-};
-
-// ═══════════════════════════════════════════════════════════════
-// GET STATUS
-// ═══════════════════════════════════════════════════════════════
-
-async function getPresenceStatus(type) {
-    try {
-        const saved = await getSetting(SETTINGS[type]);
-
-        if (saved !== undefined && saved !== null) {
-            return saved === true || String(saved).toLowerCase() === 'true';
-        }
-
-        return config[SETTINGS[type]] === true;
-    } catch (error) {
-        return config[SETTINGS[type]] === true;
-    }
+async function getPresence(key) {
+    return (await getSetting(key)) || 'offline';
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SAVE STATUS
-// ═══════════════════════════════════════════════════════════════
-
-async function savePresenceStatus(type, value) {
-    await setSetting(SETTINGS[type], value);
-    global.autoPresenceFlags[type] = value;
+async function setPresence(value) {
+    await setSetting(PRESENCE_KEYS.dm, value);
+    await setSetting(PRESENCE_KEYS.group, value);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// REGISTER COMMAND
-// ═══════════════════════════════════════════════════════════════
-
-function registerCommand(name, description, type) {
+function registerPresenceCommand(name, description, presence) {
     addCmd({
         name,
         aliases: [],
@@ -79,49 +36,69 @@ function registerCommand(name, description, type) {
                 .trim()
                 .toLowerCase();
 
-            if (action === 'on' || action === 'off') {
-                const status = action === 'on';
+            if (!['on', 'off'].includes(action)) {
+                const dm = await getPresence(PRESENCE_KEYS.dm);
+                const group = await getPresence(PRESENCE_KEYS.group);
 
-                try {
-                    await savePresenceStatus(type, status);
-
-                    return ctx.reply(
-                        `*${description}*\nStatus: ${status ? 'ON ✅' : 'OFF ❌'}\n\nᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
-                    );
-                } catch (error) {
-                    console.error(`[${name}]`, error);
-
-                    return ctx.reply(
-                        `❌ Settings save failed!\n${error.message}`
-                    );
-                }
+                return ctx.reply(
+                    `*${description}*\n\n` +
+                    `Usage: .${name} on\n` +
+                    `Usage: .${name} off\n\n` +
+                    `DM Status: ${dm.toUpperCase()}\n` +
+                    `Group Status: ${group.toUpperCase()}\n\n` +
+                    FOOTER
+                );
             }
 
-            const currentStatus = await getPresenceStatus(type);
-            global.autoPresenceFlags[type] = currentStatus;
+            try {
+                if (action === 'on') {
+                    await setPresence(presence);
+                } else {
+                    const dm = await getPresence(PRESENCE_KEYS.dm);
+                    const group = await getPresence(PRESENCE_KEYS.group);
 
-            return ctx.reply(
-                `*${description}*\nStatus: ${currentStatus ? 'ON ✅' : 'OFF ❌'}\n\nᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
-            );
+                    if (dm === presence) {
+                        await setSetting(PRESENCE_KEYS.dm, 'offline');
+                    }
+
+                    if (group === presence) {
+                        await setSetting(PRESENCE_KEYS.group, 'offline');
+                    }
+                }
+
+                const status = await getPresence(PRESENCE_KEYS.dm);
+
+                return ctx.reply(
+                    `*${description}*\n\n` +
+                    `Status: ${action === 'on' ? 'ENABLED' : 'DISABLED'}\n` +
+                    `Presence: ${status.toUpperCase()}\n\n` +
+                    FOOTER
+                );
+
+            } catch (error) {
+                console.error(`${name} error:`, error);
+
+                return ctx.reply(
+                    `❌ Failed to update ${name} settings.\n\n${FOOTER}`
+                );
+            }
         }
     });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// COMMANDS
-// ═══════════════════════════════════════════════════════════════
+registerPresenceCommand(
+    'autotyping',
+    'AUTO TYPING SETTINGS',
+    'typing'
+);
 
-registerCommand('autotyping', 'AUTO TYPING SETTINGS', 'typing');
-
-registerCommand('autorecording', 'AUTO RECORDING SETTINGS', 'recording');
-
-// ═══════════════════════════════════════════════════════════════
-// EXPORTS
-// ═══════════════════════════════════════════════════════════════
+registerPresenceCommand(
+    'autorecording',
+    'AUTO RECORDING SETTINGS',
+    'recording'
+);
 
 module.exports = {
-    getPresenceStatus,
-    savePresenceStatus
+    getPresence,
+    PRESENCE_KEYS
 };
-
-// ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ
