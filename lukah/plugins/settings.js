@@ -197,7 +197,7 @@ addCmd({
 
             const allSettings = [
                 'ANTI_CALL',
-                'ANTIDELETE',
+                'ANTI_DELETE',
                 'ANTI_VV',
                 'ANTI_EDIT',
                 'AUTO_BIO',
