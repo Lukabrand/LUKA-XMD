@@ -102,32 +102,44 @@ if (!raw?.message || !raw.key?.id) return;
     m.isOwner = isOwner;
 
     // Auto-typing / Auto-recording
-    if (!m.fromMe && !m.isStatus) {
-        const flags = global.autoPresenceFlags ||= {
-            typing: null,
-            recording: null
-        };
+if (!m.fromMe && !m.isStatus) {
+    const flags = global.autoPresenceFlags ||= {
+        typing: null,
+        recording: null
+    };
 
-        const recording = flags.recording ?? config.AUTO_RECORDING;
-        const typing = flags.typing ?? config.AUTO_TYPING;
+    const toBoolean = value =>
+        value === true ||
+        String(value).toLowerCase().trim() === 'true' ||
+        String(value).trim() === '1';
 
-        const presence = recording
-            ? 'recording'
-            : typing
-                ? 'composing'
-                : null;
+    const recordingValue =
+        flags.recording !== null
+            ? flags.recording
+            : getSetting('AUTO_RECORDING', config.AUTO_RECORDING ?? false);
 
-        if (presence) {
-            sock.sendPresenceUpdate(presence, m.from).catch(() => {});
+    const typingValue =
+        flags.typing !== null
+            ? flags.typing
+            : getSetting('AUTO_TYPING', config.AUTO_TYPING ?? false);
 
-            setTimeout(() => {
-                sock.sendPresenceUpdate('paused', m.from).catch(() => {});
-            }, 5000);
-        }
+    const recording = toBoolean(recordingValue);
+    const typing = toBoolean(typingValue);
+
+    const presence = recording
+        ? 'recording'
+        : typing
+            ? 'composing'
+            : null;
+
+    if (presence) {
+        sock.sendPresenceUpdate(presence, m.from).catch(() => {});
+
+        setTimeout(() => {
+            sock.sendPresenceUpdate('paused', m.from).catch(() => {});
+        }, 5000);
     }
-
-    const ctx = buildCtx(m, sock, isOwner);
-
+}
     // AFK
     if (!m.fromMe && !m.isStatus) {
         const AFK_MAP = getAfkMap();
