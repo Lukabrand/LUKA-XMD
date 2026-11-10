@@ -2,176 +2,141 @@
 
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 const config = require('../config/settings');
 const { getSetting } = require('../db/database');
 
+// Plugin directory
 const PLUGINS_DIR = path.join(__dirname, '../../lukah/plugins');
 
+// Command storage
 const commands = new Map();
 const triggers = [];
 
-// ═══════════════════════════════════════════════════════════
-// OWNER HELPERS
-// ═══════════════════════════════════════════════════════════
+// Prevent duplicate plugin loading
+const loadedPlugins = new Set();
 
-function normalizeNumber(value) {
-    return String(value || '')
+/**
+ * Register command
+ */
+function addCmd(options = {}) {
+    if (!options.name || typeof options.name !== 'string') {
+        console.error('[LOADER] Command name is required.');
+        return false;
+    }
+
+    const name = options.name.toLowerCase().trim();
+
+    if (commands.has(name)) {
+        console.warn(`[LOADER] Duplicate command skipped: ${name}`);
+        return false;
+    }
+
+    const aliases = Array.isArray(options.aliases)
+        ? options.aliases
+            .filter(alias => typeof alias === 'string')
+            .map(alias => alias.toLowerCase().trim())
+        : [];
+
+    const command = {
+        ...options,
+        name,
+        aliases
+    };
+
+    commands.set(name, command);
+
+    // Register aliases
+    for (const alias of aliases) {
+        if (!alias || commands.has(alias)) continue;
+        commands.set(alias, command);
+    }
+
+    return true;
+}
+
+/**
+ * Register trigger
+ */
+function addTrigger(trigger, handler) {
+    if (!trigger || typeof handler !== 'function') return false;
+
+    triggers.push({
+        trigger,
+        handler
+    });
+
+    return true;
+}
+
+/**
+ * Build plugin context
+ */
+function buildPluginCtx(sock, msg, extra = {}) {
+    return {
+        sock,
+        msg,
+        config,
+        ...extra
+    };
+}
+
+/**
+ * Check current owner
+ */
+function isCurrentOwner(sender) {
+    if (!sender) return false;
+
+    const ownerNumber = String(config.OWNER_NUMBER || '')
+        .replace(/[^0-9]/g, '');
+
+    if (!ownerNumber) return false;
+
+    const senderNumber = String(sender)
         .split('@')[0]
         .split(':')[0]
         .replace(/[^0-9]/g, '');
+
+    return senderNumber === ownerNumber;
 }
 
-function isCurrentOwner(ctx) {
-    try {
-        const savedOwner = getSetting(
-            'OWNER_NUMBER',
-            config.OWNER_NUMBER || ''
-        );
+/**
+ * Get unique registered commands
+ */
+function getAllCmds() {
+    const unique = new Map();
 
-        const ownerNumbers = String(savedOwner || '')
-            .split(',')
-            .map(normalizeNumber)
-            .filter(Boolean);
-
-        const sender = normalizeNumber(
-            ctx.sender ||
-            ctx.m?.sender ||
-            ctx.m?.key?.participant ||
-            ctx.m?.key?.remoteJid ||
-            ctx.from
-        );
-
-        return Boolean(
-            ctx.m?.fromMe ||
-            (sender && ownerNumbers.includes(sender))
-        );
-    } catch (error) {
-        console.error('[LOADER] Owner check error:', error.message);
-
-        return Boolean(ctx.m?.isOwner || ctx.m?.fromMe);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════
-// COMMAND REGISTRATION
-// ═══════════════════════════════════════════════════════════
-
-function addCmd({
-    name,
-    aliases = [],
-    handler,
-    desc = '',
-    usage = '',
-    category = 'misc',
-    ownerOnly = false,
-    groupOnly = false,
-    adminOnly = false
-}) {
-    if (!name || typeof handler !== 'function') {
-        console.error('[LOADER] Invalid command registration:', name);
-        return;
-    }
-
-    const entry = {
-        name,
-        aliases,
-        handler,
-        desc,
-        usage,
-        category,
-        ownerOnly,
-        groupOnly,
-        adminOnly
-    };
-
-    if (!commands.has(name.toLowerCase())) {
-        commands.set(name.toLowerCase(), entry);
-    }
-
-    for (const alias of aliases) {
-        if (!commands.has(alias.toLowerCase())) {
-            commands.set(alias.toLowerCase(), entry);
+    for (const command of commands.values()) {
+        if (command?.name) {
+            unique.set(command.name, command);
         }
     }
+
+    return Array.from(unique.values());
 }
 
-function addTrigger({ pattern, handler }) {
-    if (!pattern || typeof handler !== 'function') return;
+/**
+ * Find command
+ */
+function findCmd(name) {
+    if (!name) return null;
 
-    triggers.push({ pattern, handler });
+    return commands.get(
+        String(name).toLowerCase().trim()
+    ) || null;
 }
 
-// ═══════════════════════════════════════════════════════════
-// CONTEXT BRIDGE
-// ═══════════════════════════════════════════════════════════
-
-function buildPluginCtx(ctx) {
-    const m = ctx.m || {};
-
-    const pluginM = new Proxy(m, {
-        get(target, prop) {
-            if (prop === 'chat') {
-                return target.from || target.key?.remoteJid;
-            }
-
-            if (prop === 'reactKey') {
-                return target.key;
-            }
-
-            if (prop === 'isOwner') {
-                return isCurrentOwner(ctx);
-            }
-
-            return target[prop];
-        }
-    });
-
-    const ownerStatus = isCurrentOwner(ctx);
-
-    return {
-        client: ctx.sock,
-        m: pluginM,
-
-        text: ctx.text || '',
-        prefix: config.BOT_PREFIX || '.',
-
-        groupMetadata: ctx.groupMeta || null,
-        botspeed: 0.0094,
-
-        Owner: ownerStatus,
-        isOwner: ownerStatus,
-
-        isBotAdmin: ctx.m?.isBotAdmin || false,
-        isAdmin: ctx.m?.isAdmin || false,
-        isGroup: ctx.m?.isGroup || false,
-
-        sock: ctx.sock,
-        from: ctx.from,
-        sender: ctx.sender,
-        pushName: ctx.pushName,
-
-        args: ctx.args || [],
-        body: ctx.body,
-        command: ctx.command,
-
-        quoted: ctx.quoted,
-        reply: ctx.reply,
-        send: ctx.send,
-        react: ctx.react,
-
-        config
-    };
-}
-
-// ═══════════════════════════════════════════════════════════
-// FLAT CJS PLUGIN LOADER
-// ═══════════════════════════════════════════════════════════
-
-function loadPlugins() {
+/**
+ * Load flat plugins
+ */
+function loadFlatPlugins() {
     if (!fs.existsSync(PLUGINS_DIR)) {
-        console.error('[LOADER] Plugins directory not found:', PLUGINS_DIR);
-        return;
+        console.error(
+            '[LOADER] Plugins directory not found:',
+            PLUGINS_DIR
+        );
+        return 0;
     }
 
     const files = fs.readdirSync(PLUGINS_DIR)
@@ -180,13 +145,20 @@ function loadPlugins() {
     let loaded = 0;
 
     for (const file of files) {
+        const fullPath = path.join(PLUGINS_DIR, file);
+
+        if (loadedPlugins.has(fullPath)) continue;
+
         try {
-            require(path.join(PLUGINS_DIR, file));
+            require(fullPath);
+
+            loadedPlugins.add(fullPath);
             loaded++;
+
         } catch (error) {
             console.error(
                 `[LOADER] Failed to load plugin ${file}:`,
-                error.message
+                error.stack || error.message
             );
         }
     }
@@ -195,174 +167,120 @@ function loadPlugins() {
         `[LOADER] ${loaded}/${files.length} flat plugins loaded`
     );
 
-    loadSubdirPlugins().catch(error => {
-        console.error(
-            '[LOADER] Subdirectory loading error:',
-            error.message
-        );
-    });
+    return loaded;
 }
 
-// ═══════════════════════════════════════════════════════════
-// SUBDIRECTORY ESM PLUGIN LOADER
-// ═══════════════════════════════════════════════════════════
-
+/**
+ * Load plugins inside subdirectories
+ */
 async function loadSubdirPlugins() {
-    if (!fs.existsSync(PLUGINS_DIR)) return;
+    if (!fs.existsSync(PLUGINS_DIR)) return 0;
 
-    const subdirs = fs.readdirSync(PLUGINS_DIR, {
+    const folders = fs.readdirSync(PLUGINS_DIR, {
         withFileTypes: true
-    })
-        .filter(dir => dir.isDirectory())
-        .map(dir => dir.name);
+    }).filter(entry => entry.isDirectory());
 
     let loaded = 0;
     let failed = 0;
     let skipped = 0;
 
-    for (const dir of subdirs) {
-        const dirPath = path.join(PLUGINS_DIR, dir);
+    for (const folder of folders) {
+        const folderPath = path.join(PLUGINS_DIR, folder.name);
 
-        const files = fs.readdirSync(dirPath)
-            .filter(file => file.endsWith('.js'));
+        let files = [];
+
+        try {
+            files = fs.readdirSync(folderPath)
+                .filter(file => file.endsWith('.js'));
+        } catch (error) {
+            console.error(
+                `[LOADER] Cannot read ${folder.name}:`,
+                error.message
+            );
+            continue;
+        }
 
         for (const file of files) {
-            const filePath = path.join(dirPath, file);
+            const fullPath = path.join(folderPath, file);
 
-            const cmdName = path.basename(file, '.js')
-                .toLowerCase()
-                .trim();
-
-            if (!cmdName) {
+            if (loadedPlugins.has(fullPath)) {
                 skipped++;
                 continue;
             }
 
             try {
-                const mod = await import(
-                    `file://${filePath.replace(/\\/g, '/')}`
-                );
+                const moduleUrl = pathToFileURL(fullPath).href;
+                const imported = await import(moduleUrl);
 
-                const exported = mod.default;
-
-                if (!exported) {
-                    skipped++;
-                    continue;
-                }
-
-                // Pattern A:
-                // export default { name, aliases, run, description }
+                const plugin = imported.default || imported;
 
                 if (
-                    typeof exported === 'object' &&
-                    typeof exported.run === 'function'
+                    typeof plugin === 'function'
                 ) {
-                    const name = (
-                        exported.name || cmdName
-                    ).toLowerCase().trim();
+                    await plugin();
 
-                    const aliases = Array.isArray(exported.aliases)
-                        ? exported.aliases.map(alias =>
-                            String(alias).toLowerCase().trim()
-                        )
-                        : [];
+                } else if (
+                    plugin &&
+                    typeof plugin.run === 'function'
+                ) {
+                    if (plugin.name && !plugin._registered) {
+                        addCmd(plugin);
+                    }
 
-                    addCmd({
-                        name,
-                        aliases,
-
-                        desc: exported.description || exported.desc || '',
-                        category: dir.toLowerCase(),
-
-                        handler: ctx => {
-                            return exported.run(buildPluginCtx(ctx));
-                        }
-                    });
-
-                    loaded++;
-                    continue;
+                    await plugin.run();
                 }
 
-                // Pattern B:
-                // export default async (context) => {}
-
-                if (typeof exported === 'function') {
-                    addCmd({
-                        name: cmdName,
-                        aliases: [],
-                        category: dir.toLowerCase(),
-
-                        handler: ctx => {
-                            return exported(buildPluginCtx(ctx));
-                        }
-                    });
-
-                    loaded++;
-                    continue;
-                }
-
-                skipped++;
+                loadedPlugins.add(fullPath);
+                loaded++;
 
             } catch (error) {
-                if (process.env.DEBUG === 'true') {
-                    console.error(
-                        `[LOADER] ${dir}/${file}:`,
-                        error.message
-                    );
-                    console.error(error.stack);
-                }
-
                 failed++;
+
+                console.error(
+                    `[LOADER] Failed loading ${folder.name}/${file}:`,
+                    error.stack || error.message
+                );
             }
         }
     }
 
     console.log(
-        `[LOADER] Subdir plugins: ${loaded} loaded, ` +
-        `${failed} failed, ${skipped} skipped`
+        `[LOADER] Subdirectories: ${loaded} loaded, ${failed} failed, ${skipped} skipped`
     );
+
+    return loaded;
 }
 
-// ═══════════════════════════════════════════════════════════
-// COMMAND HELPERS
-// ═══════════════════════════════════════════════════════════
+/**
+ * Load all plugins
+ */
+async function loadPlugins() {
+    const flatLoaded = loadFlatPlugins();
 
-function findCmd(name) {
-    if (!name) return null;
+    const subLoaded = await loadSubdirPlugins();
 
-    return commands.get(String(name).toLowerCase()) || null;
+    const totalCommands = getAllCmds().length;
+
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[LOADER] Plugin loading completed');
+    console.log(`[LOADER] Flat plugins: ${flatLoaded}`);
+    console.log(`[LOADER] Subdirectory plugins: ${subLoaded}`);
+    console.log(`[LOADER] Registered commands: ${totalCommands}`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    return totalCommands;
 }
-
-function getAllCmds() {
-    const seen = new Set();
-
-    return [...commands.values()].filter(command => {
-        const name = command.name.toLowerCase();
-
-        if (seen.has(name)) return false;
-
-        seen.add(name);
-        return true;
-    });
-}
-
-// ═══════════════════════════════════════════════════════════
-// EXPORTS
-// ═══════════════════════════════════════════════════════════
 
 module.exports = {
     addCmd,
     addTrigger,
     loadPlugins,
     loadSubdirPlugins,
+    loadFlatPlugins,
     findCmd,
     getAllCmds,
-
     buildPluginCtx,
     isCurrentOwner,
-
     commands,
     triggers
 };
-
-// ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ
