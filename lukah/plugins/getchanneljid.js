@@ -4,8 +4,6 @@ const { addCmd } = require('../../luka/handlers/loader');
 const config = require('../../luka/config/settings');
 const { sendButtons } = require('../../luka/utils/gmdFunctions2');
 
-const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
-
 addCmd({
     name: 'getchanneljid',
     aliases: ['channeljid', 'getjid'],
