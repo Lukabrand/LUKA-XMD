@@ -265,7 +265,7 @@ async function startBot() {
  ┃ 📱 Phone    : *+${ownerNumber}*
  ┃ ⚡ Prefix   : *${config.BOT_PREFIX}*
  ┃ 🌐 Mode     : *${config.MODE.toUpperCase()}*
- ╰══ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ══⊷`;
+ ╰══✦ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ✦══⊷`;
 
             if (ownerJid) {
                 sock.sendMessage(
