@@ -212,6 +212,7 @@ addCmd({
                 'AUTO_RECORDING',
                 'AUTO_UPDATE',
                 'BOT_NAME',
+                'MENU_IMAGES',
                 'BOT_PREFIX',
                 'BOT_VERSION',
                 'CHATBOT',
