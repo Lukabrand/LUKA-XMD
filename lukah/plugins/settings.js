@@ -1,7 +1,14 @@
 'use strict';
 
 const { addCmd, addTrigger } = require('../../luka/handlers/loader');
-const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
+const {
+    getSetting,
+    setSetting,
+    getGroupSettings,
+    setGroupSetting,
+    getSudoNumbers,
+    getEnabledGroupSettings
+} = require('../../luka/db/database');
 const config = require('../../luka/config/settings');
 const { getAllSettings } = config;
 const moment = require('moment-timezone');
