@@ -73,8 +73,6 @@ const config = {
     AUTO_TYPING: parseBoolean(env('AUTO_TYPING'), false),
     AUTO_RECORDING: parseBoolean(env('AUTO_RECORDING'), false),
     AUTO_READ: parseBoolean(env('AUTO_READ'), false),
-    AUTO_VIEW: parseBoolean(env('AUTO_VIEW', env('AUTO_READ_STATUS', 'true')), true),
-    AUTO_LIKE: parseBoolean(env('AUTO_LIKE', env('AUTO_LIKE_STATUS', 'true')), true),
 
     DM_PRESENCE: env('DM_PRESENCE'),
     GRP_PRESENCE: env('GRP_PRESENCE'),
