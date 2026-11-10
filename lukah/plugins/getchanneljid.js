@@ -4,6 +4,8 @@ const { addCmd } = require('../../luka/handlers/loader');
 const config = require('../../luka/config/settings');
 const { sendButtons } = require('../../luka/utils/gmdFunctions2');
 
+const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
+
 addCmd({
     name: 'getchanneljid',
     aliases: ['channeljid', 'getjid'],
@@ -19,17 +21,24 @@ addCmd({
                 return ctx.reply('❌ WhatsApp connection is unavailable.');
             }
 
-            const channelUrl = config.CHANNEL_URL;
+            const channelUrl = String(config.CHANNEL_URL || '').trim();
 
             if (!channelUrl) {
                 return ctx.reply('❌ CHANNEL_URL is not configured.');
             }
 
-            const inviteCode = channelUrl
-                .split('/')
-                .filter(Boolean)
-                .pop()
-                .split('?')[0];
+            let inviteCode;
+
+            try {
+                const url = new URL(channelUrl);
+                inviteCode = url.pathname.split('/').filter(Boolean).pop();
+            } catch {
+                return ctx.reply('❌ Invalid CHANNEL_URL. Please check your channel link.');
+            }
+
+            if (!inviteCode) {
+                return ctx.reply('❌ Channel invite code was not found.');
+            }
 
             await ctx.react('🔍');
 
@@ -39,6 +48,7 @@ addCmd({
             );
 
             if (!metadata?.id) {
+                await ctx.react('❌');
                 return ctx.reply('❌ Failed to retrieve Channel JID.');
             }
 
@@ -47,7 +57,7 @@ addCmd({
 
             const card =
                 `📡 *WHATSAPP CHANNEL INFORMATION*\n` +
-                `🐾 ${config.BOT_NAME || 'LUKA-XMD'}\n` +
+                `⚡ ${config.BOT_NAME || 'LUKA-XMD'}\n` +
                 `_Official Channel Details_\n\n` +
                 `✦ ───────────── ✦\n\n` +
                 `📛 *CHANNEL NAME*\n` +
@@ -57,8 +67,7 @@ addCmd({
                 `🔗 *CHANNEL INVITE LINK*\n` +
                 `${channelUrl}\n\n` +
                 `✦ ───────────── ✦\n\n` +
-                `✅ Channel information retrieved successfully.\n\n` +
-                `_${FOOTER}_`;
+                `✅ Channel information retrieved successfully.`;
 
             await sendButtons(sock, ctx.from, {
                 title: `📡 ${channelName} — Channel Information`,
@@ -90,12 +99,13 @@ addCmd({
         } catch (error) {
             console.error('[GET CHANNEL JID]', error);
 
-            await ctx.react('❌');
+            try {
+                await ctx.react('❌');
+            } catch {}
 
             await ctx.reply(
                 `❌ *CHANNEL INFORMATION ERROR*\n\n` +
-                `${error.message}\n\n` +
-                `${FOOTER}`
+                `${error.message || 'Unknown error'}`
             );
         }
     },
