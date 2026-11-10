@@ -226,8 +226,6 @@ addCmd({
                 'PACK_NAME',
                 'STARTING_MESSAGE',
                 'STATUS_LIKE_EMOJIS',
-                'STATUS_REACT_EMOJI',
-                'STATUS_REPLY_TEXT',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
                 'WHATSAPP_USERNAME',
