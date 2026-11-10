@@ -13,7 +13,7 @@ async function resolveSession() {
     if (!sid) {
         console.log('\n🐾 LUKA-XMD — Session Setup\n');
         console.log('No SESSION_ID found in environment.');
-        console.log('Get one from: https://lukapair.onrender.com/pair\n');
+        console.log('Get one from: https://lukapair.vercel.app/pair\n');
         return;
     }
 
