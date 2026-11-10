@@ -2,17 +2,13 @@
 require('dotenv').config();
 
 const env = (key, def = '') => process.env[key] === undefined || process.env[key] === '' ? def : process.env[key];
-
 const parseBoolean = (value, fallback = false) => {
     if (value === undefined || value === null || value === '') return fallback;
     if (typeof value === 'boolean') return value;
     return ['true', 'on', '1', 'yes'].includes(String(value).trim().toLowerCase());
 };
-
 const parsePrefixes = (value) => !value || value.trim() === '' || value.toLowerCase() === 'none' ? [] : value.split(',').map(p => p.trim()).filter(Boolean);
-
 const parseLids = (value) => !value || value.trim() === '' ? [] : value.split(',').map(l => l.trim()).filter(Boolean).map(l => l.includes('@') ? l : `${l}@lid`);
-
 const parseMenuImages = (value, fallback) => !value || value.trim() === '' ? (fallback ? [fallback] : []) : value.split(',').map(i => i.trim()).filter(Boolean);
 
 function normalizeSession(raw) {
@@ -37,7 +33,7 @@ function normalizeSession(raw) {
 }
 
 const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
-const DEFAULT_CHANNEL_JID = '120363427012090993@newsletter';
+const DEFAULT_CHANNEL_JID = '120363432546073321@newsletter';
 const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h';
 const sessionInput = env('SESSION').trim() || env('SESSION_ID').trim();
 const botPic = env('BOT_PIC', DEFAULT_BOT_PIC);
@@ -48,11 +44,15 @@ const config = {
     OWNER_NUMBER: env('OWNER_NUMBER', '').replace(/\D/g, ''),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
     PREFIXES: parsePrefixes(env('PREFIXES', env('BOT_PREFIX', '.'))),
-    BOT_VERSION: env('BOT_VERSION', '1.0.0'),
+    BOT_VERSION: env('BOT_VERSION', '5.0.0'),
     PACK_NAME: env('PACK_NAME', env('BOT_NAME', 'LUKA-XMD')),
     PACK_AUTHOR: env('PACK_AUTHOR', env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ')),
     BOT_PIC: botPic,
     MENU_IMAGES: parseMenuImages(env('MENU_IMAGES'), botPic),
+    MENU_THEME: env('MENU_THEME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
+    CHATBOT: parseBoolean(env('CHATBOT'), false),
+    CHATBOT_MODE: env('CHATBOT_MODE', 'default'),
+    WHATSAPP_USERNAME: env('WHATSAPP_USERNAME', ''),
 
     CHANNEL_URL: env('CHANNEL_URL', DEFAULT_CHANNEL_URL),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
@@ -65,7 +65,6 @@ const config = {
 
     MODE: env('MODE', 'public').trim().toLowerCase(),
     TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
-    TZ: env('TZ', env('TIME_ZONE', 'Africa/Nairobi')),
 
     AUTO_READ_STATUS: parseBoolean(env('AUTO_READ_STATUS'), true),
     AUTO_LIKE_STATUS: parseBoolean(env('AUTO_LIKE_STATUS'), true),
@@ -90,6 +89,7 @@ const config = {
     AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(parseBoolean(env('AUTO_READ_STATUS'), true))),
     AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(parseBoolean(env('AUTO_LIKE_STATUS'), true))),
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💚,💜),
 
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
