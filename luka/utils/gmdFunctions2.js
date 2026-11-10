@@ -236,18 +236,30 @@ function trimCache(cache, key) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  🗑️  ANTI-DELETE — sends recovered message to owner DM
+//  🗑️ ANTI-DELETE — PRIVATE CHAT & GROUPS
 // ═══════════════════════════════════════════════════════════════
 
 async function PantherAntiDelete(sock, key) {
     try {
         if (!key?.id || !key?.remoteJid) return;
+
+        // Ignore WhatsApp statuses
+        if (key.remoteJid === 'status@broadcast') return;
+
+        // Ignore channels and broadcasts
+        if (
+            key.remoteJid.endsWith('@newsletter') ||
+            key.remoteJid.endsWith('@broadcast')
+        ) return;
+
         if (!isFeatureEnabled('ANTIDELETE', key.remoteJid)) return;
 
         const cacheKey = `${key.remoteJid}_${key.id}_delete`;
+
         if (antiDeleteCache.has(cacheKey)) return;
 
         const stored = msgStore.get(key.id);
+
         if (!stored?.msg?.message) return;
 
         if (Date.now() - stored.timestamp > MESSAGE_TTL) {
@@ -258,56 +270,44 @@ async function PantherAntiDelete(sock, key) {
         const ownerJid = getOwnerJid(sock);
 
         if (!ownerJid) {
-            logger.warn('ANTIDELETE', 'Owner JID unavailable. Check OWNER_NUMBER.');
+            logger.warn('ANTIDELETE', 'Owner JID unavailable.');
             return;
         }
 
         trimCache(antiDeleteCache, cacheKey);
 
         const original = stored.msg;
-        const from = stored.from || key.remoteJid || 'Unknown';
+        const from = stored.from || key.remoteJid;
         const senderJid = stored.sender || from;
+
         const senderNumber = String(senderJid)
             .split('@')[0]
             .split(':')[0];
 
-        const groupName = from.endsWith('@g.us')
+        const chatName = from.endsWith('@g.us')
             ? 'Group'
-            : 'Private Chat';
+            : 'Private';
 
-        const messageType = Object.keys(original.message || {})[0]
+        const messageType = Object.keys(original.message)[0]
             ?.replace('Message', '') || 'Unknown';
-
-        const recoveredTime = new Date(stored.timestamp)
-            .toLocaleString('en-GB', {
-                timeZone: config.TIME_ZONE || 'Africa/Nairobi'
-            });
 
         const deletedText = getMessageText(original.message);
 
-        const text = `🗑️ *Deleted Message Recovered*
+        const text =
+            `🗑️ *ANTI-DELETE*\n\n` +
+            `👤 Sender: @${senderNumber}\n` +
+            `💬 Chat: ${chatName}\n` +
+            `📂 Type: ${messageType}\n\n` +
+            `📝 ${deletedText}\n\n` +
+            `⚡ ${config.BOT_NAME}`;
 
-💬 Chat: ${groupName}
-👤 Sender: @${senderNumber}
-📂 Type: ${messageType}
-🕒 Recovered: ${recoveredTime}
-📱 Chat JID: ${from}
-
-📝 *Deleted Message:*
-${deletedText}
-
-🐾 ${config.BOT_NAME}`;
-
+        // Send directly to owner without channel context
         await sock.sendMessage(ownerJid, {
             text,
-            mentions: senderJid.includes('@') ? [senderJid] : [],
-            contextInfo: channelCtx()
+            mentions: senderJid.includes('@') ? [senderJid] : []
         });
 
-        logger.info(
-            'ANTIDELETE',
-            `Recovered ${key.id} from ${from} and sent to owner.`
-        );
+        logger.info('ANTIDELETE', `Recovered ${key.id} from ${from}.`);
 
         msgStore.delete(key.id);
 
