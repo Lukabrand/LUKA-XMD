@@ -262,7 +262,7 @@ async function startBot() {
 `╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
  ┃ 🟢 Status   : *ONLINE*
  ┃ 👑 Owner    : *${config.OWNER_NAME}*
- ┃ 📱 Phone    : *+${ownerNumber}*
+ ┃ 📦 Plugins  : *${totalCommands}*
  ┃ ⚡ Prefix   : *${config.BOT_PREFIX}*
  ┃ 🌐 Mode     : *${config.MODE.toUpperCase()}*
  ╰══✦ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ✦══⊷`;
