@@ -112,7 +112,22 @@ const config = {
     EXPIRY_DATE: env('EXPIRY_DATE')
 };
 
+// GET ALL CONFIG SETTINGS
+function getAllSettings() {
+    const hidden = ['SESSION', 'SESSION_ID', 'DATABASE_URL'];
+
+    return Object.fromEntries(
+        Object.entries(config)
+            .filter(([key, value]) => !hidden.includes(key) && typeof value !== 'function')
+            .map(([key, value]) => [
+                key,
+                Array.isArray(value) ? value.join(', ') : value
+            ])
+    );
+}
+
 module.exports = config;
+module.exports.getAllSettings = getAllSettings;
 module.exports.parseBoolean = parseBoolean;
 module.exports.parsePrefixes = parsePrefixes;
 module.exports.parseLids = parseLids;
