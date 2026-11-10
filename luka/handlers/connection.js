@@ -259,13 +259,21 @@ async function startBot() {
             });
 
             const startText =
-`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
- ┃ 🟢 Status   : *ONLINE*
- ┃ 👑 Owner    : *${config.OWNER_NAME}*
- ┃ 📦 Plugins  : *${totalCommands}*
- ┃ ⚡ Prefix   : *${config.BOT_PREFIX}*
- ┃ 🌐 Mode     : *${config.MODE.toUpperCase()}*
- ╰══✦ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ✦══⊷`;
+`╭─❖ *${config.BOT_NAME}* ❖─╮
+│
+├─❖ *Status:* ✅ ONLINE
+├─❖ *Owner:* ${config.OWNER_NAME}
+├─❖ *Phone:* +${ownerNumber}
+├─❖ *Prefix:* [ ${config.BOT_PREFIX} ]
+├─❖ *Mode:* ${config.MODE.toUpperCase()}
+├─❖ *Host:* ${logger.PLATFORM}
+├─❖ *Version:* ${config.BOT_VERSION}
+├─❖ *Time:* ${now}
+├─❖ *Date:* ${today}
+│
+╰─❖ *Powered by ${config.OWNER_NAME}* ❖─╯
+
+> © ${config.BOT_NAME} is awesome 🔥`;
 
             if (ownerJid) {
                 sock.sendMessage(
