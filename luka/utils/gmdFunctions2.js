@@ -1,11 +1,4 @@
 'use strict';
-// ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  gmdFunctions2.js  (Auto Features)
-//  👑  Owner : GuruTech  |  📞 +254105521300
-//  🛡️  AntiLink · AntiSpam · AntiCall · AutoBio · AutoReact
-//  💬  ChatBot · Presence · AntiDelete · AntiEdit · AntiViewOnce
-//  📢  Channel forwardedNewsletterMessageInfo tag on every response
-// ╚══════════════════════════════════════════════════════════════╝
 
 const axios   = require('axios');
 const config  = require('../config/settings');
@@ -37,12 +30,12 @@ function channelCtx() {
         // External ad card — rich preview in DMs
         externalAdReply: {
             title:                 config.BOT_NAME,
-            body:                  '🐾 Follow our WhatsApp Channel',
+            body:                  '⚡ Follow our WhatsApp Channel',
             mediaType:             1,
             renderLargerThumbnail: false,
             showAdAttribution:     true,
             sourceUrl:             config.CHANNEL_URL,
-            thumbnailUrl:          'https://i.ibb.co/PZjVDnBM/upload-1778637749645-4b17ed31-jpg.jpg',
+            thumbnailUrl:          'https://files.catbox.moe/pj9a34.png',
         },
     };
 }
@@ -400,10 +393,10 @@ async function PantherPresence(sock, from, type = 'composing') {
 const BIO_TEMPLATES = [
     () => `🐾 ${config.BOT_NAME} | Online 24/7 🌍`,
     () => `⏰ ${new Date().toLocaleTimeString('en-KE',{ timeZone: config.TIME_ZONE })} | 🤖 ${config.BOT_NAME}`,
-    () => `🌟 Powered by GuruTech | ${new Date().toLocaleDateString('en-KE')}`,
+    () => `🌟 ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ | ${new Date().toLocaleDateString('en-KE')}`,
     () => `🔥 ${config.BOT_NAME} is live! | +${config.OWNER_NUMBER}`,
     () => `💚 Serving users 24/7 | ${config.BOT_NAME} 🐾`,
-    () => `🐾 BLACK PANTHER MD | GuruTech 🚀`,
+    () => `💜 LUKA-XMD | ʟᴜᴋᴀʙʀᴀɴᴅ`,
 ];
 
 async function PantherAutoBio(sock) {
