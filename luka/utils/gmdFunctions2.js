@@ -1,12 +1,12 @@
 'use strict';
+// ╔══════════════════════════════════════════════════════════════╗
+//  🐾  BLACK PANTHER MD  —  gmdFunctions2.js  (Auto Features)
+//  👑  Owner : GuruTech  |  📞 +254105521300
+//  🛡️  AntiLink · AntiSpam · AntiCall · AutoBio · AutoReact
+//  💬  ChatBot · Presence · AntiDelete · AntiEdit · AntiViewOnce
+//  📢  Channel forwardedNewsletterMessageInfo tag on every response
+// ╚══════════════════════════════════════════════════════════════╝
 
-// ╭═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╮
-// ║  🐾  LUKA-XMD  —  gmdFunctions2.js  (Auto Features)           ║
-// ║  👑  Owner : Lukabrand  |  📞 +255768619068                           ║
-// ║  🛡️  AntiLink · AntiSpam · AntiCall · AutoBio · AutoReact           ║
-// ║  💬  ChatBot · Presence · AntiDelete · AntiEdit · AntiViewOnce       ║
-// ║  📢  Channel forwardedNewsletterMessageInfo tag on every response    ║
-// ╰═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╯ 
 const axios   = require('axios');
 const config  = require('../config/settings');
 const logger  = require('./logger');
@@ -26,50 +26,33 @@ const {
 
 function channelCtx() {
     return {
+        // Newsletter forwarding chip — shows "Forwarded from <channel>" tag
         forwardingScore: 999,
         isForwarded: true,
-
         forwardedNewsletterMessageInfo: {
-            newsletterJid: config.CHANNEL_JID,
-            newsletterName: config.CHANNEL_NEWSLETTER_NAME || 'LUKA-XMD',
-            serverMessageId: 1,
+            newsletterJid:     config.CHANNEL_JID,
+            newsletterName:    config.CHANNEL_NEWSLETTER_NAME,
+            serverMessageId:   Math.floor(Math.random() * 9000) + 1000,
         },
-
+        // External ad card — rich preview in DMs
         externalAdReply: {
-            title: config.BOT_NAME || 'LUKA-XMD',
-            body: '⚡ Follow our WhatsApp Channel',
-            mediaType: 1,
+            title:                 config.BOT_NAME,
+            body:                  '🐾 Follow our WhatsApp Channel',
+            mediaType:             1,
             renderLargerThumbnail: false,
-            showAdAttribution: false,
-            sourceUrl: config.CHANNEL_URL,
-            thumbnailUrl: 'https://i.imgur.com/YbnhBIV.png',
+            showAdAttribution:     true,
+            sourceUrl:             config.CHANNEL_URL,
+            thumbnailUrl:          'https://i.ibb.co/PZjVDnBM/upload-1778637749645-4b17ed31-jpg.jpg',
         },
     };
 }
 
-// ═══════════════════════════════════════════════════════════════
-// 📢 SEND MESSAGE WITH CHANNEL CONTEXT
-// ═══════════════════════════════════════════════════════════════
-
-async function sendWithChannel(sock, jid, content = {}, options = {}) {
-    try {
-        const contextInfo = {
-            ...channelCtx(),
-            ...(content.contextInfo || {}),
-        };
-
-        return await sock.sendMessage(
-            jid,
-            {
-                ...content,
-                contextInfo,
-            },
-            options
-        );
-    } catch (err) {
-        logger.error('CHANNEL_SEND', err.message);
-        throw err;
+async function sendWithChannel(sock, jid, content, opts = {}) {
+    const ctx = channelCtx();
+    if (content.sticker !== undefined) {
+        return sock.sendMessage(jid, content, opts);
     }
+    return sock.sendMessage(jid, { ...content, contextInfo: ctx }, opts);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -181,211 +164,222 @@ async function PantherAntiCall(calls, sock) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  🗄️  MESSAGE STORE (for anti-delete & viewonce)
+//  🗄️  MESSAGE STORE (ANTI-DELETE / ANTI-EDIT)
 // ═══════════════════════════════════════════════════════════════
 
 const msgStore = new Map();
+const antiDeleteCache = new Set();
+const antiEditCache = new Set();
+const MESSAGE_TTL = 10 * 60 * 1000;
+const MAX_STORED_MESSAGES = 2000;
+
+function cleanMessageStore() {
+    const now = Date.now();
+    for (const [id, item] of msgStore) {
+        if (!item?.timestamp || now - item.timestamp > MESSAGE_TTL) msgStore.delete(id);
+    }
+}
 
 function storeMessage(msg) {
     try {
-        if (!msg?.key?.id) return;
-        const from   = msg.key.remoteJid || '';
-        const sender = msg.key.participant || from;
+        if (!msg?.key?.id || !msg?.message) return;
         msgStore.set(msg.key.id, {
-            key:    msg.key,
             msg,
-            from,
-            sender,
-            ts:     Date.now(),
+            key: msg.key,
+            from: msg.key.remoteJid || '',
+            sender: msg.key.participant || msg.key.remoteJid || '',
+            timestamp: Date.now(),
         });
-        // Keep store bounded — drop oldest entries after 500
-        if (msgStore.size > 500) {
+        if (msgStore.size > MAX_STORED_MESSAGES) {
             const oldest = msgStore.keys().next().value;
             msgStore.delete(oldest);
         }
-        // Auto-expire after 15 minutes
-        setTimeout(() => msgStore.delete(msg.key.id), 15 * 60 * 1000);
-    } catch {}
+    } catch (err) {
+        logger.error('MSGSTORE', err.message);
+    }
 }
 
 function getStoredMessage(id) {
-    return msgStore.get(id)?.msg?.message || undefined;
+    const item = msgStore.get(id);
+    if (!item) return undefined;
+    if (Date.now() - item.timestamp > MESSAGE_TTL) {
+        msgStore.delete(id);
+        return undefined;
+    }
+    return item.msg?.message;
+}
+
+function getMessageText(message) {
+    return message?.conversation ||
+        message?.extendedTextMessage?.text ||
+        message?.imageMessage?.caption ||
+        message?.videoMessage?.caption ||
+        message?.documentMessage?.caption ||
+        message?.buttonsResponseMessage?.selectedDisplayText ||
+        message?.listResponseMessage?.title ||
+        '[Media / Non-text message]';
+}
+
+function getOwnerJid(sock) {
+    const number = String(config.OWNER_NUMBER || '').replace(/\D/g, '');
+    if (number) return `${number}@s.whatsapp.net`;
+    const self = sock.user?.id || '';
+    return self ? `${self.split(':')[0].split('@')[0]}@s.whatsapp.net` : null;
+}
+
+function isFeatureEnabled(feature, from) {
+    const globalEnabled = Boolean(config[feature]);
+    if (globalEnabled) return true;
+    if (from?.endsWith('@g.us')) {
+        const key = feature === 'ANTIDELETE' ? 'antidelete' : 'antiedit';
+        return Boolean(getGroupSettings(from)?.[key]);
+    }
+    return false;
+}
+
+function trimCache(cache, key) {
+    cache.add(key);
+    setTimeout(() => cache.delete(key), 5000);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 🗑️ ANTI-DELETE — OWNER INBOX
+//  🗑️  ANTI-DELETE — sends recovered message to owner DM
 // ═══════════════════════════════════════════════════════════════
 
 async function PantherAntiDelete(sock, key) {
     try {
         if (!key?.id || !key?.remoteJid) return;
+        if (!isFeatureEnabled('ANTIDELETE', key.remoteJid)) return;
 
-        // Read setting from database first, then config.
-        const dbSetting = getSetting('ANTIDELETE');
-        const setting = dbSetting ?? config.ANTI_DELETE ?? false;
+        const cacheKey = `${key.remoteJid}_${key.id}_delete`;
+        if (antiDeleteCache.has(cacheKey)) return;
 
-        const enabled = [
-            true, 'true', 'on', 'indm', '1'
-        ].includes(
-            typeof setting === 'string'
-                ? setting.toLowerCase()
-                : setting
-        );
-
-        if (!enabled) return;
-
-        // Find the original cached message.
         const stored = msgStore.get(key.id);
+        if (!stored?.msg?.message) return;
 
-        if (!stored?.msg?.message) {
-            logger.debug(
-                'ANTIDELETE',
-                `Message not cached: ${key.id}`
-            );
+        if (Date.now() - stored.timestamp > MESSAGE_TTL) {
+            msgStore.delete(key.id);
             return;
         }
+
+        const ownerJid = getOwnerJid(sock);
+
+        if (!ownerJid) {
+            logger.warn('ANTIDELETE', 'Owner JID unavailable. Check OWNER_NUMBER.');
+            return;
+        }
+
+        trimCache(antiDeleteCache, cacheKey);
 
         const original = stored.msg;
-        const content = original.message;
+        const from = stored.from || key.remoteJid || 'Unknown';
+        const senderJid = stored.sender || from;
+        const senderNumber = String(senderJid)
+            .split('@')[0]
+            .split(':')[0];
 
-        // Ignore messages sent by the bot itself.
-        if (original.key?.fromMe) return;
+        const groupName = from.endsWith('@g.us')
+            ? 'Group'
+            : 'Private Chat';
 
-        // Owner WhatsApp number.
-        const ownerNumber = String(
-            config.OWNER_NUMBER || ''
-        ).replace(/\D/g, '');
+        const messageType = Object.keys(original.message || {})[0]
+            ?.replace('Message', '') || 'Unknown';
 
-        if (!ownerNumber) {
-            logger.warn(
-                'ANTIDELETE',
-                'OWNER_NUMBER is missing in config.'
-            );
-            return;
-        }
-
-        const ownerJid = `${ownerNumber}@s.whatsapp.net`;
-        const chatJid = stored.from || key.remoteJid;
-
-        const senderJid =
-            stored.sender ||
-            original.key?.participant ||
-            chatJid;
-
-        const senderNumber = senderJid.split('@')[0];
-        const isGroup = chatJid.endsWith('@g.us');
-
-        const messageType =
-            Object.keys(content).find(type =>
-                !['messageContextInfo'].includes(type)
-            ) || 'unknown';
-
-        const deletedText =
-            content.conversation ||
-            content.extendedTextMessage?.text ||
-            content.imageMessage?.caption ||
-            content.videoMessage?.caption ||
-            content.documentMessage?.caption ||
-            content.documentMessage?.fileName ||
-            content.audioMessage?.caption ||
-            '';
-
-        const time = new Date().toLocaleString('en-GB', {
-            timeZone: config.TIME_ZONE || 'Africa/Dar_es_Salaam',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-        });
-
-        const report = [
-            '🗑️ *ANTI-DELETE ALERT*',
-            '',
-            `👤 From: +${senderNumber}`,
-            `💬 Chat: ${isGroup ? 'Group' : 'Private'}`,
-            `📂 Type: ${messageType.replace(/Message$/i, '')}`,
-            `🕒 Time: ${time}`,
-            '',
-            '📝 *DELETED MESSAGE*',
-            deletedText
-                ? String(deletedText).slice(0, 2500)
-                : '[Media or message without text]',
-            '',
-            'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
-        ].join('\n');
-
-        // Send alert to Owner inbox.
-        await sock.sendMessage(ownerJid, {
-            text: report,
-        });
-
-        // Resend text messages as a separate message.
-        if (
-            content.conversation ||
-            content.extendedTextMessage?.text
-        ) {
-            await sock.sendMessage(ownerJid, {
-                text: deletedText,
-            }).catch(err => {
-                logger.warn(
-                    'ANTIDELETE',
-                    `Could not resend text: ${err.message}`
-                );
+        const recoveredTime = new Date(stored.timestamp)
+            .toLocaleString('en-GB', {
+                timeZone: config.TIME_ZONE || 'Africa/Nairobi'
             });
-        }
+
+        const deletedText = getMessageText(original.message);
+
+        const text = `🗑️ *Deleted Message Recovered*
+
+💬 Chat: ${groupName}
+👤 Sender: @${senderNumber}
+📂 Type: ${messageType}
+🕒 Recovered: ${recoveredTime}
+📱 Chat JID: ${from}
+
+📝 *Deleted Message:*
+${deletedText}
+
+🐾 ${config.BOT_NAME}`;
+
+        await sock.sendMessage(ownerJid, {
+            text,
+            mentions: senderJid.includes('@') ? [senderJid] : [],
+            contextInfo: channelCtx()
+        });
 
         logger.info(
             'ANTIDELETE',
-            `Owner report sent for message ${key.id}`
+            `Recovered ${key.id} from ${from} and sent to owner.`
         );
+
+        msgStore.delete(key.id);
+
     } catch (err) {
         logger.error('ANTIDELETE', err.message);
     }
 }
 
-
 // ═══════════════════════════════════════════════════════════════
-//  ✏️  ANTI EDIT
+//  ✏️  ANTI-EDIT — sends before/after text to owner DM
 // ═══════════════════════════════════════════════════════════════
 
-// update = { key: MessageKey, update: Partial<WAMessage> }
-// The edited content lives in update.update.message.protocolMessage
 async function PantherAntiEdit(sock, update) {
     try {
-        const proto  = update?.update?.message?.protocolMessage;
+        const proto = update?.update?.message?.protocolMessage;
         const edited = proto?.editedMessage;
-        const from   = update?.key?.remoteJid;
-        if (!edited || !from) return;
+        const originalId = proto?.key?.id;
+        const from = update?.key?.remoteJid;
+        if (!edited || !originalId || !from || !isFeatureEnabled('ANTIEDIT', from)) return;
 
-        const settings = getGroupSettings(from);
-        if (!settings?.antiedit) return;
+        const cacheKey = `${from}_${originalId}_edit`;
+        if (antiEditCache.has(cacheKey)) return;
+        const original = msgStore.get(originalId);
+        if (!original?.msg?.message) return;
+        trimCache(antiEditCache, cacheKey);
 
-        // proto.key points to the original message that was edited
-        const original = msgStore.get(proto?.key?.id);
-        if (!original) return;
+        const ownerJid = getOwnerJid(sock);
+        if (!ownerJid) {
+            logger.warn('ANTIEDIT', 'Owner JID is unavailable; set OWNER_NUMBER in .env.');
+            return;
+        }
 
-        const sender  = (update?.key?.participant || from).split('@')[0];
-        const oldText = original.msg?.message?.conversation ||
-                        original.msg?.message?.extendedTextMessage?.text || '(media)';
-        const newText = edited?.conversation || edited?.extendedTextMessage?.text || '(media)';
+        const editorJid = update.key.participant || original.sender || from;
+        const editorNumber = String(editorJid).split('@')[0].split(':')[0];
+        const oldText = getMessageText(original.msg.message);
+        const newText = getMessageText(edited);
+        const chatType = from.endsWith('@g.us') ? 'Group' : from === 'status@broadcast' ? 'Status' : 'Private Chat';
+        const now = new Date().toLocaleString('en-GB', { timeZone: config.TIME_ZONE || 'Africa/Nairobi' });
 
-        const text = gmdTable('✏️ Message Edited', [
-            ['👤 User',   `@${sender}`],
-            ['📝 Before', oldText.slice(0, 300)],
-            ['✏️  After',  newText.slice(0, 300)],
+        const text = gmdBanner('✏️ Message Edited', [
+            `💬 Chat : ${chatType}`,
+            `📱 Chat JID : ${from}`,
+            `👤 Edited By : @${editorNumber}`,
+            `🕒 Time : ${now}`,
+            `📝 Before : ${oldText.slice(0, 1200)}`,
+            `✏️ After : ${newText.slice(0, 1200)}`,
         ], config.BOT_NAME);
 
-        await sendWithChannel(sock, from, {
+        await sendWithChannel(sock, ownerJid, {
             text,
-            mentions: [update?.key?.participant || from],
+            mentions: editorJid.includes('@') ? [editorJid] : [],
         });
+
+        // Keep the latest version in cache in case the same message is edited again.
+        original.msg = { ...original.msg, message: edited };
+        original.timestamp = Date.now();
+        msgStore.set(originalId, original);
+        logger.info('ANTIEDIT', `Reported edit ${originalId} from ${from} to owner.`);
     } catch (err) {
         logger.error('ANTIEDIT', err.message);
     }
 }
 
+// Periodic cleanup keeps the in-memory store bounded.
+setInterval(cleanMessageStore, 60 * 1000).unref?.();
 
 // ═══════════════════════════════════════════════════════════════
 //  🟢  PRESENCE
@@ -406,10 +400,10 @@ async function PantherPresence(sock, from, type = 'composing') {
 const BIO_TEMPLATES = [
     () => `🐾 ${config.BOT_NAME} | Online 24/7 🌍`,
     () => `⏰ ${new Date().toLocaleTimeString('en-KE',{ timeZone: config.TIME_ZONE })} | 🤖 ${config.BOT_NAME}`,
-    () => `🌟 ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ | ${new Date().toLocaleDateString('en-KE')}`,
+    () => `🌟 Powered by GuruTech | ${new Date().toLocaleDateString('en-KE')}`,
     () => `🔥 ${config.BOT_NAME} is live! | +${config.OWNER_NUMBER}`,
     () => `💚 Serving users 24/7 | ${config.BOT_NAME} 🐾`,
-    () => `⚡LUKA-XMD | Lukabrand`,
+    () => `🐾 BLACK PANTHER MD | GuruTech 🚀`,
 ];
 
 async function PantherAutoBio(sock) {
@@ -645,6 +639,8 @@ module.exports = {
     PantherAntiCall,
     storeMessage,
     getStoredMessage,
+    cleanMessageStore,
+    msgStore,
     PantherAntiDelete,
     PantherAntiEdit,
     PantherPresence,
