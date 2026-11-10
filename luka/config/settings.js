@@ -19,11 +19,11 @@ function normalizeSession(raw) {
     const session = raw?.trim();
     if (!session) return null;
     let json;
-    if (session.startsWith('GURU~')) {
+    if (session.startsWith('LUKA~')) {
         try {
             json = require('zlib').gunzipSync(Buffer.from(session.slice(5), 'base64')).toString('utf8');
         } catch {
-            throw new Error('SESSION_ID has invalid GURU~ gzip/base64 data.');
+            throw new Error('SESSION_ID has invalid LUKA~ gzip/base64 data.');
         }
     } else {
         json = Buffer.from(session, 'base64').toString('utf8');
@@ -36,32 +36,32 @@ function normalizeSession(raw) {
     return Buffer.from(json, 'utf8').toString('base64');
 }
 
-const DEFAULT_BOT_PIC = 'https://files.catbox.moe/1pcqmc.png';
+const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
 const DEFAULT_CHANNEL_JID = '120363427012090993@newsletter';
-const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCl2UX3rZZilMSvxN1e';
+const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h';
 const sessionInput = env('SESSION').trim() || env('SESSION_ID').trim();
 const botPic = env('BOT_PIC', DEFAULT_BOT_PIC);
 
 const config = {
-    BOT_NAME: env('BOT_NAME', 'BLACK PANTHER MD'),
-    OWNER_NAME: env('OWNER_NAME', 'GuruTech'),
+    BOT_NAME: env('BOT_NAME', 'LUKA-XMD'),
+    OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
     OWNER_NUMBER: env('OWNER_NUMBER', '').replace(/\D/g, ''),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
     PREFIXES: parsePrefixes(env('PREFIXES', env('BOT_PREFIX', '.'))),
     BOT_VERSION: env('BOT_VERSION', '1.0.0'),
-    PACK_NAME: env('PACK_NAME', env('BOT_NAME', 'BLACK PANTHER MD')),
-    PACK_AUTHOR: env('PACK_AUTHOR', env('OWNER_NAME', 'GuruTech')),
+    PACK_NAME: env('PACK_NAME', env('BOT_NAME', 'LUKA-XMD')),
+    PACK_AUTHOR: env('PACK_AUTHOR', env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ')),
     BOT_PIC: botPic,
     MENU_IMAGES: parseMenuImages(env('MENU_IMAGES'), botPic),
 
     CHANNEL_URL: env('CHANNEL_URL', DEFAULT_CHANNEL_URL),
-    CHANNEL_NAME: env('CHANNEL_NAME', 'BLACK PANTHER MD Channel'),
+    CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
     CHANNEL_JID: env('CHANNEL_JID', DEFAULT_CHANNEL_JID),
-    CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '🐾『 BLACK PANTHER MD 』🐾'),
+    CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
 
     SESSION_ID: env('SESSION_ID'),
     SESSION: normalizeSession(sessionInput),
-    SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('GURU~') ? 'GURU~ gzip/base64' : 'base64 creds.json',
+    SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
 
     MODE: env('MODE', 'public').trim().toLowerCase(),
     TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
