@@ -17,7 +17,7 @@ const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults } = require('../db/database');
-const { loadPlugins } = require('./loader');
+const { loadPlugins, getAllCmds } = require('./loader');
 const { handleMessage } = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate } = require('../utils/autoUpdate');
@@ -145,12 +145,11 @@ async function startBot() {
     );
 
     await resolveSession();
-    loadPlugins();
+    await loadPlugins();
     ensureDir(SESSION_DIR);
 
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const version = await getBaileysVersion();
-
     const userDevicesCache = new NodeCache({ stdTTL: 600, useClones: false });
 
     sock = makeWASocket({
@@ -161,7 +160,7 @@ async function startBot() {
         },
         logger: silentLogger,
         printQRInTerminal: false,
-        browser: ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
+        browser: ['LUKA-XMD', 'Chrome', '121.0.0'],
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
@@ -241,12 +240,13 @@ async function startBot() {
             const sessionNumber = botJid.split(':')[0].split('@')[0];
 
             const ownerNumber =
-                String(config.OWNER_NUMBER || '').replace(/\D/g, '') ||
-                sessionNumber;
+                String(config.OWNER_NUMBER || '').replace(/\D/g, '') || sessionNumber;
 
             const ownerJid = ownerNumber
                 ? `${ownerNumber}@s.whatsapp.net`
                 : null;
+
+            const totalCommands = getAllCmds().length;
 
             logger.success('CONNECTION', `Connected as ${botJid}`);
 
@@ -259,13 +259,13 @@ async function startBot() {
             });
 
             const startText =
-`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
- ┃ 🟢 Status   : *ONLINE*
- ┃ 👑 Owner    : *${config.OWNER_NAME}*
- ┃ 📦 Plugins  : *${totalCommands}*
- ┃ ⚡ Prefix   : *${config.BOT_PREFIX}*
- ┃ 🌐 Mode     : *${config.MODE.toUpperCase()}*
- ╰══✦ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ✦══⊷`;
+`╭══〘 *LUKA-XMD* 〙═⊷
+┃ 🟢 Status  : *ONLINE*
+┃ 👑 Owner   : *${config.OWNER_NAME}*
+┃ 📦 Plugins : *${totalCommands}*
+┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
+┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
+╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             if (ownerJid) {
                 sock.sendMessage(
@@ -305,7 +305,6 @@ async function startBot() {
 
         for (const msg of upsert.messages) {
             const revoke = msg?.message?.protocolMessage;
-
             if (revoke?.type === 0 && revoke?.key?.id) {
                 PantherAntiDelete(sock, {
                     ...revoke.key,
@@ -352,10 +351,7 @@ async function startBot() {
 
     sock.ev.on('messages.delete', item => {
         if (!item?.keys) return;
-
-        for (const key of item.keys) {
-            PantherAntiDelete(sock, key).catch(() => {});
-        }
+        for (const key of item.keys) PantherAntiDelete(sock, key).catch(() => {});
     });
 
     sock.ev.on('messages.update', async updates => {
