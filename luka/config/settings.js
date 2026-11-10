@@ -89,7 +89,7 @@ const config = {
     AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(parseBoolean(env('AUTO_READ_STATUS'), true))),
     AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(parseBoolean(env('AUTO_LIKE_STATUS'), true))),
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
-    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💚,💜),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💚,💜'),
 
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
