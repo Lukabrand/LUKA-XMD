@@ -310,8 +310,8 @@ function normalizeUsername(value) {
 function requireNativeMethod(sock, method) {
     if (typeof sock?.[method] !== 'function') {
         throw new Error(
-            `Njia ya Baileys '${method}()' haipo kwenye version iliyosakinishwa. ` +
-            'Tumia Baileys build yenye native WhatsApp Username support; hakuna API ya nje inayotumika.'
+            `Baileys method '${method}()' is not available in the installed version. ` +
+            'Use a Baileys build with native WhatsApp Username support. No external API is used.'
         );
     }
     return sock[method].bind(sock);
@@ -336,15 +336,15 @@ function extractUsername(value) {
 addCmd({
     name: 'setusername',
     aliases: ['claimusername', 'changeusername'],
-    desc: 'Set WhatsApp username ya account iliyounganisha session',
+    desc: 'Set the WhatsApp username of the account connected to this session',
     usage: 'setusername <username>',
     category: 'owner',
     ownerOnly: true,
     handler: async (ctx) => {
         const username = normalizeUsername(ctx.args?.[0]);
-        if (!username) return ctx.reply('👤 Matumizi: `.setusername <username>`\nMfano: `.setusername luka_xmd`');
+        if (!username) return ctx.reply('👤 Usage: `.setusername <username>`\nExample: `.setusername luka_xmd`');
         if (!/^[a-z0-9._]{3,30}$/.test(username)) {
-            return ctx.reply('❌ Username si sahihi. Tumia herufi ndogo, namba, dot au underscore (herufi 3–30).');
+            return ctx.reply('❌ Invalid username. Use lowercase letters, numbers, dots, or underscores (3–30 characters).');
         }
         try {
             const checkUsername = ctx.sock.checkUsername;
@@ -354,7 +354,7 @@ addCmd({
                     const suggestions = Array.isArray(check.suggestions) && check.suggestions.length
                         ? `\n\nSuggestions: ${check.suggestions.slice(0, 5).map(x => `@${extractUsername(x)}`).join(', ')}`
                         : '';
-                    return ctx.reply(`❌ Username *@${username}* haipatikani au hairuhusiwi.${suggestions}`);
+                    return ctx.reply(`❌ Username *@${username}* is unavailable or not allowed.${suggestions}`);
                 }
             }
             const setUsername = requireNativeMethod(ctx.sock, 'setUsername');
@@ -364,9 +364,9 @@ addCmd({
                 const getMyUsername = ctx.sock.getMyUsername;
                 if (typeof getMyUsername === 'function') current = extractUsername(await getMyUsername.call(ctx.sock)) || username;
             } catch {}
-            return ctx.reply(`✅ WhatsApp username imewekwa kupitia Baileys native.\n\n👤 Username: *@${current}*`);
+            return ctx.reply(`✅ WhatsApp username successfully set using Baileys native support.\n\n👤 Username: *@${current}*`);
         } catch (e) {
-            return ctx.reply(`❌ Imeshindikana kuweka username: ${e.message}`);
+            return ctx.reply(`❌ Failed to set username: ${e.message}`);
         }
     },
 });
@@ -375,18 +375,18 @@ addCmd({
 addCmd({
     name: 'getusername',
     aliases: ['myusername', 'botusername'],
-    desc: 'Show username ya WhatsApp account iliyounganisha session',
+    desc: 'Show the WhatsApp username of the account connected to this session',
     category: 'owner',
     ownerOnly: true,
     handler: async (ctx) => {
         try {
             const getMyUsername = requireNativeMethod(ctx.sock, 'getMyUsername');
             const username = extractUsername(await getMyUsername());
-            if (!username) return ctx.reply('ℹ️ Account hii haina username iliyowekwa, au WhatsApp haijarudisha username.');
+            if (!username) return ctx.reply('ℹ️ This account has no username set, or WhatsApp did not return a username.');
             const sessionJid = ctx.sock.user?.id || 'Unknown';
             return ctx.reply(`👤 *SESSION WHATSAPP USERNAME*\n\n@${username}\n\n📱 Session: ${sessionJid}`);
         } catch (e) {
-            return ctx.reply(`❌ Imeshindikana kupata username: ${e.message}`);
+            return ctx.reply(`❌ Failed to get username: ${e.message}`);
         }
     },
 });
@@ -395,7 +395,7 @@ addCmd({
 addCmd({
     name: 'username',
     aliases: ['checkusername', 'findusername'],
-    desc: 'Tafuta WhatsApp account kwa username au angalia username ya contact',
+    desc: 'Find a WhatsApp account by username or check a contact username',
     usage: 'username <@handle> | reply/mention/number',
     category: 'owner',
     ownerOnly: true,
@@ -406,27 +406,26 @@ addCmd({
             if (input.startsWith('@') || (input && !/^\+?[0-9]+$/.test(input))) {
                 const handle = normalizeUsername(input);
                 if (!/^[a-z0-9._]{3,30}$/.test(handle)) {
-                    return ctx.reply('❌ Username si sahihi. Mfano: `.username @johndoe`');
+                    return ctx.reply('❌ Invalid username. Example: `.username @johndoe`');
                 }
                 const findUser = requireNativeMethod(ctx.sock, 'findUserByUsername');
                 const found = await findUser(handle);
-                if (!found) return ctx.reply(`❌ Sijaweza kumpata mtumiaji *@${handle}*.`);
-                const jid = found.jid || found.id || found.user?.jid || 'Haijapatikana';
+                if (!found) return ctx.reply(`❌ Could not find user *@${handle}*.`);
+                const jid = found.jid || found.id || found.user?.jid || 'Not available';
                 return ctx.reply(`🔎 *WHATSAPP USERNAME RESULT*\n\n👤 Username: *@${handle}*\n🆔 WhatsApp ID: \`${jid}\``);
             }
 
             const target = resolveTarget(ctx);
             if (!target) {
-                return ctx.reply('🔎 Matumizi:\n• `.username @handle` kutafuta kwa username\n• Reply/mention/namba kuangalia username ya contact.');
+                return ctx.reply('🔎 Usage:\n• `.username @handle` — search by username\n• Reply, mention, or provide a number — check a contact username.');
             }
             const fetchUsernames = requireNativeMethod(ctx.sock, 'fetchContactUsernames');
             const result = await fetchUsernames(target);
             const username = extractUsername(result?.[target] || result);
-            if (!username) return ctx.reply(`ℹ️ Hakuna WhatsApp username iliyopatikana kwa \`${target}\`. Inawezekana hana username au WhatsApp haijatoa taarifa hiyo.`);
+            if (!username) return ctx.reply(`ℹ️ No WhatsApp username was found for \`${target}\`. The user may not have a username, or WhatsApp may not have returned this information.`);
             return ctx.reply(`👤 *CONTACT USERNAME*\n\n📛 Username: *@${username}*\n🆔 JID: \`${target}\``);
         } catch (e) {
-            return ctx.reply(`❌ Imeshindikana kutafuta username: ${e.message}`);
+            return ctx.reply(`❌ Username lookup failed: ${e.message}`);
         }
     },
 });
-
