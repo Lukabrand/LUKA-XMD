@@ -2,7 +2,7 @@
 require('dotenv').config({ path: '.env' });
 const { gunzipSync } = require('node:zlib');
 
-const DEFAULT_BOT_PIC = 'https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg';
+const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
 const DEFAULT_CHANNEL_JID = '120363431857319034@newsletter';
 const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbDh88NCMY0Fartkxm1g';
 
@@ -55,13 +55,13 @@ const botPic = process.env.BOT_PIC || DEFAULT_BOT_PIC;
 const sessionInput = process.env.SESSION?.trim() || process.env.SESSION_ID?.trim() || '';
 
 const CONFIG = {
-    MODE: (process.env.MODE || 'private').trim().toLowerCase(),
+    MODE: (process.env.MODE || 'public').trim().toLowerCase(),
     BOT_PREFIX: parsePrefixes(process.env.BOT_PREFIX || '.'),
     PORT: parseInt(process.env.PORT, 10) || 3000,
     SESSION: normalizeSession(sessionInput),
     SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
     TZ: process.env.TZ || process.env.TIME_ZONE || 'Africa/Nairobi',
-    ANTICALL: parseBoolean(process.env.ANTICALL || 'off'),
+
     ANTI_CALL: parseBoolean(process.env.ANTI_CALL ?? process.env.ANTICALL ?? 'off'),
     ANTI_VV: parseBoolean(process.env.ANTI_VV || 'on'),
     ANTIDELETE: parseBoolean(process.env.ANTIDELETE || 'on'),
@@ -76,8 +76,8 @@ const CONFIG = {
     GRP_PRESENCE: process.env.GRP_PRESENCE || '',
     USER_LID: parseLids(process.env.USER_LID || ''),
     OWNER_NUMBER: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
-    OWNER_NAME: process.env.OWNER_NAME || 'GuruTech',
-    BOT_NAME: process.env.BOT_NAME || 'ULTRA GURU',
+    OWNER_NAME: process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
+    BOT_NAME: process.env.BOT_NAME || 'LUKA-XMD',
     BOT_PIC: botPic,
     BOT_VERSION: process.env.BOT_VERSION || '5.0.0',
     MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
@@ -87,9 +87,9 @@ const CONFIG = {
     WHATSAPP_USERNAME: process.env.WHATSAPP_USERNAME || '',
     CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
     CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
-    HOSTING_URL: process.env.HOSTING_URL || 'https://cheap.bothosting.gurutech.top',
-    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || 'Bothosting',
-    GITHUB_REPO: process.env.GITHUB_REPO || 'GuruhTech/ULTRA-GURU',
+    HOSTING_URL: process.env.HOSTING_URL || '',
+    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || '',
+    GITHUB_REPO: process.env.GITHUB_REPO || 'Lukabrand/LUKA-XMD',
     AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
 };
 
