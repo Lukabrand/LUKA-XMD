@@ -1,122 +1,97 @@
 'use strict';
-require('dotenv').config();
+require('dotenv').config({ path: '.env' });
+const { gunzipSync } = require('node:zlib');
 
-const env = (key, def = '') => process.env[key] === undefined || process.env[key] === '' ? def : process.env[key];
+const DEFAULT_BOT_PIC = 'https://res.cloudinary.com/dqxlb29uz/image/upload/v1780267810/bwm_uploads/media-1780267810008.jpg';
+const DEFAULT_CHANNEL_JID = '120363431857319034@newsletter';
+const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbDh88NCMY0Fartkxm1g';
 
-const parseBoolean = (value, fallback = false) => {
-    if (value === undefined || value === null || value === '') return fallback;
-    if (typeof value === 'boolean') return value;
-    return ['true', 'on', '1', 'yes'].includes(String(value).trim().toLowerCase());
-};
-
-const parsePrefixes = (value) => !value || value.trim() === '' || value.toLowerCase() === 'none' ? [] : value.split(',').map(p => p.trim()).filter(Boolean);
-
-const parseLids = (value) => !value || value.trim() === '' ? [] : value.split(',').map(l => l.trim()).filter(Boolean).map(l => l.includes('@') ? l : `${l}@lid`);
-
-const parseMenuImages = (value, fallback) => !value || value.trim() === '' ? (fallback ? [fallback] : []) : value.split(',').map(i => i.trim()).filter(Boolean);
-
-function normalizeSession(raw) {
-    const session = raw?.trim();
-    if (!session) return null;
-    let json;
-    if (session.startsWith('GURU~')) {
-        try {
-            json = require('zlib').gunzipSync(Buffer.from(session.slice(5), 'base64')).toString('utf8');
-        } catch {
-            throw new Error('SESSION_ID has invalid GURU~ gzip/base64 data.');
-        }
-    } else {
-        json = Buffer.from(session, 'base64').toString('utf8');
-    }
-    try {
-        JSON.parse(json);
-    } catch {
-        throw new Error('WhatsApp session decoded, but credentials JSON is invalid.');
-    }
-    return Buffer.from(json, 'utf8').toString('base64');
+function parsePrefixes(prefixStr) {
+    if (!prefixStr || prefixStr.trim() === '' || prefixStr.toLowerCase() === 'none') return [];
+    return prefixStr.split(',').map(p => p.trim()).filter(Boolean);
 }
 
-const DEFAULT_BOT_PIC = 'https://files.catbox.moe/1pcqmc.png';
-const DEFAULT_CHANNEL_JID = '120363427012090993@newsletter';
-const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbCl2UX3rZZilMSvxN1e';
-const sessionInput = env('SESSION').trim() || env('SESSION_ID').trim();
-const botPic = env('BOT_PIC', DEFAULT_BOT_PIC);
+function parseBoolean(value) {
+    if (typeof value === 'string') return ['on', 'true', '1', 'yes'].includes(value.toLowerCase());
+    return Boolean(value);
+}
 
-const config = {
-    BOT_NAME: env('BOT_NAME', 'BLACK PANTHER MD'),
-    OWNER_NAME: env('OWNER_NAME', 'GuruTech'),
-    OWNER_NUMBER: env('OWNER_NUMBER', '').replace(/\D/g, ''),
-    BOT_PREFIX: env('BOT_PREFIX', '.'),
-    PREFIXES: parsePrefixes(env('PREFIXES', env('BOT_PREFIX', '.'))),
-    BOT_VERSION: env('BOT_VERSION', '1.0.0'),
-    PACK_NAME: env('PACK_NAME', env('BOT_NAME', 'BLACK PANTHER MD')),
-    PACK_AUTHOR: env('PACK_AUTHOR', env('OWNER_NAME', 'GuruTech')),
-    BOT_PIC: botPic,
-    MENU_IMAGES: parseMenuImages(env('MENU_IMAGES'), botPic),
+function parseLids(lidStr) {
+    if (!lidStr || lidStr.trim() === '') return [];
+    return lidStr.split(',').map(l => l.trim()).filter(Boolean).map(l => l.includes('@') ? l : `${l}@lid`);
+}
 
-    CHANNEL_URL: env('CHANNEL_URL', DEFAULT_CHANNEL_URL),
-    CHANNEL_NAME: env('CHANNEL_NAME', 'BLACK PANTHER MD Channel'),
-    CHANNEL_JID: env('CHANNEL_JID', DEFAULT_CHANNEL_JID),
-    CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '🐾『 BLACK PANTHER MD 』🐾'),
+function parseMenuImages(menuImagesStr, fallbackImage) {
+    if (!menuImagesStr || menuImagesStr.trim() === '') return fallbackImage ? [fallbackImage] : [];
+    return menuImagesStr.split(',').map(img => img.trim()).filter(Boolean);
+}
 
-    SESSION_ID: env('SESSION_ID'),
+function normalizeSession(rawSession) {
+    const session = rawSession?.trim();
+    if (!session) return null;
+    let jsonText;
+    if (session.startsWith('LUKA~')) {
+        try {
+            jsonText = gunzipSync(Buffer.from(session.slice('LUKA~'.length), 'base64')).toString('utf8');
+        } catch {
+            throw new Error('SESSION_ID has the LUKA~ prefix but is not valid gzip/base64 data.');
+        }
+    } else {
+        try {
+            jsonText = Buffer.from(session, 'base64').toString('utf8');
+        } catch {
+            throw new Error('SESSION must be base64-encoded credentials, or SESSION_ID must use the LUKA~ format.');
+        }
+    }
+    try {
+        JSON.parse(jsonText);
+    } catch {
+        throw new Error('The supplied WhatsApp session decoded, but was not valid credentials JSON.');
+    }
+    return Buffer.from(jsonText, 'utf8').toString('base64');
+}
+
+const botPic = process.env.BOT_PIC || DEFAULT_BOT_PIC;
+const sessionInput = process.env.SESSION?.trim() || process.env.SESSION_ID?.trim() || '';
+
+const CONFIG = {
+    MODE: (process.env.MODE || 'private').trim().toLowerCase(),
+    PREFIXES: parsePrefixes(process.env.PREFIXES || '.'),
+    PORT: parseInt(process.env.PORT, 10) || 3000,
     SESSION: normalizeSession(sessionInput),
-    SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('GURU~') ? 'GURU~ gzip/base64' : 'base64 creds.json',
-
-    MODE: env('MODE', 'public').trim().toLowerCase(),
-    TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
-    TZ: env('TZ', env('TIME_ZONE', 'Africa/Nairobi')),
-
-    AUTO_READ_STATUS: parseBoolean(env('AUTO_READ_STATUS'), true),
-    AUTO_LIKE_STATUS: parseBoolean(env('AUTO_LIKE_STATUS'), true),
-    AUTO_REACT: parseBoolean(env('AUTO_REACT'), false),
-    AUTO_BIO: parseBoolean(env('AUTO_BIO'), true),
-    AUTO_TYPING: parseBoolean(env('AUTO_TYPING'), false),
-    AUTO_RECORDING: parseBoolean(env('AUTO_RECORDING'), false),
-    AUTO_READ: parseBoolean(env('AUTO_READ'), false),
-    AUTO_VIEW: parseBoolean(env('AUTO_VIEW', env('AUTO_READ_STATUS', 'true')), true),
-    AUTO_LIKE: parseBoolean(env('AUTO_LIKE', env('AUTO_LIKE_STATUS', 'true')), true),
-
-    DM_PRESENCE: env('DM_PRESENCE'),
-    GRP_PRESENCE: env('GRP_PRESENCE'),
-    USER_LID: parseLids(env('USER_LID')),
-
-    GHOST_MODE: parseBoolean(env('GHOST_MODE'), false),
-    FREEZE_LAST_SEEN: parseBoolean(env('FREEZE_LAST_SEEN'), false),
-    ANTICALL: parseBoolean(env('ANTICALL'), false),
-    ANTIDELETE: parseBoolean(env('ANTIDELETE'), true),
-    ANTIEDIT: parseBoolean(env('ANTIEDIT'), true),
-
-    AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(parseBoolean(env('AUTO_READ_STATUS'), true))),
-    AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(parseBoolean(env('AUTO_LIKE_STATUS'), true))),
-    AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
-
-    Status_Saver: env('Status_Saver', 'false'),
-    Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
-    STATUS_REPLY: parseBoolean(env('STATUS_REPLY'), false),
-    STATUS_MSG: env('STATUS_MSG'),
-
-    CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
-    AUTO_STICKER: parseBoolean(env('AUTO_STICKER'), false),
-
-    DATABASE_URL: env('DATABASE_URL', null),
-    PORT: parseInt(env('PORT', '5000'), 10) || 5000,
-
-    ANTI_VV: parseBoolean(env('ANTI_VV'), true),
-    AUTO_FOLLOW_CHANNEL: parseBoolean(env('AUTO_FOLLOW_CHANNEL'), true),
-    AUTO_JOIN_GROUPS: env('AUTO_JOIN_GROUPS'),
-    AUTO_JOIN_GROUP_LINK: env('AUTO_JOIN_GROUP_LINK', env('GROUP_INVITE_LINK')),
-    AUTO_UPDATE: parseBoolean(env('AUTO_UPDATE'), true),
-
-    GITHUB_REPO: env('GITHUB_REPO'),
-    HOSTING_URL: env('HOSTING_URL'),
-    HOSTING_PROVIDER: env('HOSTING_PROVIDER'),
-    EXPIRY_DATE: env('EXPIRY_DATE')
+    SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
+    TZ: process.env.TZ || process.env.TIME_ZONE || 'Africa/Nairobi',
+    ANTICALL: parseBoolean(process.env.ANTICALL || 'off'),
+    ANTI_CALL: parseBoolean(process.env.ANTI_CALL ?? process.env.ANTICALL ?? 'off'),
+    ANTI_VV: parseBoolean(process.env.ANTI_VV || 'off'),
+    ANTIDELETE: parseBoolean(process.env.ANTIDELETE || 'on'),
+    ANTIEDIT: parseBoolean(process.env.ANTIEDIT || 'on'),
+    AUTO_READ: parseBoolean(process.env.AUTO_READ || 'off'),
+    AUTO_READ_STATUS: parseBoolean(process.env.AUTO_READ_STATUS || 'on'),
+    AUTO_LIKE_STATUS: parseBoolean(process.env.AUTO_LIKE_STATUS || 'on'),
+    AUTO_REACT: parseBoolean(process.env.AUTO_REACT || 'off'),
+    AUTO_BIO: parseBoolean(process.env.AUTO_BIO || 'off'),
+    STATUS_LIKE_EMOJI: process.env.STATUS_LIKE_EMOJI || '💚',
+    DM_PRESENCE: process.env.DM_PRESENCE || '',
+    GRP_PRESENCE: process.env.GRP_PRESENCE || '',
+    USER_LID: parseLids(process.env.USER_LID || ''),
+    OWNER_NUMBER: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
+    OWNER_NAME: process.env.OWNER_NAME || 'GuruTech',
+    BOT_NAME: process.env.BOT_NAME || 'ULTRA GURU',
+    BOT_PIC: botPic,
+    BOT_VERSION: process.env.BOT_VERSION || '3.0.0',
+    MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
+    MENU_THEME: process.env.MENU_THEME || 'default',
+    CHATBOT: parseBoolean(process.env.CHATBOT || 'off'),
+    CHAT_MODE: process.env.CHAT_MODE || 'private',
+    WHATSAPP_USERNAME: process.env.WHATSAPP_USERNAME || '',
+    CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
+    CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
+    HOSTING_URL: process.env.HOSTING_URL || 'https://cheap.bothosting.gurutech.top',
+    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || 'Bothosting',
+    GITHUB_REPO: process.env.GITHUB_REPO || 'GuruhTech/ULTRA-GURU',
+    AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
 };
 
-module.exports = config;
-module.exports.parseBoolean = parseBoolean;
-module.exports.parsePrefixes = parsePrefixes;
-module.exports.parseLids = parseLids;
-module.exports.parseMenuImages = parseMenuImages;
+module.exports = CONFIG;
 module.exports.normalizeSession = normalizeSession;
