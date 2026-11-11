@@ -71,6 +71,8 @@ const CONFIG = {
     AUTO_LIKE_STATUS: parseBoolean(process.env.AUTO_LIKE_STATUS || 'on'),
     AUTO_REACT: parseBoolean(process.env.AUTO_REACT || 'off'),
     AUTO_BIO: parseBoolean(process.env.AUTO_BIO || 'on'),
+    AUTO_RECORDING: parseBoolean(process.env.AUTO_RECORDING || 'off'),
+    AUTO_TYPING: parseBoolean(process.env.AUTO_TYPING || 'off'),
     STATUS_LIKE_EMOJI: process.env.STATUS_LIKE_EMOJI || '💚,💜',
     DM_PRESENCE: process.env.DM_PRESENCE || '',
     GRP_PRESENCE: process.env.GRP_PRESENCE || '',
