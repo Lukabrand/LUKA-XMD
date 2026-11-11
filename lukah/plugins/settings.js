@@ -190,6 +190,14 @@ addCmd({
 // BOT SETTINGS OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
+function getTextValue(value) {
+    if (value === undefined || value === null || value === '') return 'Not Set';
+    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
+    if (Array.isArray(value)) return value.join(', ') || 'None';
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+}
+
 async function formatGroupsWithNames(jids, sock) {
     if (!jids?.length) return 'None';
 
@@ -202,6 +210,7 @@ async function formatGroupsWithNames(jids, sock) {
         }
     }))).join('\n');
 }
+    
 addCmd({
     name: 'settings',
     aliases: ['botsettings', 'setting', 'botsetting', 'allsettings'],
