@@ -311,14 +311,11 @@ addCmd({
                 card,
                 { quoted: ctx.m }
             ).catch(async () => {
-                await ctx.sock.sendMessage(
-                    ctx.from,
-                    {
-                        text,
-                        contextInfo: channelCtx()
-                    },
-                    { quoted: ctx.m }
-                );
+         await ctx.sock.sendMessage(
+               ctx.from,
+               { text },
+             { quoted: ctx.m }
+               );
             });
 
         } catch (error) {
