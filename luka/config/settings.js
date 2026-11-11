@@ -3,7 +3,7 @@ require('dotenv').config({ path: '.env' });
 const { gunzipSync } = require('node:zlib');
 
 const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
-const DEFAULT_CHANNEL_JID = '120363431857319034@newsletter';
+const DEFAULT_CHANNEL_JID = '120363432546073321@newsletter';
 const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h';
 
 function parsePrefixes(prefixStr) {
