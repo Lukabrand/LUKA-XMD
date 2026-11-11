@@ -1,113 +1,74 @@
- 'use strict';
-require('dotenv').config({ path: '.env' });
-const { gunzipSync } = require('node:zlib');
+'use strict';
+require('dotenv').config();
 
-const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
-const DEFAULT_CHANNEL_JID = '120363432546073321@newsletter';
-const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h';
+const bool = (key, def = true) => {
+    const v = process.env[key];
+    return v == null || v === '' ? def : v.toLowerCase() === 'true';
+};
+const env = (key, def = '') => process.env[key] || def;
 
-function parsePrefixes(prefixStr) {
-    if (!prefixStr || prefixStr.trim() === '' || prefixStr.toLowerCase() === 'none') return [];
-    return prefixStr.split(',').map(p => p.trim()).filter(Boolean);
-}
+const config = {
+    // 🤖 BOT IDENTITY
+    BOT_NAME: env('BOT_NAME', 'LUKA-XMD'),
+    OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
+    OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
+    BOT_PREFIX: env('BOT_PREFIX', '.'),
+    BOT_VERSION: '5.0.0',
+    PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
+    PACK_AUTHOR: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
 
-function parseBoolean(value) {
-    if (typeof value === 'string') return ['on', 'true', '1', 'yes'].includes(value.toLowerCase());
-    return Boolean(value);
-}
+    // 🎨 MENU
+    MENU_THEME: env('MENU_THEME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
+    MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
 
-function parseLids(lidStr) {
-    if (!lidStr || lidStr.trim() === '') return [];
-    return lidStr.split(',').map(l => l.trim()).filter(Boolean).map(l => l.includes('@') ? l : `${l}@lid`);
-}
+    // 📡 CHANNEL
+    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
+    CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
+    CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
+    CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
 
-function parseMenuImages(menuImagesStr, fallbackImage) {
-    if (!menuImagesStr || menuImagesStr.trim() === '') return fallbackImage ? [fallbackImage] : [];
-    return menuImagesStr.split(',').map(img => img.trim()).filter(Boolean);
-}
+    // 🔐 CONNECTION
+    SESSION_ID: env('SESSION_ID'),
+    MODE: env('MODE', 'public'),
+    TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
 
-function normalizeSession(rawSession) {
-    const session = rawSession?.trim();
-    if (!session) return null;
-    let jsonText;
-    if (session.startsWith('LUKA~')) {
-        try {
-            jsonText = gunzipSync(Buffer.from(session.slice('LUKA~'.length), 'base64')).toString('utf8');
-        } catch {
-            throw new Error('SESSION_ID has the LUKA~ prefix but is not valid gzip/base64 data.');
-        }
-    } else {
-        try {
-            jsonText = Buffer.from(session, 'base64').toString('utf8');
-        } catch {
-            throw new Error('SESSION must be base64-encoded credentials, or SESSION_ID must use the LUKA~ format.');
-        }
-    }
-    try {
-        JSON.parse(jsonText);
-    } catch {
-        throw new Error('The supplied WhatsApp session decoded, but was not valid credentials JSON.');
-    }
-    return Buffer.from(jsonText, 'utf8').toString('base64');
-}
+    // ⚙️ AUTO FEATURES
+    AUTO_READ_STATUS: bool('AUTO_READ_STATUS', true),
+    AUTO_LIKE_STATUS: bool('AUTO_LIKE_STATUS', true),
+    AUTO_REACT: bool('AUTO_REACT', false),
+    AUTO_BIO: bool('AUTO_BIO', true),
+    AUTO_TYPING: bool('AUTO_TYPING', false),
+    AUTO_RECORDING: bool('AUTO_RECORDING', false),
+    GHOST_MODE: bool('GHOST_MODE', false),
+    FREEZE_LAST_SEEN: bool('FREEZE_LAST_SEEN', false),
+    STATUS_REPLY: bool('STATUS_REPLY', false),
+    AUTO_STICKER: bool('AUTO_STICKER', false),
 
-const botPic = process.env.BOT_PIC || DEFAULT_BOT_PIC;
-const sessionInput = process.env.SESSION?.trim() || process.env.SESSION_ID?.trim() || '';
+    // 👁️ STATUS
+    AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
+    AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
+    AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
+    Status_Saver: env('Status_Saver', 'false'),
+    Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
+    STATUS_MSG: env('STATUS_MSG'),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💛,❤️,💜,💚,💙,🤍'),
+    CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
-const CONFIG = {
-    MODE: (process.env.MODE || 'public').trim().toLowerCase(),
-    PREFIX: parsePrefixes(process.env.PREFIX || '.'),
-    PORT: parseInt(process.env.PORT, 10) || 3000,
-    SESSION: normalizeSession(sessionInput),
-    SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
-    TZ: process.env.TZ || process.env.TIME_ZONE || 'Africa/Nairobi',
-    ANTICALL: parseBoolean(process.env.ANTICALL || 'off'),
-    ANTI_CALL: parseBoolean(process.env.ANTI_CALL ?? process.env.ANTICALL ?? 'off'),
-    ANTI_VV: parseBoolean(process.env.ANTI_VV || 'off'),
-    ANTIDELETE: parseBoolean(process.env.ANTIDELETE || 'on'),
-    ANTIEDIT: parseBoolean(process.env.ANTIEDIT || 'on'),
-    AUTO_READ: parseBoolean(process.env.AUTO_READ || 'off'),
-    AUTO_READ_STATUS: parseBoolean(process.env.AUTO_READ_STATUS || 'on'),
-    AUTO_LIKE_STATUS: parseBoolean(process.env.AUTO_LIKE_STATUS || 'on'),
-    AUTO_REACT: parseBoolean(process.env.AUTO_REACT || 'off'),
-    AUTO_BIO: parseBoolean(process.env.AUTO_BIO || 'on'),
-    AUTO_RECORDING: parseBoolean(process.env.AUTO_RECORDING || 'off'),
-    AUTO_TYPING: parseBoolean(process.env.AUTO_TYPING || 'off'),
-    STATUS_LIKE_EMOJI: process.env.STATUS_LIKE_EMOJI || '💚,💜',
-    DM_PRESENCE: process.env.DM_PRESENCE || '',
-    GRP_PRESENCE: process.env.GRP_PRESENCE || '',
-    USER_LID: parseLids(process.env.USER_LID || ''),
-    OWNER_NUMBER: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
-    OWNER_NAME: process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
-    BOT_NAME: process.env.BOT_NAME || 'LUKA-XMD',
-    BOT_PIC: botPic,
-    BOT_VERSION: process.env.BOT_VERSION || '3.0.0',
-    MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
-    MENU_THEME: process.env.MENU_THEME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
-    CHATBOT: parseBoolean(process.env.CHATBOT || 'off'),
-    CHAT_MODE: process.env.CHAT_MODE || 'private',
-    WHATSAPP_USERNAME: process.env.WHATSAPP_USERNAME || '',
-    CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
-    CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
-    HOSTING_URL: process.env.HOSTING_URL ||'',
-    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || '',
-    GITHUB_REPO: process.env.GITHUB_REPO || 'Lukabrand/LUKA-XMD',
-    AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
+    // 🗄️ DATABASE & SERVER
+    DATABASE_URL: process.env.DATABASE_URL || null,
+    PORT: parseInt(process.env.PORT, 10) || 5000,
+
+    // 🛡️ SECURITY
+    ANTI_VV: bool('ANTI_VV', true),
+    ANTI_DELETE: bool('ANTI_DELETE', true),
+    AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
+    AUTO_JOIN_GROUPS: env('AUTO_JOIN_GROUPS'),
+    AUTO_UPDATE: bool('AUTO_UPDATE', true),
+
+    // 📅 LICENSE
+    EXPIRY_DATE: env('EXPIRY_DATE')
 };
 
-function getAllSettings() {
-    const hidden = ['SESSION', 'SESSION_ID', 'DATABASE_URL'];
-    return Object.fromEntries(
-        Object.entries(CONFIG)
-            .filter(([key, value]) => !hidden.includes(key) && typeof value !== 'function')
-            .map(([key, value]) => [key, Array.isArray(value) ? value.join(', ') : value])
-    );
-}
+module.exports = config;
 
-module.exports = CONFIG;
-module.exports.getAllSettings = getAllSettings;
-module.exports.parseBoolean = parseBoolean;
-module.exports.parsePrefixes = parsePrefixes;
-module.exports.parseLids = parseLids;
-module.exports.parseMenuImages = parseMenuImages;
-module.exports.normalizeSession = normalizeSession;
+// ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ
