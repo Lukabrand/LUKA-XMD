@@ -299,3 +299,263 @@ addCmd({
         } catch (e) { await ctx.reply(`❌ ${e.message}`); }
     },
 });
+// ═══════════════════════════════════════════════════════════════
+// ⚡ WHATSAPP USERNAME MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+function cleanUsername(input) {
+    return String(input || '')
+        .trim()
+        .replace(/^@/, '');
+}
+
+function validUsername(username) {
+    return /^[a-zA-Z0-9._]{3,35}$/.test(username);
+}
+
+function usernameSupport(ctx, method) {
+    if (typeof ctx.sock[method] !== 'function') {
+        ctx.reply(
+            `❌ Your installed Baileys version does not support ${method}().\n\n` +
+            `Update or use a Baileys build that supports WhatsApp Username API.`
+        );
+        return false;
+    }
+
+    return true;
+}
+
+// ── SET USERNAME ─────────────────────────────────────────────
+
+addCmd({
+    name: 'setusername',
+    aliases: ['claimusername'],
+    desc: 'Set bot WhatsApp username',
+    usage: 'setusername <username>',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        const username = cleanUsername(ctx.args.join(' '));
+
+        if (!username) {
+            return ctx.reply(
+                '📝 Usage: `.setusername lukabrand`'
+            );
+        }
+
+        if (!validUsername(username)) {
+            return ctx.reply(
+                '❌ Invalid username!\n\n' +
+                'Username rules:\n' +
+                '• 3–35 characters\n' +
+                '• Letters and numbers\n' +
+                '• Dot (.) and underscore (_) allowed'
+            );
+        }
+
+        if (!usernameSupport(ctx, 'checkUsername')) return;
+        if (!usernameSupport(ctx, 'setUsername')) return;
+
+        try {
+            await ctx.reply(
+                `🔍 Checking username: @${username}...`
+            );
+
+            const check = await ctx.sock.checkUsername(username);
+
+            if (!check?.available) {
+                const suggestions = check?.suggestions?.length
+                    ? '\n\n💡 Suggestions:\n' +
+                      check.suggestions.map(x => `• @${x}`).join('\n')
+                    : '';
+
+                return ctx.reply(
+                    `❌ Username @${username} is unavailable.` +
+                    suggestions
+                );
+            }
+
+            await ctx.sock.setUsername(username);
+
+            await ctx.reply(
+                `✅ *WHATSAPP USERNAME UPDATED*\n\n` +
+                `👤 Username: @${username}\n` +
+                `📌 Status: Successfully claimed\n\n` +
+                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+            );
+
+        } catch (e) {
+            await ctx.reply(
+                `❌ Failed to set username:\n${e.message}`
+            );
+        }
+    }
+});
+
+// ── CHECK USERNAME AVAILABILITY ─────────────────────────────
+
+addCmd({
+    name: 'checkusername',
+    aliases: ['usernamecheck', 'isusername'],
+    desc: 'Check WhatsApp username availability',
+    usage: 'checkusername <username>',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        const username = cleanUsername(ctx.args.join(' '));
+
+        if (!username) {
+            return ctx.reply(
+                '📝 Usage: `.checkusername lukabrand`'
+            );
+        }
+
+        if (!validUsername(username)) {
+            return ctx.reply('❌ Invalid username format.');
+        }
+
+        if (!usernameSupport(ctx, 'checkUsername')) return;
+
+        try {
+            const result = await ctx.sock.checkUsername(username);
+
+            if (result?.available) {
+                return ctx.reply(
+                    `✅ *USERNAME AVAILABLE*\n\n` +
+                    `👤 @${username}\n\n` +
+                    `You can claim this username.`
+                );
+            }
+
+            const suggestions = result?.suggestions?.length
+                ? '\n\n💡 Suggestions:\n' +
+                  result.suggestions.map(x => `• @${x}`).join('\n')
+                : '';
+
+            await ctx.reply(
+                `❌ *USERNAME NOT AVAILABLE*\n\n` +
+                `👤 @${username}` +
+                suggestions
+            );
+
+        } catch (e) {
+            await ctx.reply(`❌ Error: ${e.message}`);
+        }
+    }
+});
+
+// ── GET BOT USERNAME ────────────────────────────────────────
+
+addCmd({
+    name: 'myusername',
+    aliases: ['getusername', 'botusername'],
+    desc: 'Show bot WhatsApp username',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        if (!usernameSupport(ctx, 'getMyUsername')) return;
+
+        try {
+            const result = await ctx.sock.getMyUsername();
+
+            const username = typeof result === 'string'
+                ? result
+                : result?.username || result?.name;
+
+            if (!username) {
+                return ctx.reply(
+                    'ℹ️ No WhatsApp username was returned for this account.'
+                );
+            }
+
+            await ctx.reply(
+                `👤 *BOT WHATSAPP USERNAME*\n\n` +
+                `Username: @${username}\n\n` +
+                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+            );
+
+        } catch (e) {
+            await ctx.reply(`❌ Failed: ${e.message}`);
+        }
+    }
+});
+
+// ── FIND USER BY USERNAME ───────────────────────────────────
+
+addCmd({
+    name: 'username',
+    aliases: ['findusername', 'userbyname'],
+    desc: 'Find WhatsApp user by username',
+    usage: 'username <username>',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        const username = cleanUsername(ctx.args.join(' '));
+
+        if (!username) {
+            return ctx.reply(
+                '📝 Usage: `.username lukabrand`'
+            );
+        }
+
+        if (!validUsername(username)) {
+            return ctx.reply('❌ Invalid username format.');
+        }
+
+        if (!usernameSupport(ctx, 'findUserByUsername')) return;
+
+        try {
+            const result = await ctx.sock.findUserByUsername(username);
+
+            if (!result?.jid) {
+                return ctx.reply(
+                    `❌ No WhatsApp user found for @${username}.`
+                );
+            }
+
+            await ctx.reply(
+                `✅ *WHATSAPP USER FOUND*\n\n` +
+                `👤 Username: @${username}\n` +
+                `🆔 JID: ${result.jid}\n` +
+                `📱 Contact: ${result.contact ? 'Yes' : 'No'}\n\n` +
+                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+            );
+
+        } catch (e) {
+            await ctx.reply(`❌ Lookup failed: ${e.message}`);
+        }
+    }
+});
+
+// ── DELETE BOT USERNAME ─────────────────────────────────────
+
+addCmd({
+    name: 'deleteusername',
+    aliases: ['removeusername', 'dropusername'],
+    desc: 'Remove bot WhatsApp username',
+    category: 'owner',
+    ownerOnly: true,
+
+    handler: async (ctx) => {
+        if (!usernameSupport(ctx, 'deleteUsername')) return;
+
+        try {
+            await ctx.sock.deleteUsername();
+
+            await ctx.reply(
+                `✅ *WHATSAPP USERNAME REMOVED*\n\n` +
+                `The bot username has been removed successfully.\n\n` +
+                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+            );
+
+        } catch (e) {
+            await ctx.reply(
+                `❌ Failed to remove username:\n${e.message}`
+            );
+        }
+    }
+});
