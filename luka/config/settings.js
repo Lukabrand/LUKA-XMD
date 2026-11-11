@@ -1,9 +1,9 @@
 'use strict';
 require('dotenv').config();
 
-const bool = (key, def = true) => {
+const onOff = (key, def = 'off') => {
     const v = process.env[key];
-    return v == null || v === '' ? def : v.toLowerCase() === 'true';
+    return v == null || v === '' ? def : ['true', 'on', '1', 'yes'].includes(String(v).toLowerCase().trim()) ? 'on' : 'off';
 };
 const env = (key, def = '') => process.env[key] || def;
 
@@ -23,9 +23,9 @@ const config = {
     MENU_THEMES: ['ʟᴜᴋᴀʙʀᴀɴᴅ', 'ULTRA', 'PANTHER', 'NEON', 'GALAXY'],
 
     // 📡 CHANNEL
-    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029l2UX3rZZilMSvxN1e'),
+    CHANNEL_URL: env('CHANNEL_URL', 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h'),
     CHANNEL_NAME: env('CHANNEL_NAME', 'LUKA-XMD Channel'),
-    CHANNEL_JID: env('CHANNEL_JID', '120363427012090993@newsletter'),
+    CHANNEL_JID: env('CHANNEL_JID', '120363432546073321@newsletter'),
     CHANNEL_NEWSLETTER_NAME: env('CHANNEL_NEWSLETTER_NAME', '『 LUKA-XMD 』'),
 
     // 🔐 CONNECTION
@@ -34,27 +34,27 @@ const config = {
     TIME_ZONE: env('TIME_ZONE', 'Africa/Nairobi'),
 
     // ⚙️ AUTO FEATURES
-    AUTO_READ_STATUS: bool('AUTO_READ_STATUS', true),
-    AUTO_LIKE_STATUS: bool('AUTO_LIKE_STATUS', true),
-    AUTO_REACT: bool('AUTO_REACT', false),
-    AUTO_BIO: bool('AUTO_BIO', true),
-    AUTO_TYPING: bool('AUTO_TYPING', false),
-    AUTO_RECORDING: bool('AUTO_RECORDING', false),
-    GHOST_MODE: bool('GHOST_MODE', false),
-    FREEZE_LAST_SEEN: bool('FREEZE_LAST_SEEN', false),
-    STATUS_REPLY: bool('STATUS_REPLY', false),
-    AUTO_STICKER: bool('AUTO_STICKER', false),
+    AUTO_READ_STATUS: onOff('AUTO_READ_STATUS', 'on'),
+    AUTO_LIKE_STATUS: onOff('AUTO_LIKE_STATUS', 'on'),
+    AUTO_REACT: onOff('AUTO_REACT', 'off'),
+    AUTO_BIO: onOff('AUTO_BIO', 'on'),
+    AUTO_TYPING: onOff('AUTO_TYPING', 'off'),
+    AUTO_RECORDING: onOff('AUTO_RECORDING', 'off'),
+    GHOST_MODE: onOff('GHOST_MODE', 'off'),
+    FREEZE_LAST_SEEN: onOff('FREEZE_LAST_SEEN', 'off'),
+    STATUS_REPLY: onOff('STATUS_REPLY', 'off'),
+    AUTO_STICKER: onOff('AUTO_STICKER', 'off'),
 
     // 🤖 CHATBOT
-    CHATBOT: bool('CHATBOT', false),
-    CHATBOT_MODE: env('CHATBOT_MODE', 'private'),
+    CHATBOT: onOff('CHATBOT', 'off'),
+    CHATBOT_MODE: onOff('CHATBOT_MODE', 'off'),
 
     // 👁️ STATUS
-    AUTO_STATUS_SEEN: env('AUTO_STATUS_SEEN', String(bool('AUTO_READ_STATUS', true))),
-    AUTO_STATUS_REACT: env('AUTO_STATUS_REACT', String(bool('AUTO_LIKE_STATUS', true))),
+    AUTO_STATUS_SEEN: onOff('AUTO_STATUS_SEEN', 'on'),
+    AUTO_STATUS_REACT: onOff('AUTO_STATUS_REACT', 'on'),
     AUTO_STATUS_MSG: env('AUTO_STATUS_MSG'),
-    Status_Saver: env('Status_Saver', 'false'),
-    Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
+    Status_Saver: onOff('Status_Saver', 'off'),
+    Status_Saver_Owner_Notify: onOff('Status_Saver_Owner_Notify', 'off'),
     STATUS_MSG: env('STATUS_MSG'),
     STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💜,💚,💙'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
@@ -64,11 +64,11 @@ const config = {
     PORT: parseInt(process.env.PORT, 10) || 5000,
 
     // 🛡️ SECURITY
-    ANTI_VV: bool('ANTI_VV', true),
-    ANTI_DELETE: bool('ANTI_DELETE', true),
-    AUTO_FOLLOW_CHANNEL: bool('AUTO_FOLLOW_CHANNEL', true),
+    ANTI_VV: onOff('ANTI_VV', 'on'),
+    ANTI_DELETE: onOff('ANTI_DELETE', 'on'),
+    AUTO_FOLLOW_CHANNEL: onOff('AUTO_FOLLOW_CHANNEL', 'on'),
     AUTO_JOIN_GROUPS: env('AUTO_JOIN_GROUPS'),
-    AUTO_UPDATE: bool('AUTO_UPDATE', true),
+    AUTO_UPDATE: onOff('AUTO_UPDATE', 'on'),
 
     // 📅 LICENSE
     EXPIRY_DATE: env('EXPIRY_DATE')
