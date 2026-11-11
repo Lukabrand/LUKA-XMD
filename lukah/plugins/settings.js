@@ -666,7 +666,7 @@ addCmd({
         if (!value) {
             return ctx.reply(
                 '❌ Please provide emojis separated by commas!\n' +
-                'Example: .setstatusemojis 💛,❤️,💜'
+                'Example: .setstatusemojis 💚,❤️,💜'
             );
         }
 
