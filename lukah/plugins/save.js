@@ -6,7 +6,6 @@ const {
     downloadContentFromMessage,
 } = require('@whiskeysockets/baileys');
 
-const OWNER_NUMBER = config.OWNER_NUMBER || '2557XXXXXXXX';
 
 function getQuotedMessage(ctx) {
     return ctx.m?.message?.extendedTextMessage
@@ -66,6 +65,21 @@ async function downloadMedia(message) {
     return null;
 }
 
+function getSessionJid(sock) {
+    // The connected WhatsApp account is the owner/destination.
+    // Baileys may return an ID such as 2557xxxx:12@s.whatsapp.net.
+    const rawId = String(sock?.user?.id || '').trim();
+    if (!rawId) return null;
+
+    const [userPart, domainPart] = rawId.split('@');
+    if (!userPart || !domainPart) return null;
+
+    const number = userPart.split(':')[0].replace(/\D/g, '');
+    if (!number) return null;
+
+    return `${number}@${domainPart}`;
+}
+
 async function sendToOwner(ctx, mode = 'all') {
     const quoted = getQuotedMessage(ctx);
 
@@ -75,15 +89,13 @@ async function sendToOwner(ctx, mode = 'all') {
         );
     }
 
-    const number = String(OWNER_NUMBER).replace(/\D/g, '');
+    const ownerJid = getSessionJid(ctx.sock);
 
-    if (!number || number.includes('X')) {
+    if (!ownerJid) {
         return ctx.reply(
-            '❌ Set your real OWNER_NUMBER in the bot configuration.'
+            '❌ WhatsApp session number is unavailable. Make sure the bot is connected.'
         );
     }
-
-    const ownerJid = `${number}@s.whatsapp.net`;
 
     try {
         const media = await downloadMedia(quoted);
@@ -158,7 +170,7 @@ async function sendToOwner(ctx, mode = 'all') {
 addCmd({
     name: 'save',
     aliases: ['saver', 'savefile'],
-    desc: 'Send replied media to the bot owner',
+    desc: 'Send replied media to the connected WhatsApp session',
     category: 'general',
     handler: async (ctx) => sendToOwner(ctx),
 });
@@ -166,7 +178,7 @@ addCmd({
 addCmd({
     name: 'vv',
     aliases: ['viewonce', 'retrievemedia'],
-    desc: 'Send quoted media to the owner',
+    desc: 'Send quoted media to the connected WhatsApp session',
     category: 'general',
     handler: async (ctx) => sendToOwner(ctx),
 });
@@ -174,7 +186,7 @@ addCmd({
 addCmd({
     name: 'steal',
     aliases: ['getsticker', 'savesticker'],
-    desc: 'Send a replied sticker to the owner',
+    desc: 'Send a replied sticker to the connected WhatsApp session',
     category: 'general',
     handler: async (ctx) => sendToOwner(ctx, 'sticker'),
 });
@@ -182,7 +194,7 @@ addCmd({
 addCmd({
     name: 'take',
     aliases: ['getmedia', 'reupload'],
-    desc: 'Send replied media to the owner',
+    desc: 'Send replied media to the connected WhatsApp session',
     category: 'general',
     handler: async (ctx) => sendToOwner(ctx),
 });
@@ -190,7 +202,7 @@ addCmd({
 addCmd({
     name: 'saveall',
     aliases: ['saveany', 'fetchmedia'],
-    desc: 'Send supported replied media to the owner',
+    desc: 'Send supported replied media to the connected WhatsApp session',
     category: 'general',
     handler: async (ctx) => sendToOwner(ctx),
 });
