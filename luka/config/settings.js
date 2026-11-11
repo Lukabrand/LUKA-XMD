@@ -85,7 +85,6 @@ const CONFIG = {
     MENU_THEME: process.env.MENU_THEME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
     CHATBOT: parseBoolean(process.env.CHATBOT || 'off'),
     CHAT_MODE: process.env.CHAT_MODE || 'private',
-    WHATSAPP_USERNAME: process.env.WHATSAPP_USERNAME || '',
     CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
     CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
     CHANNEL_NEWSLETTER_NAME: process.env.CHANNEL_NEWSLETTER_NAME || '『 LUKA-XMD 』',
