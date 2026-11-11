@@ -11,7 +11,8 @@ const config = {
     // 🤖 BOT IDENTITY
     BOT_NAME: env('BOT_NAME', 'LUKA-XMD'),
     OWNER_NAME: env('OWNER_NAME', 'ʟᴜᴋᴀʙʀᴀɴᴅ'),
-    OWNER_NUMBER: env('OWNER_NUMBER', '255768619068'),
+    OWNER_NUMBER: env('OWNER_NUMBER', ''),
+    WHATSAPP_USERNAME: env('WHATSAPP_USERNAME', ''),
     BOT_PREFIX: env('BOT_PREFIX', '.'),
     BOT_VERSION: '5.0.0',
     PACK_NAME: env('BOT_NAME', 'LUKA-XMD'),
@@ -51,7 +52,7 @@ const config = {
     Status_Saver: env('Status_Saver', 'false'),
     Status_Saver_Owner_Notify: env('Status_Saver_Owner_Notify', 'false'),
     STATUS_MSG: env('STATUS_MSG'),
-    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💛,❤️,💜,💚,💙,🤍'),
+    STATUS_LIKE_EMOJIS: env('STATUS_LIKE_EMOJIS', '💜,💚,💙'),
     CUSTOM_REACT_EMOJIS: env('CUSTOM_REACT_EMOJIS', '🪾,🌴,🪻,🌿,🌲,🌵,🍂,☄️,🪽,🪶,🚀,🍖'),
 
     // 🗄️ DATABASE & SERVER
