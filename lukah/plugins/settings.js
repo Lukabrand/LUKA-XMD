@@ -1,16 +1,8 @@
 'use strict';
 
 const { addCmd, addTrigger } = require('../../luka/handlers/loader');
-const {
-    getSetting,
-    setSetting,
-    getGroupSettings,
-    setGroupSetting,
-    getSudoNumbers,
-    getEnabledGroupSettings
-} = require('../../luka/db/database');
+const { getSetting, setSetting, getGroupSettings, setGroupSetting } = require('../../luka/db/database');
 const config = require('../../luka/config/settings');
-const { getAllSettings } = config;
 const moment = require('moment-timezone');
 const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
 
@@ -187,98 +179,154 @@ addCmd({
 });
 
 // ═══════════════════════════════════════════════════════════════
-// BOT SETTINGS OVERVIEW
+//  BOT SETTINGS OVERVIEW
 // ═══════════════════════════════════════════════════════════════
 
-function getTextValue(value) {
-    if (value === undefined || value === null || value === '') return 'Not Set';
-    if (typeof value === 'boolean') return value ? 'ON' : 'OFF';
-    if (Array.isArray(value)) return value.join(', ') || 'None';
-    if (typeof value === 'object') return JSON.stringify(value);
-    return String(value);
-}
-
-async function formatGroupsWithNames(jids, sock) {
-    if (!jids?.length) return 'None';
-
-    return (await Promise.all(jids.map(async jid => {
-        try {
-            const metadata = await sock.groupMetadata(jid);
-            return `• ${metadata?.subject || 'Unknown'}`;
-        } catch {
-            return `• ${jid}`;
-        }
-    }))).join('\n');
-}
-    
 addCmd({
-    name: 'settings',
-    aliases: ['botsettings', 'setting', 'botsetting', 'allsettings'],
+    name: 'botsettings',
+    aliases: ['settings', 'bsettings', 'config'],
     desc: 'View all bot and group settings',
     category: 'owner',
     ownerOnly: true,
+
     handler: async (ctx) => {
         try {
-            const [settings, sudoList, groups] = await Promise.all([
-                getAllSettings(), getSudoNumbers(), getEnabledGroupSettings()
-            ]);
+            const botName = config.BOT_NAME || 'LUKA-XMD';
 
-            let text = `╭━━━━━━━━━━━╮
-│   *⚙️ BOT SETTINGS*
-╰━━━━━━━━━━━╯
-
-`;
-
-            for (const key of Object.keys(settings || {}).sort()) {
-                const val = getTextValue(settings[key]);
-                text += `▸ *${key}:* ${val.length > 40 ? val.substring(0, 40) + '...' : val}\n`;
-            }
-
-            text += `\n▸ *SUDO_USERS:* ${sudoList?.length ? sudoList.join(', ') : 'None'}
-
-╭━━━━━━━━━━━╮
-│   *📋 GROUP SETTINGS*
-╰━━━━━━━━━━━╯
-
-`;
-
-            const labels = [
-                ['🎉 WELCOME MESSAGE', 'WELCOME_MESSAGE'],
-                ['👋 GOODBYE MESSAGE', 'GOODBYE_MESSAGE'],
-                ['📢 GROUP EVENTS', 'GROUP_EVENTS'],
-                ['🔗 ANTILINK', 'ANTILINK'],
-                ['🚫 ANTIBAD', 'ANTIBAD'],
-                ['🛡️ ANTI-GROUP-MENTION', 'ANTIGROUPMENTION']
+            const allSettings = [
+                'ANTICALL',
+                'ANTIDELETE',
+                'ANTIVIEWONCE',
+                'ANTI_EDIT',
+                'AUTO_BIO',
+                'AUTO_BLOCK',
+                'AUTO_JOIN',
+                'AUTO_LIKE_STATUS',
+                'AUTO_MUTE',
+                'AUTO_REACT',
+                'AUTO_READ_MESSAGES',
+                'AUTO_READ_STATUS',
+                'AUTO_TYPING',
+                'AUTO_RECORDING',
+                'AUTO_UPDATE',
+                'BOT_NAME',
+                'BOT_PREFIX',
+                'BOT_VERSION',
+                'CHATBOT',
+                'CHATBOT_MODE',
+                'DM_PRESENCE',
+                'MENU_THEME',
+                'MODE',
+                'OWNER_NAME',
+                'OWNER_NUMBER',
+                'PACK_AUTHOR',
+                'PACK_NAME',
+                'STARTING_MESSAGE',
+                'STATUS_LIKE_EMOJIS',
+                'STATUS_REACT_EMOJI',
+                'STATUS_REPLY_TEXT',
+                'SUDO_NUMBERS',
+                'TIME_ZONE',
             ];
 
-            for (const [label, key] of labels) {
-                text += `*${label}:*\n${await formatGroupsWithNames(groups?.[key], ctx.sock)}\n\n`;
+            const onOff = (value) => {
+                if (value === true || String(value).toLowerCase() === 'true') return 'true';
+                if (value === false || String(value).toLowerCase() === 'false') return 'false';
+                return value;
+            };
+
+            const formatValue = (value) => {
+                if (value === undefined || value === null || value === '') {
+                    return 'Not Set';
+                }
+
+                if (typeof value === 'object') {
+                    return JSON.stringify(value);
+                }
+
+                return String(onOff(value));
+            };
+
+            const getValue = (key) => {
+                const dbValue = getSetting(key, undefined);
+
+                if (dbValue !== undefined && dbValue !== null) {
+                    return dbValue;
+                }
+
+                if (config[key] !== undefined && config[key] !== null) {
+                    return config[key];
+                }
+
+                return 'Not Set';
+            };
+
+            let text =
+                `╭══〘〘 *${botName}* 〙〙═⊷\n` +
+                `      *BOT SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
+
+            for (const key of allSettings) {
+                const value = getValue(key);
+                text += `▸ *${key}:* ${formatValue(value)}\n`;
             }
 
+            const sudoUsers = getValue('SUDO_USERS');
+            text += `\n▸ *SUDO_USERS:* ${formatValue(sudoUsers)}\n`;
+
+            const groupSettings = getGroupSettings(ctx.from) || {};
+
+            const groupValue = (...keys) => {
+                for (const key of keys) {
+                    if (groupSettings[key] !== undefined && groupSettings[key] !== null) {
+                        return formatValue(groupSettings[key]);
+                    }
+                }
+                return 'None';
+            };
+
+            text +=
+                `\n╭══〘〘 *${botName}* 〙〙═⊷\n` +
+                `      📋 *GROUP SETTINGS*\n` +
+                `╰══✦ ✦══⊷\n\n`;
+
+            text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
+            text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
+            text += `*📢 GROUP EVENTS:*\n${groupValue('groupEvents', 'events')}\n\n`;
+            text += `*🔗 ANTILINK:*\n${groupValue('antilink', 'antilinkAction')}\n\n`;
+            text += `*🚫 ANTIBAD:*\n${groupValue('antibad', 'badwords')}\n\n`;
+            text += `*🛡️ ANTI-GROUP-MENTION:*\n${groupValue('antigroupmention', 'antiGroupMention')}\n\n`;
+
+            text += '\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
+
             const card = {
-                title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
+                title: `⚙️ ${botName} SETTINGS`,
                 text,
-                footer: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
+                footer: botName,
                 buttons: []
             };
 
-            try {
-                await sendButtons(ctx.sock, ctx.from, card, { quoted: ctx.m });
-} catch (error) {
-    console.error('[SETTINGS CARD ERROR]', error);
+            await sendButtons(
+                ctx.sock,
+                ctx.from,
+                card,
+                { quoted: ctx.m }
+            ).catch(async () => {
+                await ctx.sock.sendMessage(
+                    ctx.from,
+                    {
+                        text,
+                        contextInfo: channelCtx()
+                    },
+                    { quoted: ctx.m }
+                );
+            });
 
-    await ctx.sock.sendMessage(ctx.from, {
-        text: `${text}\n\nᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
-    }, { quoted: ctx.m });
-}
-
-await ctx.react('✅');
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
-            await ctx.react('❌');
-            await ctx.reply(`❌ Error: ${error.message}`);
+            await ctx.reply(`❌ Failed to load settings.\n${error.message || error}`);
         }
-    }
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -481,8 +529,23 @@ addCmd({
 });
 
 // ═══════════════════════════════════════════════════════════════
-//  SET OWNER NAME  (runtime update)
+//  SET OWNER NUMBER / NAME  (runtime update)
 // ═══════════════════════════════════════════════════════════════
+
+addCmd({
+    name:      'setowner',
+    aliases:   ['changeowner'],
+    desc:      'Change the bot owner number at runtime',
+    category:  'owner',
+    ownerOnly: true,
+    handler:   async (ctx) => {
+        const num = ctx.args[0]?.replace(/\D/g, '');
+        if (!num || num.length < 7) return ctx.reply('❌ Provide a valid number.\n\nExample: `.setowner 254712345678`');
+        setSetting('OWNER_NUMBER', num);
+        config.OWNER_NUMBER = num;
+        await ctx.reply(`✅ *Owner Number Updated*\n\nNew owner: +${num}`);
+    },
+});
 
 addCmd({
     name:      'setownername',
@@ -607,7 +670,7 @@ addCmd({
         if (!value) {
             return ctx.reply(
                 '❌ Please provide emojis separated by commas!\n' +
-                'Example: .setstatusemojis 💚,❤️,💜,🩵'
+                'Example: .setstatusemojis 💛,❤️,💜'
             );
         }
 
@@ -640,7 +703,11 @@ addCmd({
             // Update the runtime configuration
             config.STATUS_LIKE_EMOJIS = emojiValue;
 
-            await ctx.reply(`✅ Status emojis updated!\n💚 ${emojiValue}`);
+            await ctx.reply(
+                `✅ Status like emojis updated successfully!\n\n` +
+                `💚 Emojis: ${emojiValue}\n\n` +
+                `Saved to STATUS_LIKE_EMOJIS.`
+            );
         } catch (error) {
             console.error('[SET STATUS EMOJIS]', error);
 
@@ -1110,7 +1177,7 @@ addCmd({
     },
 });
 
-// ── Set Owner Number ──────────────────────────────────────────
+// ── Set Owner Number ───────────────────────────────────────────
 
 addCmd({
     name: 'setownernumber',
@@ -1123,20 +1190,33 @@ addCmd({
         const number = ctx.text?.replace(/\D/g, '');
 
         if (!number || number.length < 7) {
-            return ctx.reply('❌ Example: .setownernumber 255768619068');
+            return ctx.reply(
+                '❌ Please provide a valid phone number.\n' +
+                'Example: .setownernumber 255712345678'
+            );
         }
 
         try {
             await setSetting('OWNER_NUMBER', number);
 
+            // Update runtime config
             config.OWNER_NUMBER = number;
+
+            // Update other commonly used owner number fields
             config.OWNER = number;
             config.ownerNumber = number;
 
-            await ctx.reply(`✅ Owner number updated to +${number}`);
+            await ctx.reply(
+                `✅ Owner number updated successfully!\n\n` +
+                `📱 New number: +${number}\n\n` +
+                `⚠️ If owner permissions still use the old number, restart the bot.`
+            );
         } catch (error) {
             console.error('[SET OWNER NUMBER]', error);
-            await ctx.reply(`❌ ${error.message}`);
+
+            await ctx.reply(
+                `❌ Failed to update owner number:\n${error.message}`
+            );
         }
     },
 });
@@ -1146,7 +1226,7 @@ addCmd({
 addOwnerBoolCommand({
     name: 'setanticall',
     aliases: ['anticall'],
-    key: 'ANTI_CALL',
+    key: 'ANTICALL',
     description: 'Set anti-call on/off',
 });
 
@@ -1212,85 +1292,6 @@ addCmd({
             );
         } catch (error) {
             await ctx.reply(`❌ Error: ${error.message}`);
-        }
-    },
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  WHATSAPP USERNAME SETTINGS
-// ═══════════════════════════════════════════════════════════════
-
-addCmd({
-    name: 'setusername',
-    aliases: ['setwausername', 'wausername'],
-    desc: 'Set WhatsApp username',
-    category: 'owner',
-    ownerOnly: true,
-
-    handler: async (ctx) => {
-        const username = ctx.text?.trim();
-
-        if (!username) {
-            return ctx.reply(
-                '❌ Provide a username.\nExample: `.setusername lukabrand`\nDisable: `.setusername off`'
-            );
-        }
-
-        try {
-            if (username.toLowerCase() === 'off') {
-                await setSetting('WHATSAPP_USERNAME', '');
-                config.WHATSAPP_USERNAME = '';
-
-                return ctx.reply('✅ Username cleared.');
-            }
-
-            if (!/^[a-zA-Z0-9._]{3,30}$/.test(username)) {
-                return ctx.reply(
-                    '❌ Invalid username. Use 3–30 letters, numbers, dots or underscores.'
-                );
-            }
-
-            await setSetting('WHATSAPP_USERNAME', username);
-            config.WHATSAPP_USERNAME = username;
-
-            return ctx.reply(`✅ Username saved: @${username}`);
-
-        } catch (error) {
-            console.error('[SET WHATSAPP USERNAME]', error);
-            return ctx.reply(`❌ Error: ${error.message}`);
-        }
-    },
-});
-
-// ═══════════════════════════════════════════════════════════════
-//  GET WHATSAPP USERNAME
-// ═══════════════════════════════════════════════════════════════
-
-addCmd({
-    name: 'getusername',
-    aliases: ['myusername', 'wauser'],
-    desc: 'View saved WhatsApp username',
-    category: 'owner',
-    ownerOnly: true,
-
-    handler: async (ctx) => {
-        try {
-            const username = getSetting(
-                'WHATSAPP_USERNAME',
-                config.WHATSAPP_USERNAME || ''
-            );
-
-            if (!username) {
-                return ctx.reply(
-                    '⚠️ No username saved. Use `.setusername <username>`'
-                );
-            }
-
-            return ctx.reply(`👤 @${username}`);
-
-        } catch (error) {
-            console.error('[GET WHATSAPP USERNAME]', error);
-            return ctx.reply(`❌ Error: ${error.message}`);
         }
     },
 });
