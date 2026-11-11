@@ -621,81 +621,6 @@ async function sendButtons(sock, jid, opts = {}, msgOpts = {}) {
         contextInfo: channelCtx(),
     }, msgOpts).catch(() => {});
 }
-// ═══════════════════════════════════════════════════════════════
-// 👁️ ANTI VIEW ONCE — GLOBAL (DM + GROUPS)
-// ═══════════════════════════════════════════════════════════════
-
-async function PantherAntiViewOnce(sock, msg) {
-    try {
-        if (config.ANTI_VV !== true || !msg?.message || msg.key?.fromMe) return;
-
-        const chat = msg.key.remoteJid;
-        if (!chat || chat === 'status@broadcast' || chat.endsWith('@newsletter')) return;
-
-        let content = msg.message;
-        while (content?.ephemeralMessage?.message) {
-            content = content.ephemeralMessage.message;
-        }
-
-        const wrapper =
-            content.viewOnceMessage ||
-            content.viewOnceMessageV2 ||
-            content.viewOnceMessageV2Extension;
-
-        if (!wrapper?.message) return;
-
-        const inner = wrapper.message;
-        const mediaType = ['imageMessage', 'videoMessage', 'audioMessage']
-            .find(type => inner[type]);
-
-        if (!mediaType) return;
-
-        const media = inner[mediaType];
-        const type = mediaType.replace('Message', '');
-        const stream = await downloadContentFromMessage(media, type);
-        const chunks = [];
-
-        for await (const chunk of stream) chunks.push(chunk);
-
-        const buffer = Buffer.concat(chunks);
-        if (!buffer.length) return;
-
-        const sender = msg.key.participant || chat;
-        const senderNumber = sender.split('@')[0].split(':')[0];
-        const caption = media.caption || '';
-
-        const text =
-            `👁️ *ANTI VIEW ONCE*\n\n` +
-            `👤 Sender: @${senderNumber}\n` +
-            `💬 Chat: ${chat.endsWith('@g.us') ? 'Group' : 'Private'}\n` +
-            (caption ? `📝 Caption: ${caption}\n` : '') +
-            `\n_${config.BOT_NAME}_`;
-
-        const mentions = [sender];
-
-        if (type === 'image') {
-            await sock.sendMessage(chat, {
-                image: buffer,
-                caption: text,
-                mentions
-            }, { quoted: msg });
-        } else if (type === 'video') {
-            await sock.sendMessage(chat, {
-                video: buffer,
-                caption: text,
-                mentions
-            }, { quoted: msg });
-        } else if (type === 'audio') {
-            await sock.sendMessage(chat, {
-                audio: buffer,
-                mimetype: media.mimetype || 'audio/ogg; codecs=opus',
-                ptt: media.ptt || false
-            }, { quoted: msg });
-        }
-    } catch (err) {
-        logger.error('ANTI_VIEW_ONCE', err.message);
-    }
-}
 
 module.exports = {
     channelCtx,
@@ -717,7 +642,6 @@ module.exports = {
     PantherStatusHandler,
     PantherChatBot,
     PantherAntiGroupMention,
-    PantherAntiViewOnce,
     sendCopyButton,
     sendButtons,
 };
