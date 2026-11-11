@@ -61,7 +61,6 @@ const CONFIG = {
     SESSION: normalizeSession(sessionInput),
     SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
     TZ: process.env.TZ || process.env.TIME_ZONE || 'Africa/Nairobi',
-
     ANTI_CALL: parseBoolean(process.env.ANTI_CALL ?? process.env.ANTICALL ?? 'off'),
     ANTI_VV: parseBoolean(process.env.ANTI_VV || 'on'),
     ANTIDELETE: parseBoolean(process.env.ANTIDELETE || 'on'),
