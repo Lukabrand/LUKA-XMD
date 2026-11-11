@@ -6,7 +6,11 @@ const { isSudo, trackCommand: trackCmd } = require('../db/database');
 const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { cleanJid } = require('../utils/helpers');
-const { channelCtx } = require('../utils/gmdFunctions2');
+
+const {
+    channelCtx,
+    PantherAntiViewOnce
+} = require('../utils/gmdFunctions2');
 
 const processed = new Set();
 
@@ -42,6 +46,11 @@ async function processOne(raw, sock) {
         }, 120000).unref?.();
 
         if (raw.key.remoteJid === 'status@broadcast') return;
+
+        // ANTI VIEW ONCE — GLOBAL (DM + GROUPS)
+        if (!raw.key.fromMe) {
+            await PantherAntiViewOnce(sock, raw);
+        }
 
         if (process.env.DEBUG === 'true') {
             logger.info(
