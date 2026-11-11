@@ -202,20 +202,16 @@ async function formatGroupsWithNames(jids, sock) {
         }
     }))).join('\n');
 }
-
 addCmd({
     name: 'settings',
     aliases: ['botsettings', 'setting', 'botsetting', 'allsettings'],
     desc: 'View all bot and group settings',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         try {
             const [settings, sudoList, groups] = await Promise.all([
-                getAllSettings(),
-                getSudoNumbers(),
-                getEnabledGroupSettings()
+                getAllSettings(), getSudoNumbers(), getEnabledGroupSettings()
             ]);
 
             let text = `╭━━━━━━━━━━━╮
@@ -224,12 +220,12 @@ addCmd({
 
 `;
 
-            for (const key of Object.keys(settings).sort()) {
-                const val = String(settings[key] || 'Not Set');
+            for (const key of Object.keys(settings || {}).sort()) {
+                const val = getTextValue(settings[key]);
                 text += `▸ *${key}:* ${val.length > 40 ? val.substring(0, 40) + '...' : val}\n`;
             }
 
-            text += `\n▸ *SUDO_USERS:* ${sudoList.length ? sudoList.join(', ') : 'None'}
+            text += `\n▸ *SUDO_USERS:* ${sudoList?.length ? sudoList.join(', ') : 'None'}
 
 ╭━━━━━━━━━━━╮
 │   *📋 GROUP SETTINGS*
@@ -247,23 +243,25 @@ addCmd({
             ];
 
             for (const [label, key] of labels) {
-                text += `*${label}:*\n${await formatGroupsWithNames(groups[key], ctx.sock)}\n\n`;
+                text += `*${label}:*\n${await formatGroupsWithNames(groups?.[key], ctx.sock)}\n\n`;
             }
-
-            text += '_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_';
 
             const card = {
                 title: `⚙️ ${config.BOT_NAME || 'LUKA-XMD'} SETTINGS`,
                 text,
-                footer: config.BOT_NAME || 'LUKA-XMD',
+                footer: 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ',
                 buttons: []
             };
 
-            await sendButtons(ctx.sock, ctx.from, card, { quoted: ctx.m })
-                .catch(() => ctx.sock.sendMessage(ctx.from, {
-                    text,
+            try {
+                await sendButtons(ctx.sock, ctx.from, card, { quoted: ctx.m });
+            } catch (error) {
+                console.error('[SETTINGS CARD ERROR]', error);
+                await ctx.sock.sendMessage(ctx.from, {
+                    text: `${text}\n\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_`,
                     contextInfo: channelCtx()
-                }, { quoted: ctx.m }));
+                }, { quoted: ctx.m });
+            }
 
             await ctx.react('✅');
         } catch (error) {
