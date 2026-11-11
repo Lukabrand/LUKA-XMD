@@ -1,4 +1,4 @@
-'use strict';
+ 'use strict';
 require('dotenv').config({ path: '.env' });
 const { gunzipSync } = require('node:zlib');
 
@@ -93,5 +93,19 @@ const CONFIG = {
     AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
 };
 
+function getAllSettings() {
+    const hidden = ['SESSION', 'SESSION_ID', 'DATABASE_URL'];
+    return Object.fromEntries(
+        Object.entries(CONFIG)
+            .filter(([key, value]) => !hidden.includes(key) && typeof value !== 'function')
+            .map(([key, value]) => [key, Array.isArray(value) ? value.join(', ') : value])
+    );
+}
+
 module.exports = CONFIG;
+module.exports.getAllSettings = getAllSettings;
+module.exports.parseBoolean = parseBoolean;
+module.exports.parsePrefixes = parsePrefixes;
+module.exports.parseLids = parseLids;
+module.exports.parseMenuImages = parseMenuImages;
 module.exports.normalizeSession = normalizeSession;
