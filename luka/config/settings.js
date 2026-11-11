@@ -72,7 +72,7 @@ const CONFIG = {
     AUTO_BIO: parseBoolean(process.env.AUTO_BIO || 'on'),
     AUTO_TYPING: parseBoolean(process.env.AUTO_TYPING || 'off'),
     AUTO_RECORDING: parseBoolean(process.env.AUTO_RECORDING || 'off'),
-    STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜',
+    STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜,💙',
     DM_PRESENCE: process.env.DM_PRESENCE || '',
     GRP_PRESENCE: process.env.GRP_PRESENCE || '',
     USER_LID: parseLids(process.env.USER_LID || ''),
