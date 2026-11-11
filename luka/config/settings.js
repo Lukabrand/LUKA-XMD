@@ -56,7 +56,7 @@ const sessionInput = process.env.SESSION?.trim() || process.env.SESSION_ID?.trim
 
 const CONFIG = {
     MODE: (process.env.MODE || 'private').trim().toLowerCase(),
-    PREFIXES: parsePrefixes(process.env.PREFIXES || '.'),
+    BOT_PREFIX: parsePrefixes(process.env.BOT_PREFIX || '.'),
     PORT: parseInt(process.env.PORT, 10) || 3000,
     SESSION: normalizeSession(sessionInput),
     SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
@@ -71,7 +71,7 @@ const CONFIG = {
     AUTO_LIKE_STATUS: parseBoolean(process.env.AUTO_LIKE_STATUS || 'on'),
     AUTO_REACT: parseBoolean(process.env.AUTO_REACT || 'off'),
     AUTO_BIO: parseBoolean(process.env.AUTO_BIO || 'off'),
-    STATUS_LIKE_EMOJI: process.env.STATUS_LIKE_EMOJI || '💚',
+    STATUS_LIKE_EMOJI: process.env.STATUS_LIKE_EMOJI || '💚,💜',
     DM_PRESENCE: process.env.DM_PRESENCE || '',
     GRP_PRESENCE: process.env.GRP_PRESENCE || '',
     USER_LID: parseLids(process.env.USER_LID || ''),
@@ -79,7 +79,7 @@ const CONFIG = {
     OWNER_NAME: process.env.OWNER_NAME || 'GuruTech',
     BOT_NAME: process.env.BOT_NAME || 'ULTRA GURU',
     BOT_PIC: botPic,
-    BOT_VERSION: process.env.BOT_VERSION || '3.0.0',
+    BOT_VERSION: process.env.BOT_VERSION || '5.0.0',
     MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
     MENU_THEME: process.env.MENU_THEME || 'default',
     CHATBOT: parseBoolean(process.env.CHATBOT || 'off'),
