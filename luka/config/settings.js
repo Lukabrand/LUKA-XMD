@@ -56,7 +56,7 @@ const sessionInput = process.env.SESSION?.trim() || process.env.SESSION_ID?.trim
 
 const CONFIG = {
     MODE: (process.env.MODE || 'public').trim().toLowerCase(),
-    PREFIXES: parsePrefixes(process.env.PREFIXES || '.'),
+    PREFIX: parsePrefixes(process.env.PREFIX || '.'),
     PORT: parseInt(process.env.PORT, 10) || 3000,
     SESSION: normalizeSession(sessionInput),
     SESSION_FORMAT: !sessionInput ? null : sessionInput.startsWith('LUKA~') ? 'LUKA~ gzip/base64' : 'base64 creds.json',
