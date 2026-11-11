@@ -90,7 +90,7 @@ const CONFIG = {
     CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
     CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
     HOSTING_URL: process.env.HOSTING_URL ||'',
-    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || 'Bothosting',
+    HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || '',
     GITHUB_REPO: process.env.GITHUB_REPO || 'Lukabrand/LUKA-XMD',
     AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
 };
