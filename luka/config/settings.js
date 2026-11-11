@@ -4,7 +4,7 @@ const { gunzipSync } = require('node:zlib');
 
 const DEFAULT_BOT_PIC = 'https://files.catbox.moe/pj9a34.png';
 const DEFAULT_CHANNEL_JID = '120363431857319034@newsletter';
-const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029VbDh88NCMY0Fartkxm1g';
+const DEFAULT_CHANNEL_URL = 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h';
 
 function parsePrefixes(prefixStr) {
     if (!prefixStr || prefixStr.trim() === '' || prefixStr.toLowerCase() === 'none') return [];
