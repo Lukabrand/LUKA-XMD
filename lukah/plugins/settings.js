@@ -264,15 +264,15 @@ addCmd({
 
             try {
                 await sendButtons(ctx.sock, ctx.from, card, { quoted: ctx.m });
-            } catch (error) {
-                console.error('[SETTINGS CARD ERROR]', error);
-                await ctx.sock.sendMessage(ctx.from, {
-                    text: `${text}\n\n_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ_`,
-                    contextInfo: channelCtx()
-                }, { quoted: ctx.m });
-            }
+} catch (error) {
+    console.error('[SETTINGS CARD ERROR]', error);
 
-            await ctx.react('✅');
+    await ctx.sock.sendMessage(ctx.from, {
+        text: `${text}\n\nᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+    }, { quoted: ctx.m });
+}
+
+await ctx.react('✅');
         } catch (error) {
             console.error('[BOT SETTINGS ERROR]', error);
             await ctx.react('❌');
