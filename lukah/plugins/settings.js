@@ -202,7 +202,6 @@ addCmd({
                 'AUTO_BLOCK',
                 'AUTO_JOIN',
                 'AUTO_LIKE_STATUS',
-
                 'AUTO_REACT',
                 'AUTO_READ_MESSAGES',
                 'AUTO_READ_STATUS',
