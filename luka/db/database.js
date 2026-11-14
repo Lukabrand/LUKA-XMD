@@ -334,8 +334,6 @@ async function gracefulShutdown() {
     shuttingDown = true;
     try { await flushPersistentWrites(); } catch (err) { console.error('[DB] Final persistence flush failed:', err.message); }
     try {
-        const jsonDb = await import('../../guruh/database/config.js');
-        await jsonDb.flushPersistentDatabase();
     } catch (err) { console.error('[DB] JSON database final flush failed:', err.message); }
     checkpoint();
     if (pgPool) { try { await pgPool.end(); } catch {} }
