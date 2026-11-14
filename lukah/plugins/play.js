@@ -356,130 +356,123 @@ async function resolveVideo(query) {
     }
 
     const encoded = encodeURIComponent(videoUrl);
+    const failures = [];
 
     const endpoints = [
-        async () => {
-            const data = await getJson(
-                `https://api.nexray.web.id/downloader/ytmp4?url=${encoded}&resolusi=720`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Nexray returned no video URL');
-
-            return {
-                url,
-                title: data.result?.title || data.title || 'Video',
-                duration: data.result?.duration || data.duration || 0
-            };
+        {
+            name: 'Nexray',
+            run: async () => {
+                const data = await getJson(
+                    `https://api.nexray.web.id/downloader/ytmp4?url=${encoded}&resolusi=720`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return {
+                    url,
+                    title: data.result?.title || data.title || 'Video',
+                    duration: data.result?.duration || data.duration || 0
+                };
+            }
         },
-
-        async () => {
-            const data = await getJson(
-                `https://api.sidycoders.xyz/api/ytdl?url=${encoded}&format=mp4&apikey=memberdycoders`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Sidycoders returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video',
-                duration: data.duration || 0
-            };
+        {
+            name: 'Sidycoders',
+            run: async () => {
+                const data = await getJson(
+                    `https://api.sidycoders.xyz/api/ytdl?url=${encoded}&format=mp4&apikey=memberdycoders`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return {
+                    url,
+                    title: data.title || data.result?.title || 'Video',
+                    duration: data.duration || 0
+                };
+            }
         },
-
-        async () => {
-            const data = await getJson(
-                `https://api.giftedtech.web.id/api/download/ytmp4?apikey=free&url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('GiftedTech returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
+        {
+            name: 'GiftedTech',
+            run: async () => {
+                const data = await getJson(
+                    `https://api.giftedtech.web.id/api/download/ytmp4?apikey=free&url=${encoded}`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return { url, title: data.title || data.result?.title || 'Video' };
+            }
         },
-
-        async () => {
-            const data = await getJson(
-                `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Ryzendesu returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
+        {
+            name: 'Ryzendesu',
+            run: async () => {
+                const data = await getJson(
+                    `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encoded}`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return { url, title: data.title || data.result?.title || 'Video' };
+            }
         },
-
-        async () => {
-            const data = await getJson(
-                `https://api.siputzx.my.id/api/d/ytmp4?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Siputzx returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
+        {
+            name: 'Siputzx',
+            run: async () => {
+                const data = await getJson(
+                    `https://api.siputzx.my.id/api/d/ytmp4?url=${encoded}`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return { url, title: data.title || data.result?.title || 'Video' };
+            }
         },
-
-        async () => {
-            const data = await getJson(
-                `https://apiskeith.top/download/video?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Apiskeith returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
+        {
+            name: 'Apiskeith',
+            run: async () => {
+                const data = await getJson(
+                    `https://apiskeith.top/download/video?url=${encoded}`,
+                    DOWNLOAD_TIMEOUT
+                );
+                const url = extractDownloadUrl(data);
+                if (!url) throw new Error('API response did not contain a video URL');
+                return { url, title: data.title || data.result?.title || 'Video' };
+            }
         }
     ];
 
-    for (const endpoint of endpoints) {
+    for (const provider of endpoints) {
         try {
-            const result = await endpoint();
-
-            if (!result?.url) continue;
-
-            console.log('[VIDEO PROVIDER] Download URL received');
+            const result = await provider.run();
+            if (!result?.url) throw new Error('Missing video download URL');
 
             const buffer = await downloadBuffer(result.url, 'video');
+            console.log(`[VIDEO PROVIDER OK] ${provider.name} (${buffer.length} bytes)`);
 
-            return {
-                ...result,
-                buffer
-            };
+            return { ...result, buffer };
         } catch (error) {
-            console.error(
-                '[VIDEO PROVIDER FAILED]',
-                error.response?.status || error.message
-            );
+            const status = error.response?.status;
+            const responseData = error.response?.data;
+            let detail = error.message || 'Unknown error';
+
+            if (responseData) {
+                try {
+                    const body = typeof responseData === 'string'
+                        ? responseData
+                        : JSON.stringify(responseData);
+                    detail += ` | Response: ${body.slice(0, 180)}`;
+                } catch (_) {}
+            }
+
+            if (status) detail = `HTTP ${status} | ${detail}`;
+            detail = detail.replace(/[\r\n]+/g, ' ').slice(0, 240);
+
+            failures.push(`${provider.name}: ${detail}`);
+            console.error(`[VIDEO PROVIDER FAILED] ${provider.name}: ${detail}`);
         }
     }
 
-    return null;
+    return { buffer: null, failures };
 }
 
 // SEND AUDIO
@@ -558,9 +551,13 @@ async function sendVideo(ctx, query) {
     if (!resolved?.buffer) {
         await ctx.react('❌');
 
+        const diagnostics = Array.isArray(resolved?.failures)
+            ? resolved.failures.map((item, index) => `${index + 1}. ${item}`).join('\n')
+            : 'No provider diagnostics were returned.';
+
         return ctx.reply(
             `❌ Video download failed for: ${query}\n\n` +
-            `All available video providers failed. Try another video URL.\n\n${FOOTER}`
+            `*Provider diagnostics:*\n${diagnostics}\n\n${FOOTER}`
         );
     }
 
