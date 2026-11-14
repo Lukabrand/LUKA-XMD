@@ -456,7 +456,7 @@ addCmd({
     groupOnly: true,
     adminOnly: true,
     handler:   async (ctx) => {
-        const { getAllWarnings } = require('../../guru/db/database');
+        const { getAllWarnings } = require('../../luka/db/database');
         const warns = getAllWarnings(ctx.from);
         if (!warns || !warns.length)
             return ctx.reply('✅ No warnings have been issued in this group yet.');
@@ -490,7 +490,7 @@ addCmd({
             || (ctx.m?.mentioned?.[0])
             || (ctx.args[0] ? ctx.args[0].replace(/\D/g, '') + '@s.whatsapp.net' : null);
         if (!target) return ctx.reply('❌ Reply to a user\'s message or mention them.\n\nExample: `.resetwarns @user`');
-        const { clearWarnings } = require('../../guru/db/database');
+        const { clearWarnings } = require('../../luka/db/database');
         if (clearWarnings) clearWarnings(target, ctx.from);
         await ctx.send({
             text: `✅ *Warnings Cleared*\n\nAll warnings for @${target.split('@')[0]} have been reset.`,

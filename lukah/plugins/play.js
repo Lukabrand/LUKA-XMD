@@ -1,8 +1,7 @@
 'use strict';
 
-const { guru } = require('../../luka');
-const { addCmd } = require('../../luka/connection/handlers');
-const config = require('../../luka/database/settings');
+const { addCmd } = require('../../luka/handlers/loader');
+const config = require('../../luka/config/settings');
 const axios = require('axios');
 const { channelCtx } = require('../../luka/utils/gmdFunctions2');
 
