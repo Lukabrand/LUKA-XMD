@@ -253,7 +253,7 @@ async function startBotInternal() {
             const today = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
 
             const startText =
-`╭══〘 *LUKA-XMD* 〙═⊷
+`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
 ┃ 🟢 Status  : *ONLINE*
 ┃ 👑 Owner   : *${config.OWNER_NAME}*
 ┃ 📦 Plugins : *${totalCommands}*
