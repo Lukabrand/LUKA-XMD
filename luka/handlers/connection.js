@@ -65,7 +65,7 @@ function toBool(value) {
 async function initializeSettings() {
     if (settingsInitialized) return;
     await initPersistentSettings();
-    const jsonSettingsDb = await import('../../guruh/database/config.js');
+    const jsonSettingsDb = await import('../../lukah/database/config.js');
     await jsonSettingsDb.initPersistentDatabase();
 
     const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'STATUS_REPLY']);
