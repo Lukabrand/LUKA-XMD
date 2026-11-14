@@ -158,7 +158,7 @@ async function startBotInternal() {
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, silentLogger) },
         logger: silentLogger,
         printQRInTerminal: false,
-        browser: ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
+        browser: ['LUKA-XMD', 'Chrome', '121.0.0'],
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
