@@ -11,7 +11,7 @@ const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults, initPersistentSettings, getSetting } = require('../db/database');
-const { loadPlugins } = require('./loader');
+const { loadPlugins, commands } = require('./loader');
 const { handleMessage } = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate } = require('../utils/autoUpdate');
@@ -65,8 +65,6 @@ function toBool(value) {
 async function initializeSettings() {
     if (settingsInitialized) return;
     await initPersistentSettings();
-    const jsonSettingsDb = await import('../../lukah/database/config.js');
-    await jsonSettingsDb.initPersistentDatabase();
 
     const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'STATUS_REPLY']);
 
@@ -256,7 +254,7 @@ async function startBotInternal() {
 `╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
 ┃ 🟢 Status  : *ONLINE*
 ┃ 👑 Owner   : *${config.OWNER_NAME}*
-┃ 📦 Plugins : *${totalCommands}*
+┃ 📦 Plugins : *${commands.size}*
 ┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
