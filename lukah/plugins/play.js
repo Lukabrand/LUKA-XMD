@@ -8,28 +8,66 @@ const { channelCtx } = require('../../luka/utils/gmdFunctions2');
 
 const API_TIMEOUT = 60000;
 const DOWNLOAD_TIMEOUT = 90000;
+const MAX_VIDEO_SIZE = 64 * 1024 * 1024;
+
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131.0.0.0 Safari/537.36';
 const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
 
-function isYtUrl(str) {
-    return /(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/)|youtu\.be\/)[\w-]{11}/i.test(str);
+function extractYtId(value) {
+    try {
+        const input = String(value || '').trim();
+
+        if (/^[\w-]{11}$/.test(input)) return input;
+
+        const url = new URL(input);
+        const host = url.hostname.replace(/^www\./, '').toLowerCase();
+
+        if (host === 'youtu.be') {
+            const id = url.pathname.split('/').filter(Boolean)[0];
+            return /^[\w-]{11}$/.test(id || '') ? id : null;
+        }
+
+        if (
+            host === 'youtube.com' ||
+            host === 'm.youtube.com' ||
+            host === 'music.youtube.com'
+        ) {
+            const watchId = url.searchParams.get('v');
+
+            if (watchId && /^[\w-]{11}$/.test(watchId)) {
+                return watchId;
+            }
+
+            const match = url.pathname.match(
+                /^\/(?:shorts|embed|live)\/([\w-]{11})/
+            );
+
+            return match ? match[1] : null;
+        }
+    } catch (_) {}
+
+    return null;
 }
 
-function extractYtId(url) {
-    const match = String(url).match(
-        /(?:youtu\.be\/|youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/|live\/))([\w-]{11})/i
-    );
-    return match ? match[1] : null;
+function isYtUrl(value) {
+    return Boolean(extractYtId(value));
+}
+
+function canonicalYtUrl(value) {
+    const id = extractYtId(value);
+    return id ? `https://www.youtube.com/watch?v=${id}` : null;
 }
 
 function cleanTitle(title) {
-    return String(title || 'audio')
+    return String(title || 'media')
         .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')
         .slice(0, 150);
 }
 
 function formatDuration(value) {
-    if (typeof value === 'string' && value.includes(':')) return value;
+    if (typeof value === 'string' && value.includes(':')) {
+        return value;
+    }
 
     const seconds = Number(value) || 0;
     const minutes = Math.floor(seconds / 60);
@@ -57,27 +95,59 @@ function getArray(data) {
 async function getJson(url, timeout = API_TIMEOUT) {
     const response = await axios.get(url, {
         timeout,
-        headers: { 'User-Agent': UA },
+        headers: {
+            'User-Agent': UA,
+            Accept: 'application/json, */*'
+        },
         maxRedirects: 5
     });
 
     return response.data;
 }
 
-async function downloadBuffer(url, minSize = 4096) {
+function extractDownloadUrl(data) {
+    const result = data?.result;
+
+    const candidates = [
+        typeof result === 'string' ? result : null,
+        data?.download_url,
+        data?.downloadUrl,
+        data?.url,
+        data?.link,
+        data?.cdn,
+        result?.url,
+        result?.download_url,
+        result?.downloadUrl,
+        result?.videoUrl,
+        result?.video_url,
+        result?.link,
+        result?.cdn
+    ];
+
+    return candidates.find(
+        value => typeof value === 'string' &&
+        /^https?:\/\//i.test(value)
+    ) || null;
+}
+
+async function downloadBuffer(url, type = 'audio') {
     if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
         throw new Error('Invalid download URL');
     }
 
+    const isVideo = type === 'video';
+
     const response = await axios.get(url, {
         responseType: 'arraybuffer',
         timeout: DOWNLOAD_TIMEOUT,
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
+        maxContentLength: isVideo ? MAX_VIDEO_SIZE : Infinity,
+        maxBodyLength: isVideo ? MAX_VIDEO_SIZE : Infinity,
         maxRedirects: 5,
         headers: {
             'User-Agent': UA,
-            Accept: 'audio/mpeg,audio/*,application/octet-stream,*/*'
+            Accept: isVideo
+                ? 'video/mp4,video/*,application/octet-stream,*/*'
+                : 'audio/mpeg,audio/*,application/octet-stream,*/*'
         }
     });
 
@@ -85,108 +155,136 @@ async function downloadBuffer(url, minSize = 4096) {
         response.headers['content-type'] || ''
     ).toLowerCase();
 
-    if (contentType.includes('text/html')) {
-        throw new Error('Provider returned an HTML page instead of audio');
+    if (
+        contentType.includes('text/html') ||
+        contentType.includes('application/json')
+    ) {
+        throw new Error('Provider returned a webpage instead of media');
     }
 
     const buffer = Buffer.from(response.data);
 
-    if (buffer.length < minSize) {
-        throw new Error('Downloaded file is empty or invalid');
+    if (buffer.length < 4096) {
+        throw new Error('Downloaded media is empty or invalid');
+    }
+
+    if (isVideo && buffer.length > MAX_VIDEO_SIZE) {
+        throw new Error('Video exceeds the 64MB WhatsApp limit');
+    }
+
+    if (isVideo) {
+        const isMp4 =
+            buffer.length >= 12 &&
+            buffer.toString('ascii', 4, 8) === 'ftyp';
+
+        const isWebm =
+            buffer.length >= 4 &&
+            buffer.toString('hex', 0, 4) === '1a45dfa3';
+
+        if (
+            !isMp4 &&
+            !isWebm &&
+            !contentType.includes('video/')
+        ) {
+            throw new Error('Downloaded file is not a valid video');
+        }
     }
 
     return buffer;
 }
 
+// YOUTUBE SEARCH
 async function searchYouTube(query) {
-    const endpoints = [
-        async () => {
-            const data = await getJson(
-                `https://apiziaul.vercel.app/api/downloader/ytplaymp3?query=${encodeURIComponent(query)}`
-            );
+    try {
+        const data = await getJson(
+            `https://apiziaul.vercel.app/api/downloader/ytplaymp3?query=${encodeURIComponent(query)}`
+        );
 
-            const result = data?.result;
+        const result = data?.result || {};
 
-            if (data?.status && result?.videoUrl) {
-                return [{
-                    title: result.title || query,
-                    url: result.videoUrl,
-                    thumbnail: result.thumbnail || '',
-                    duration: result.duration || ''
-                }];
-            }
+        const videoUrl =
+            result.videoUrl ||
+            result.url ||
+            result.link;
 
-            throw new Error('Apiziaul search returned no results');
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.nexray.web.id/downloader/ytmp3?url=${encodeURIComponent(
-                    `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`
-                )}`
-            );
-
-            const results = getArray(data);
-
-            if (results.length) return results;
-
-            throw new Error('Nexray search returned no results');
+        if (data?.status && isYtUrl(videoUrl)) {
+            return [{
+                title: result.title || query,
+                url: canonicalYtUrl(videoUrl),
+                thumbnail: result.thumbnail || '',
+                duration: result.duration || ''
+            }];
         }
-    ];
 
-    for (const endpoint of endpoints) {
-        try {
-            const results = await endpoint();
+        const arrays = getArray(data);
 
-            if (results.length) return results;
-        } catch (error) {
-            console.error('[YT SEARCH PROVIDER]', error.response?.status || error.message);
-        }
+        const normalized = arrays
+            .map(item => {
+                const url =
+                    item.url ||
+                    item.link ||
+                    item.videoUrl ||
+                    item.video_url;
+
+                if (!isYtUrl(url)) return null;
+
+                return {
+                    title: item.title || query,
+                    url: canonicalYtUrl(url),
+                    thumbnail: item.thumbnail || item.image || '',
+                    duration: item.duration || item.timestamp || ''
+                };
+            })
+            .filter(Boolean);
+
+        return normalized;
+    } catch (error) {
+        console.error(
+            '[YT SEARCH FAILED]',
+            error.response?.status || error.message
+        );
+
+        return [];
     }
-
-    return [];
 }
 
+// AUDIO PROVIDER
 async function resolveAudio(query, isUrl) {
-    const encoded = encodeURIComponent(query);
-    const id = extractYtId(query);
+    const videoUrl = isUrl ? canonicalYtUrl(query) : null;
+    const encoded = encodeURIComponent(videoUrl || query);
     const endpoints = [];
 
-    if (isUrl) {
+    if (isUrl && videoUrl) {
         endpoints.push(async () => {
             const data = await getJson(
                 `https://api.sidycoders.xyz/api/ytdl?url=${encoded}&format=mp3&apikey=memberdycoders`
             );
 
-            if (data?.status && data?.cdn) {
-                return {
-                    url: data.cdn,
-                    title: data.title || 'Track'
-                };
-            }
+            const url = extractDownloadUrl(data);
 
-            throw new Error('Sidycoders audio unavailable');
+            if (!url) throw new Error('Sidycoders returned no audio URL');
+
+            return {
+                url,
+                title: data.title || data.result?.title || 'Track'
+            };
         });
 
-        if (id) {
-            endpoints.push(async () => {
-                const data = await getJson(
-                    `https://api.nexray.web.id/downloader/ytmp3?url=${encodeURIComponent(
-                        `https://www.youtube.com/watch?v=${id}`
-                    )}`
-                );
+        endpoints.push(async () => {
+            const data = await getJson(
+                `https://api.nexray.web.id/downloader/ytmp3?url=${encoded}`
+            );
 
-                if (data?.status && data?.result?.url) {
-                    return {
-                        url: data.result.url,
-                        title: data.result.title || 'Track',
-                        thumbnail: data.result.thumbnail || ''
-                    };
-                }
+            const url = extractDownloadUrl(data);
 
-                throw new Error('Nexray audio unavailable');
-            });
-        }
+            if (!url) throw new Error('Nexray returned no audio URL');
+
+            return {
+                url,
+                title: data.result?.title || 'Track',
+                thumbnail: data.result?.thumbnail || ''
+            };
+        });
 
         const legacy = [
             `https://api.giftedtech.web.id/api/download/ytmp3?apikey=free&url=${encoded}`,
@@ -198,23 +296,13 @@ async function resolveAudio(query, isUrl) {
         for (const endpoint of legacy) {
             endpoints.push(async () => {
                 const data = await getJson(endpoint);
-                const result = data?.result;
+                const url = extractDownloadUrl(data);
 
-                const url =
-                    (typeof result === 'string' ? result : null) ||
-                    data?.download_url ||
-                    result?.url ||
-                    result?.download_url ||
-                    data?.url ||
-                    data?.link;
-
-                if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
-                    throw new Error('Audio URL missing');
-                }
+                if (!url) throw new Error('Audio URL missing');
 
                 return {
                     url,
-                    title: data?.title || result?.title || 'Track'
+                    title: data.title || data.result?.title || 'Track'
                 };
             });
         }
@@ -224,15 +312,15 @@ async function resolveAudio(query, isUrl) {
                 `https://apiziaul.vercel.app/api/downloader/ytplaymp3?query=${encoded}`
             );
 
-            if (data?.status && data?.result?.downloadUrl) {
-                return {
-                    url: data.result.downloadUrl,
-                    title: data.result.title || query,
-                    thumbnail: data.result.thumbnail || ''
-                };
-            }
+            const url = extractDownloadUrl(data);
 
-            throw new Error('Apiziaul audio unavailable');
+            if (!url) throw new Error('Apiziaul returned no audio URL');
+
+            return {
+                url,
+                title: data.result?.title || query,
+                thumbnail: data.result?.thumbnail || ''
+            };
         });
     }
 
@@ -242,7 +330,7 @@ async function resolveAudio(query, isUrl) {
 
             if (!result?.url) continue;
 
-            const buffer = await downloadBuffer(result.url);
+            const buffer = await downloadBuffer(result.url, 'audio');
 
             return {
                 ...result,
@@ -259,86 +347,130 @@ async function resolveAudio(query, isUrl) {
     return null;
 }
 
-async function resolveVideo(query, isUrl) {
-    const encoded = encodeURIComponent(query);
-    const id = extractYtId(query);
-    const endpoints = [];
+// VIDEO PROVIDER
+async function resolveVideo(query) {
+    const videoUrl = canonicalYtUrl(query);
 
-    endpoints.push(async () => {
-        const url = isUrl
-            ? query
-            : `https://www.youtube.com/results?search_query=${encoded}`;
+    if (!videoUrl) {
+        throw new Error('A valid YouTube video URL is required');
+    }
 
-        const data = await getJson(
-            `https://api.nexray.web.id/downloader/ytmp4?url=${encodeURIComponent(url)}&resolusi=720`,
-            DOWNLOAD_TIMEOUT
-        );
+    const encoded = encodeURIComponent(videoUrl);
 
-        if (data?.status && data?.result?.url) {
+    const endpoints = [
+        async () => {
+            const data = await getJson(
+                `https://api.nexray.web.id/downloader/ytmp4?url=${encoded}&resolusi=720`,
+                DOWNLOAD_TIMEOUT
+            );
+
+            const url = extractDownloadUrl(data);
+
+            if (!url) throw new Error('Nexray returned no video URL');
+
             return {
-                url: data.result.url,
-                title: data.result.title || query,
-                duration: data.result.duration || 0
+                url,
+                title: data.result?.title || data.title || 'Video',
+                duration: data.result?.duration || data.duration || 0
             };
-        }
+        },
 
-        throw new Error('Nexray video unavailable');
-    });
-
-    if (isUrl) {
-        endpoints.push(async () => {
+        async () => {
             const data = await getJson(
                 `https://api.sidycoders.xyz/api/ytdl?url=${encoded}&format=mp4&apikey=memberdycoders`,
                 DOWNLOAD_TIMEOUT
             );
 
-            if (data?.status && data?.cdn) {
-                return {
-                    url: data.cdn,
-                    title: data.title || 'Video'
-                };
-            }
+            const url = extractDownloadUrl(data);
 
-            throw new Error('Sidycoders video unavailable');
-        });
-    }
-
-    const legacy = [
-        `https://api.giftedtech.web.id/api/download/ytmp4?apikey=free&url=${encoded}`,
-        `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encoded}`,
-        `https://api.siputzx.my.id/api/d/ytmp4?url=${encoded}`,
-        `https://apiskeith.top/download/video?url=${encoded}`
-    ];
-
-    for (const endpoint of legacy) {
-        endpoints.push(async () => {
-            const data = await getJson(endpoint, DOWNLOAD_TIMEOUT);
-            const result = data?.result;
-
-            const url =
-                (typeof result === 'string' ? result : null) ||
-                data?.download_url ||
-                result?.url ||
-                result?.download_url ||
-                data?.url ||
-                data?.link;
-
-            if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
-                throw new Error('Video URL missing');
-            }
+            if (!url) throw new Error('Sidycoders returned no video URL');
 
             return {
                 url,
-                title: data?.title || result?.title || query
+                title: data.title || data.result?.title || 'Video',
+                duration: data.duration || 0
             };
-        });
-    }
+        },
+
+        async () => {
+            const data = await getJson(
+                `https://api.giftedtech.web.id/api/download/ytmp4?apikey=free&url=${encoded}`,
+                DOWNLOAD_TIMEOUT
+            );
+
+            const url = extractDownloadUrl(data);
+
+            if (!url) throw new Error('GiftedTech returned no video URL');
+
+            return {
+                url,
+                title: data.title || data.result?.title || 'Video'
+            };
+        },
+
+        async () => {
+            const data = await getJson(
+                `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encoded}`,
+                DOWNLOAD_TIMEOUT
+            );
+
+            const url = extractDownloadUrl(data);
+
+            if (!url) throw new Error('Ryzendesu returned no video URL');
+
+            return {
+                url,
+                title: data.title || data.result?.title || 'Video'
+            };
+        },
+
+        async () => {
+            const data = await getJson(
+                `https://api.siputzx.my.id/api/d/ytmp4?url=${encoded}`,
+                DOWNLOAD_TIMEOUT
+            );
+
+            const url = extractDownloadUrl(data);
+
+            if (!url) throw new Error('Siputzx returned no video URL');
+
+            return {
+                url,
+                title: data.title || data.result?.title || 'Video'
+            };
+        },
+
+        async () => {
+            const data = await getJson(
+                `https://apiskeith.top/download/video?url=${encoded}`,
+                DOWNLOAD_TIMEOUT
+            );
+
+            const url = extractDownloadUrl(data);
+
+            if (!url) throw new Error('Apiskeith returned no video URL');
+
+            return {
+                url,
+                title: data.title || data.result?.title || 'Video'
+            };
+        }
+    ];
 
     for (const endpoint of endpoints) {
         try {
             const result = await endpoint();
 
-            if (result?.url) return result;
+            if (!result?.url) continue;
+
+            console.log('[VIDEO PROVIDER] Download URL received');
+
+            const buffer = await downloadBuffer(result.url, 'video');
+
+            return {
+                ...result,
+                buffer
+            };
         } catch (error) {
             console.error(
                 '[VIDEO PROVIDER FAILED]',
@@ -350,6 +482,7 @@ async function resolveVideo(query, isUrl) {
     return null;
 }
 
+// SEND AUDIO
 async function sendAudio(ctx, query, directOnly = false) {
     const isUrl = isYtUrl(query);
 
@@ -361,14 +494,10 @@ async function sendAudio(ctx, query, directOnly = false) {
         resolved = await resolveAudio(query, true);
     } else {
         const results = await searchYouTube(query);
+        const first = results[0];
 
-        if (results.length) {
-            const first = results[0];
-            const videoUrl = first.url || first.link;
-
-            if (videoUrl && isYtUrl(videoUrl)) {
-                resolved = await resolveAudio(videoUrl, true);
-            }
+        if (first?.url && isYtUrl(first.url)) {
+            resolved = await resolveAudio(first.url, true);
         }
 
         if (!resolved) {
@@ -381,55 +510,64 @@ async function sendAudio(ctx, query, directOnly = false) {
 
         return ctx.reply(
             `❌ Audio download failed for: ${query}\n\n` +
-            `All available audio providers failed. Please try again later.\n\n${FOOTER}`
+            `All available audio providers failed.\n\n${FOOTER}`
         );
     }
 
     await ctx.react('⬇️');
 
-    const title = resolved.title || query;
-
     await ctx.sock.sendMessage(ctx.from, {
         audio: resolved.buffer,
         mimetype: 'audio/mpeg',
         ptt: false,
-        fileName: `${cleanTitle(title)}.mp3`,
+        fileName: `${cleanTitle(resolved.title || query)}.mp3`,
         contextInfo: channelCtx()
     }, { quoted: ctx.m });
 
     await ctx.react('✅');
 }
 
+// SEND VIDEO
 async function sendVideo(ctx, query) {
-    const isUrl = isYtUrl(query);
-
     await ctx.react('🔍');
 
     let target = query;
 
-    if (!isUrl) {
+    if (!isYtUrl(query)) {
         const results = await searchYouTube(query);
-        const first = results[0];
+        const first = results.find(
+            item => item.url && isYtUrl(item.url)
+        );
 
-        if (first?.url || first?.link) {
-            target = first.url || first.link;
+        if (!first) {
+            await ctx.react('❌');
+
+            return ctx.reply(
+                `❌ No valid YouTube video was found for: ${query}\n\n` +
+                `Try using a direct YouTube URL.\n\n${FOOTER}`
+            );
         }
+
+        target = first.url;
     }
 
-    const resolved = await resolveVideo(target, isYtUrl(target));
+    target = canonicalYtUrl(target);
 
-    if (!resolved?.url) {
+    const resolved = await resolveVideo(target);
+
+    if (!resolved?.buffer) {
         await ctx.react('❌');
 
         return ctx.reply(
-            `❌ Video download failed for: ${query}\n\n${FOOTER}`
+            `❌ Video download failed for: ${query}\n\n` +
+            `All available video providers failed. Try another video URL.\n\n${FOOTER}`
         );
     }
 
     await ctx.react('⬇️');
 
     await ctx.sock.sendMessage(ctx.from, {
-        video: { url: resolved.url },
+        video: resolved.buffer,
         mimetype: 'video/mp4',
         caption:
             `🎬 *${resolved.title || query}*\n` +
@@ -562,13 +700,11 @@ addCmd({
             }
 
             const lines = results.slice(0, 5).map((item, index) => {
-                const url = item.url || item.link || '';
-                const title = item.title || 'Unknown title';
-                const duration = item.duration || item.timestamp || '?';
-
-                return `${index + 1}. *${title}*\n` +
-                    `⏱️ ${duration}\n` +
-                    `🔗 ${url}`;
+                return (
+                    `${index + 1}. *${item.title || 'Unknown title'}*\n` +
+                    `⏱️ ${item.duration || '?'}\n` +
+                    `🔗 ${item.url}`
+                );
             });
 
             await ctx.reply(
