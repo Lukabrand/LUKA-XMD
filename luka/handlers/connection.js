@@ -252,21 +252,14 @@ async function startBotInternal() {
             const now = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
 
-            const startText = `╭─❖ *${config.BOT_NAME}* ❖─╮
-│
-├─❖ *Status:* ✅ ONLINE
-├─❖ *Owner:* ${config.OWNER_NAME}
-├─❖ *Phone:* +${ownerNumber}
-├─❖ *Prefix:* [ ${config.BOT_PREFIX} ]
-├─❖ *Mode:* ${config.MODE.toUpperCase()}
-├─❖ *Host:* ${logger.PLATFORM}
-├─❖ *Version:* ${config.BOT_VERSION}
-├─❖ *Time:* ${now}
-├─❖ *Date:* ${today}
-│
-╰─❖ *Powered by ${config.OWNER_NAME}* ❖─╯
-
-> © ${config.BOT_NAME} is awesome 🔥`;
+            const startText =
+`╭══〘 *LUKA-XMD* 〙═⊷
+┃ 🟢 Status  : *ONLINE*
+┃ 👑 Owner   : *${config.OWNER_NAME}*
+┃ 📦 Plugins : *${totalCommands}*
+┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
+┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
+╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             if (ownerJid) {
                 socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, {
