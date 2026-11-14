@@ -1,286 +1,172 @@
 'use strict';
-
-const fs = require('fs');
-const path = require('path');
-const { pathToFileURL } = require('url');
-
+const fs     = require('fs');
+const path   = require('path');
 const config = require('../config/settings');
-const { getSetting } = require('../db/database');
 
-// Plugin directory
-const PLUGINS_DIR = path.join(__dirname, '../../lukah/plugins');
+const PLUGINS_DIR = path.join(__dirname, '../../guruh/plugins');
 
-// Command storage
 const commands = new Map();
-const triggers = [];
+const triggers  = [];
 
-// Prevent duplicate plugin loading
-const loadedPlugins = new Set();
-
-/**
- * Register command
- */
-function addCmd(options = {}) {
-    if (!options.name || typeof options.name !== 'string') {
-        console.error('[LOADER] Command name is required.');
-        return false;
+function addCmd({ name, aliases = [], handler, desc = '', usage = '', category = 'misc', ownerOnly = false, groupOnly = false, adminOnly = false }) {
+    const entry = { name, aliases, handler, desc, usage, category, ownerOnly, groupOnly, adminOnly };
+    if (!commands.has(name.toLowerCase())) {
+        commands.set(name.toLowerCase(), entry);
     }
-
-    const name = options.name.toLowerCase().trim();
-
-    if (commands.has(name)) {
-        console.warn(`[LOADER] Duplicate command skipped: ${name}`);
-        return false;
-    }
-
-    const aliases = Array.isArray(options.aliases)
-        ? options.aliases
-            .filter(alias => typeof alias === 'string')
-            .map(alias => alias.toLowerCase().trim())
-        : [];
-
-    const command = {
-        ...options,
-        name,
-        aliases
-    };
-
-    commands.set(name, command);
-
-    // Register aliases
     for (const alias of aliases) {
-        if (!alias || commands.has(alias)) continue;
-        commands.set(alias, command);
+        if (!commands.has(alias.toLowerCase())) {
+            commands.set(alias.toLowerCase(), entry);
+        }
     }
-
-    return true;
 }
 
-/**
- * Register trigger
- */
-function addTrigger(trigger, handler) {
-    if (!trigger || typeof handler !== 'function') return false;
+function addTrigger({ pattern, handler }) {
+    triggers.push({ pattern, handler });
+}
 
-    triggers.push({
-        trigger,
-        handler
+// ═══════════════════════════════════════════════════════════
+//  CONTEXT BRIDGE — maps BLACK PANTHER MD ctx → plugin ctx
+// ═══════════════════════════════════════════════════════════
+
+function buildPluginCtx(ctx) {
+    const m = ctx.m || {};
+    const pluginM = new Proxy(m, {
+        get(target, prop) {
+            if (prop === 'chat')     return target.from || target.key?.remoteJid;
+            if (prop === 'reactKey') return target.key;
+            return target[prop];
+        }
     });
 
-    return true;
-}
-
-/**
- * Build plugin context
- */
-function buildPluginCtx(sock, msg, extra = {}) {
     return {
-        sock,
-        msg,
+        client:        ctx.sock,
+        m:             pluginM,
+        text:          ctx.text   || '',
+        prefix:        config.BOT_PREFIX || '.',
+        groupMetadata: ctx.groupMeta || null,
+        botspeed:      0.0094,
+        Owner:         ctx.m?.isOwner || ctx.m?.fromMe || false,
+        isOwner:       ctx.m?.isOwner || ctx.m?.fromMe || false,
+        isBotAdmin:    ctx.m?.isBotAdmin || false,
+        isAdmin:       ctx.m?.isAdmin || false,
+        isGroup:       ctx.m?.isGroup || false,
+        sock:          ctx.sock,
+        from:          ctx.from,
+        sender:        ctx.sender,
+        pushName:      ctx.pushName,
+        args:          ctx.args,
+        body:          ctx.body,
+        command:       ctx.command,
+        quoted:        ctx.quoted,
+        reply:         ctx.reply,
+        send:          ctx.send,
+        react:         ctx.react,
         config,
-        ...extra
     };
 }
 
-/**
- * Check current owner
- */
-function isCurrentOwner(sender) {
-    if (!sender) return false;
+// ═══════════════════════════════════════════════════════════
+//  FLAT PLUGIN LOADER — CJS files in guruh/plugins/ root
+// ═══════════════════════════════════════════════════════════
 
-    const ownerNumber = String(config.OWNER_NUMBER || '')
-        .replace(/[^0-9]/g, '');
-
-    if (!ownerNumber) return false;
-
-    const senderNumber = String(sender)
-        .split('@')[0]
-        .split(':')[0]
-        .replace(/[^0-9]/g, '');
-
-    return senderNumber === ownerNumber;
-}
-
-/**
- * Get unique registered commands
- */
-function getAllCmds() {
-    const unique = new Map();
-
-    for (const command of commands.values()) {
-        if (command?.name) {
-            unique.set(command.name, command);
-        }
-    }
-
-    return Array.from(unique.values());
-}
-
-/**
- * Find command
- */
-function findCmd(name) {
-    if (!name) return null;
-
-    return commands.get(
-        String(name).toLowerCase().trim()
-    ) || null;
-}
-
-/**
- * Load flat plugins
- */
-function loadFlatPlugins() {
-    if (!fs.existsSync(PLUGINS_DIR)) {
-        console.error(
-            '[LOADER] Plugins directory not found:',
-            PLUGINS_DIR
-        );
-        return 0;
-    }
-
-    const files = fs.readdirSync(PLUGINS_DIR)
-        .filter(file => file.endsWith('.js'));
-
+async function loadPlugins() {
+    const files = fs.readdirSync(PLUGINS_DIR).filter(f => f.endsWith('.js'));
     let loaded = 0;
-
     for (const file of files) {
-        const fullPath = path.join(PLUGINS_DIR, file);
-
-        if (loadedPlugins.has(fullPath)) continue;
-
         try {
-            require(fullPath);
-
-            loadedPlugins.add(fullPath);
+            require(path.join(PLUGINS_DIR, file));
             loaded++;
-
-        } catch (error) {
-            console.error(
-                `[LOADER] Failed to load plugin ${file}:`,
-                error.stack || error.message
-            );
+        } catch (err) {
+            console.error(`[LOADER] Failed to load plugin ${file}:`, err.message);
         }
     }
+    console.log(`[LOADER] ${loaded}/${files.length} flat plugins loaded`);
 
-    console.log(
-        `[LOADER] ${loaded}/${files.length} flat plugins loaded`
-    );
-
-    return loaded;
+    // Wait for every ESM subdirectory plugin before the WhatsApp socket starts.
+    // This prevents early messages from arriving while the command registry is empty.
+    const subdirResult = await loadSubdirPlugins();
+    console.log(`[LOADER] Ready: ${commands.size} command names registered`);
+    return { flat: loaded, ...subdirResult, commands: commands.size };
 }
 
-/**
- * Load plugins inside subdirectories
- */
+// ═══════════════════════════════════════════════════════════
+//  SUBDIR PLUGIN LOADER — ESM files in guruh/plugins/*/
+// ═══════════════════════════════════════════════════════════
+
 async function loadSubdirPlugins() {
-    if (!fs.existsSync(PLUGINS_DIR)) return 0;
+    const subdirs = fs.readdirSync(PLUGINS_DIR, { withFileTypes: true })
+        .filter(d => d.isDirectory())
+        .map(d => d.name);
 
-    const folders = fs.readdirSync(PLUGINS_DIR, {
-        withFileTypes: true
-    }).filter(entry => entry.isDirectory());
+    let loaded = 0, failed = 0, skipped = 0;
 
-    let loaded = 0;
-    let failed = 0;
-    let skipped = 0;
-
-    for (const folder of folders) {
-        const folderPath = path.join(PLUGINS_DIR, folder.name);
-
-        let files = [];
-
-        try {
-            files = fs.readdirSync(folderPath)
-                .filter(file => file.endsWith('.js'));
-        } catch (error) {
-            console.error(
-                `[LOADER] Cannot read ${folder.name}:`,
-                error.message
-            );
-            continue;
-        }
+    for (const dir of subdirs) {
+        const dirPath = path.join(PLUGINS_DIR, dir);
+        const files   = fs.readdirSync(dirPath).filter(f => f.endsWith('.js'));
 
         for (const file of files) {
-            const fullPath = path.join(folderPath, file);
-
-            if (loadedPlugins.has(fullPath)) {
-                skipped++;
-                continue;
-            }
+            const filePath = path.join(dirPath, file);
+            const cmdName  = path.basename(file, '.js').toLowerCase().trim();
+            if (!cmdName) { skipped++; continue; }
 
             try {
-                const moduleUrl = pathToFileURL(fullPath).href;
-                const imported = await import(moduleUrl);
+                const mod      = await import(`file://${filePath}`);
+                const exported = mod.default;
 
-                const plugin = imported.default || imported;
+                if (!exported) { skipped++; continue; }
 
-                if (
-                    typeof plugin === 'function'
-                ) {
-                    await plugin();
-
-                } else if (
-                    plugin &&
-                    typeof plugin.run === 'function'
-                ) {
-                    if (plugin.name && !plugin._registered) {
-                        addCmd(plugin);
-                    }
-
-                    await plugin.run();
+                // Pattern A: export default { name, aliases, run, description }
+                if (typeof exported === 'object' && typeof exported.run === 'function') {
+                    const name    = (exported.name    || cmdName).toLowerCase().trim();
+                    const aliases = (exported.aliases || []).map(a => a.toLowerCase().trim());
+                    addCmd({
+                        name,
+                        aliases,
+                        desc:     exported.description || exported.desc || '',
+                        category: dir.toLowerCase(),
+                        handler:  (ctx) => exported.run(buildPluginCtx(ctx)),
+                    });
+                    loaded++;
+                    continue;
                 }
 
-                loadedPlugins.add(fullPath);
-                loaded++;
+                // Pattern B: export default async (context) => {}
+                if (typeof exported === 'function') {
+                    addCmd({
+                        name:     cmdName,
+                        aliases:  [],
+                        category: dir.toLowerCase(),
+                        handler:  (ctx) => exported(buildPluginCtx(ctx)),
+                    });
+                    loaded++;
+                    continue;
+                }
 
-            } catch (error) {
+                skipped++;
+            } catch (err) {
+                if (process.env.DEBUG === 'true') {
+                    console.error(`[LOADER] ${dir}/${file}: ${err.message}`);
+                }
                 failed++;
-
-                console.error(
-                    `[LOADER] Failed loading ${folder.name}/${file}:`,
-                    error.stack || error.message
-                );
             }
         }
     }
 
-    console.log(
-        `[LOADER] Subdirectories: ${loaded} loaded, ${failed} failed, ${skipped} skipped`
-    );
-
-    return loaded;
+    console.log(`[LOADER] Subdir plugins: ${loaded} loaded, ${failed} failed, ${skipped} skipped`);
+    return { subdirLoaded: loaded, failed, skipped };
 }
 
-/**
- * Load all plugins
- */
-async function loadPlugins() {
-    const flatLoaded = loadFlatPlugins();
-
-    const subLoaded = await loadSubdirPlugins();
-
-    const totalCommands = getAllCmds().length;
-
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('[LOADER] Plugin loading completed');
-    console.log(`[LOADER] Flat plugins: ${flatLoaded}`);
-    console.log(`[LOADER] Subdirectory plugins: ${subLoaded}`);
-    console.log(`[LOADER] Registered commands: ${totalCommands}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-
-    return totalCommands;
+function findCmd(name) {
+    return commands.get(name?.toLowerCase()) || null;
 }
 
-module.exports = {
-    addCmd,
-    addTrigger,
-    loadPlugins,
-    loadSubdirPlugins,
-    loadFlatPlugins,
-    findCmd,
-    getAllCmds,
-    buildPluginCtx,
-    isCurrentOwner,
-    commands,
-    triggers
-};
+function getAllCmds() {
+    const seen = new Set();
+    return [...commands.values()].filter(c => {
+        if (seen.has(c.name)) return false;
+        seen.add(c.name);
+        return true;
+    });
+}
+
+module.exports = { addCmd, addTrigger, loadPlugins, findCmd, getAllCmds, commands, triggers };
