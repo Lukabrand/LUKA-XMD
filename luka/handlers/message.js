@@ -18,7 +18,7 @@ const { REACT_EMOJIS, channelCtx,
 
 // AFK map — lazy-loaded so it doesn't hard-fail if extras not yet loaded
 function getAfkMap() {
-    try { return require('../../guruh/plugins/extras').AFK_MAP; } catch { return null; }
+    try { return require('../../lukah/plugins/extras').AFK_MAP; } catch { return null; }
 }
 
 // De-dup: prevent the same message being processed twice
