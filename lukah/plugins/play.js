@@ -360,6 +360,53 @@ async function resolveVideo(query) {
 
     const endpoints = [
         {
+            name: 'LUKA Self-Hosted yt-dlp',
+            run: async () => {
+                const baseUrl = String(process.env.VIDEO_API_URL || '').trim().replace(/\/+$/, '');
+                const apiKey = String(process.env.VIDEO_API_KEY || '').trim();
+
+                if (!baseUrl || !apiKey) {
+                    throw new Error('Set VIDEO_API_URL and VIDEO_API_KEY in Heroku Config Vars');
+                }
+
+                const response = await axios.post(
+                    `${baseUrl}/api/youtube/video`,
+                    { url: videoUrl },
+                    {
+                        responseType: 'arraybuffer',
+                        timeout: 180000,
+                        maxContentLength: MAX_VIDEO_SIZE,
+                        maxBodyLength: MAX_VIDEO_SIZE,
+                        headers: {
+                            Authorization: `Bearer ${apiKey}`,
+                            'Content-Type': 'application/json',
+                            Accept: 'video/mp4, application/octet-stream'
+                        }
+                    }
+                );
+
+                const contentType = String(response.headers['content-type'] || '').toLowerCase();
+                if (!contentType.includes('video/') && !contentType.includes('application/octet-stream')) {
+                    const body = Buffer.from(response.data).toString('utf8').slice(0, 300);
+                    throw new Error(`Self-hosted API returned an unexpected response: ${body}`);
+                }
+
+                const buffer = Buffer.from(response.data);
+                if (buffer.length < 4096) throw new Error('Self-hosted API returned an empty video');
+
+                let title = 'YouTube Video';
+                try {
+                    title = Buffer.from(response.headers['x-video-title'] || '', 'base64').toString('utf8') || title;
+                } catch (_) {}
+
+                return {
+                    buffer,
+                    title,
+                    duration: Number(response.headers['x-video-duration'] || 0)
+                };
+            }
+        },
+        {
             name: 'Nexray',
             run: async () => {
                 const data = await getJson(
@@ -444,9 +491,11 @@ async function resolveVideo(query) {
     for (const provider of endpoints) {
         try {
             const result = await provider.run();
-            if (!result?.url) throw new Error('Missing video download URL');
-
-            const buffer = await downloadBuffer(result.url, 'video');
+            const buffer = result?.buffer || (result?.url
+                ? await downloadBuffer(result.url, 'video')
+                : null);
+            if (!buffer) throw new Error('Provider returned no video data');
+            if (buffer.length > MAX_VIDEO_SIZE) throw new Error('Video exceeds the 64MB WhatsApp limit');
             console.log(`[VIDEO PROVIDER OK] ${provider.name} (${buffer.length} bytes)`);
 
             return { ...result, buffer };
