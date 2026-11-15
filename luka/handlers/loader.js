@@ -25,7 +25,7 @@ function addTrigger({ pattern, handler }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CONTEXT BRIDGE — maps BLACK PANTHER MD ctx → plugin ctx
+//  CONTEXT BRIDGE — maps LUKA-XMD ctx → plugin ctx
 // ═══════════════════════════════════════════════════════════
 
 function buildPluginCtx(ctx) {
