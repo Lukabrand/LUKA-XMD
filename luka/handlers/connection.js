@@ -1,12 +1,9 @@
 
 'use strict';
-
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
-const path = require('path');
 const fs = require('fs');
 const pino = require('pino');
 const NodeCache = require('node-cache');
-
 const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
@@ -32,19 +29,15 @@ seedDefaults({
     AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS)
 });
 
-let sock = null, startPromise = null, reconnectTimer = null, autoBioInterval = null, reconnectCount = 0;
-let settingsInitialized = false, pluginsLoaded = false, sessionResolved = false, updateCompleted = false;
-const MAX_RECONNECT_DELAY = 30000, CONNECTION_MESSAGE_EXPIRATION = 180;
-
+let sock = null, startPromise = null, autoBioInterval = null;
+let settingsInitialized = false, pluginsLoaded = false, sessionResolved = false, updateCompleted = false, hasStarted = false;
+const CONNECTION_MESSAGE_EXPIRATION = 180;
 if (!global._followedNewsletters) global._followedNewsletters = new Set();
-
 const silentLogger = pino({ level: 'silent', enabled: false });
 let _cachedVersion = null;
 
 async function getBaileysVersion() {
     if (_cachedVersion) return _cachedVersion;
-
-    // Do not let a slow version-check request hold up the WhatsApp connection.
     const fallbackVersion = [2, 3000, 1015901307];
     try {
         const result = await Promise.race([
@@ -56,7 +49,6 @@ async function getBaileysVersion() {
         logger.warn('BAILEYS', `Using fallback version: ${error.message}`);
         _cachedVersion = fallbackVersion;
     }
-
     setTimeout(() => { _cachedVersion = null; }, 3600000);
     return _cachedVersion;
 }
@@ -73,20 +65,16 @@ function toBool(value) {
 async function initializeSettings() {
     if (settingsInitialized) return;
     await initPersistentSettings();
-
     const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'STATUS_REPLY']);
-
     for (const key of Object.keys(config)) {
         const saved = getSetting(key, null);
         if (saved === null) continue;
         config[key] = boolKeys.has(key) ? toBool(saved) : (typeof config[key] === 'number' ? Number(saved) : saved);
     }
-
     global.autoPresenceFlags = {
         typing: toBool(getSetting('AUTO_TYPING', config.AUTO_TYPING)),
         recording: toBool(getSetting('AUTO_RECORDING', config.AUTO_RECORDING))
     };
-
     settingsInitialized = true;
     logger.success('DB', 'Persistent settings initialized.');
 }
@@ -95,7 +83,6 @@ async function autoFollowChannel(socket) {
     if (!config.AUTO_FOLLOW_CHANNEL) return;
     const jid = config.CHANNEL_JID;
     if (!jid?.endsWith('@newsletter') || global._followedNewsletters.has(jid)) return;
-
     try {
         await socket.newsletterFollow(jid);
         global._followedNewsletters.add(jid);
@@ -131,23 +118,19 @@ async function autoJoinGroups(socket) {
 
 async function startBotInternal() {
     await initializeSettings();
-
     if (!sessionResolved) {
         logger.banner(config.BOT_NAME, config.OWNER_NAME, config.OWNER_NUMBER, config.BOT_PREFIX, config.MODE, config.BOT_VERSION);
         await resolveSession();
         sessionResolved = true;
     }
-
     if (!pluginsLoaded) {
         await loadPlugins();
         pluginsLoaded = true;
     }
-
     ensureDir(SESSION_DIR);
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
     const version = await getBaileysVersion();
     const userDevicesCache = new NodeCache({ stdTTL: 600, useClones: false });
-
     let hasHandledOpen = false, socketClosed = false;
 
     const socket = makeWASocket({
@@ -202,68 +185,42 @@ async function startBotInternal() {
             if (socketClosed) return;
             socketClosed = true;
             if (sock === socket) sock = null;
-
             if (autoBioInterval) {
                 clearInterval(autoBioInterval);
                 autoBioInterval = null;
             }
-
             const code = lastDisconnect?.error?.output?.statusCode;
             const reason = Object.keys(DisconnectReason).find(k => DisconnectReason[k] === code) || code;
-
             if (code === DisconnectReason.loggedOut) {
                 logger.error('CONNECTION', 'Logged out. Use a fresh session.');
                 process.exit(1);
             }
-
             if (code === DisconnectReason.connectionReplaced) {
                 logger.warn('CONNECTION', 'Session replaced.');
                 process.exit(1);
             }
-
-            if (reconnectTimer) return;
-            reconnectCount++;
-
-            const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectCount - 1, 5)), MAX_RECONNECT_DELAY);
-            logger.warn('CONNECTION', `Closed (${reason}). Reconnecting in ${delay / 1000}s`);
-
-            reconnectTimer = setTimeout(() => {
-                reconnectTimer = null;
-                startBot().catch(e => logger.error('START', e.message));
-            }, delay);
+            logger.error('CONNECTION', `Closed (${reason}). Automatic reconnect disabled.`);
+            return;
         }
 
         if (connection === 'open') {
             if (hasHandledOpen || sock !== socket) return;
             hasHandledOpen = true;
-            reconnectCount = 0;
             initStatusEngine(socket);
-
             const botJid = socket.user?.id || '';
             const sessionNumber = botJid.split(':')[0].split('@')[0];
-            // Startup notification always goes to the WhatsApp account used by SESSION_ID.
             const ownerJid = sessionNumber ? `${sessionNumber}@s.whatsapp.net` : null;
-
             logger.success('CONNECTION', `Connected as ${botJid}`);
-
-            const now = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
-            const today = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
-
-            const startText =
-`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
+            const startText = `╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
 ┃ 🟢 Status  : *ONLINE*
 ┃ 👑 Owner   : *${config.OWNER_NAME}*
 ┃ 📦 Plugins : *${getAllCmds().length}*
 ┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
-
             if (ownerJid) {
                 try {
-                    await socket.sendMessage(ownerJid, {
-                        text: startText,
-                        contextInfo: channelCtx()
-                    }, {
+                    await socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, {
                         disappearingMessagesInChat: true,
                         ephemeralExpiration: CONNECTION_MESSAGE_EXPIRATION
                     });
@@ -272,15 +229,12 @@ async function startBotInternal() {
                     logger.warn('STARTUP', `Could not send online notification: ${error.message}`);
                 }
             }
-
-            // Run optional updater after WhatsApp is connected; it must not delay startup.
             if (!updateCompleted && config.AUTO_UPDATE) {
                 updateCompleted = true;
                 setTimeout(() => {
                     autoUpdate().catch(error => logger.warn('UPDATE', error.message));
                 }, 0);
             }
-
             if (config.AUTO_BIO) {
                 if (autoBioInterval) clearInterval(autoBioInterval);
                 PantherAutoBio(socket).catch(() => {});
@@ -288,11 +242,9 @@ async function startBotInternal() {
                     if (sock === socket) PantherAutoBio(socket).catch(() => {});
                 }, 600000);
             }
-
             setTimeout(() => {
                 if (sock === socket) autoFollowChannel(socket).catch(() => {});
             }, 5000);
-
             setTimeout(() => {
                 if (sock === socket) autoJoinGroups(socket).catch(() => {});
             }, 8000);
@@ -301,43 +253,34 @@ async function startBotInternal() {
 
     socket.ev.on('messages.upsert', async upsert => {
         if (!upsert?.messages || sock !== socket) return;
-
         if (upsert.type === 'notify') {
             const nonStatus = upsert.messages.filter(m => m?.key?.remoteJid !== 'status@broadcast');
             if (nonStatus.length) enqueueAll(nonStatus);
         }
-
         for (const msg of upsert.messages) storeMessage(msg);
-
         for (const msg of upsert.messages) {
             const revoke = msg?.message?.protocolMessage;
             if (revoke?.type === 0 && revoke?.key?.id) {
                 PantherAntiDelete(socket, { ...revoke.key, remoteJid: revoke.key.remoteJid || msg.key?.remoteJid }).catch(() => {});
             }
         }
-
         for (const msg of upsert.messages) {
             const jid = msg?.key?.remoteJid || '';
-
             if (jid === 'status@broadcast' && msg?.key?.participant) {
                 handleStatusBroadcast(socket, msg).catch(e => logger.warn('StatusMgr', e.message));
                 continue;
             }
-
             if (jid.endsWith('@newsletter') && msg?.key?.id) {
                 autoFollowInbound(socket, jid).catch(() => {});
-
                 if (process.uptime() > 25) {
                     const serverId = msg.key.server_id || msg.key.id;
                     const isOwnChannel = jid === config.CHANNEL_JID;
                     const emoji = isOwnChannel ? '❤️‍🔥' : ['❤️‍🔥', '🦨', '🦇', '🦅', '🦕', '🦖', '🦎', '🐲', '🐺', '🦊'][Math.floor(Math.random() * 10)];
-
                     if (serverId) socket.newsletterReactMessage(jid, serverId, emoji).catch(() => {});
                     else socket.sendMessage(jid, { react: { text: emoji, key: msg.key } }).catch(() => {});
                 }
             }
         }
-
         handleMessage(upsert, socket);
     });
 
@@ -373,9 +316,12 @@ async function startBotInternal() {
 }
 
 function startBot() {
-    if (startPromise) return startPromise;
-    if (sock && sock.ws?.readyState === 1) return Promise.resolve(sock);
-    startPromise = startBotInternal().finally(() => { startPromise = null; });
+    if (hasStarted) return startPromise || Promise.resolve(sock);
+    hasStarted = true;
+    startPromise = startBotInternal().catch(error => {
+        logger.error('START', error.message);
+        throw error;
+    });
     return startPromise;
 }
 
@@ -384,4 +330,4 @@ function getSocket() {
 }
 
 module.exports = { startBot, getSocket };
-                                           
+            
