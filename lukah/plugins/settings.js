@@ -199,7 +199,7 @@ addCmd({
                 'ANTI_VV',
                 'ANTI_EDIT',
                 'AUTO_BIO',
-                'AUTO_BLOCK',
+                'TIME_ZONE',
                 'AUTO_JOIN',
                 'AUTO_LIKE_STATUS',
                 'AUTO_REACT',
