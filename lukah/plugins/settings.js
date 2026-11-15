@@ -213,7 +213,7 @@ addCmd({
                 'BOT_VERSION',
                 'BOT_PIC', 
                 'CHATBOT',
-                'CHATBOT_MODE',
+                'CHAT_MODE',
                 'DM_PRESENCE',
                 'MENU_THEME',
                 'MODE',
