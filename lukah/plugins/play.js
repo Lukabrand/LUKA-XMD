@@ -121,18 +121,7 @@ function extractDownloadUrl(data) {
         result?.videoUrl,
         result?.video_url,
         result?.link,
-        result?.cdn,
-        result?.download?.url,
-        result?.video?.url,
-        result?.data?.url,
-        data?.data?.url,
-        data?.data?.download_url,
-        data?.data?.downloadUrl,
-        data?.data?.videoUrl,
-        data?.data?.video_url,
-        data?.data?.link,
-        data?.download?.url,
-        data?.video?.url
+        result?.cdn
     ];
 
     return candidates.find(
@@ -366,147 +355,42 @@ async function resolveVideo(query) {
         throw new Error('A valid YouTube video URL is required');
     }
 
+    const apiBase = String(
+        process.env.GIFTEDTECH_API || 'https://api.giftedtech.web.id'
+    ).replace(/\/+$/, '');
+    const apiKey = process.env.GIFTEDTECH_API_KEY || 'free';
     const encoded = encodeURIComponent(videoUrl);
-
-    const endpoints = [
-        // David Cyril Tech API (documented route: GET /download/ytmp4?url=...)
-        async () => {
-            const data = await getJson(
-                `https://apis.davidcyril.name.ng/download/ytmp4?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) {
-                throw new Error(
-                    data?.message || data?.error || 'David Cyril API returned no video URL'
-                );
-            }
-
-            return {
-                url,
-                title: data?.result?.title || data?.title || 'Video',
-                duration: data?.result?.duration || data?.duration || 0
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.nexray.web.id/downloader/ytmp4?url=${encoded}&resolusi=720`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Nexray returned no video URL');
-
-            return {
-                url,
-                title: data.result?.title || data.title || 'Video',
-                duration: data.result?.duration || data.duration || 0
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.sidycoders.xyz/api/ytdl?url=${encoded}&format=mp4&apikey=memberdycoders`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Sidycoders returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video',
-                duration: data.duration || 0
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.giftedtech.web.id/api/download/ytmp4?apikey=free&url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('GiftedTech returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.ryzendesu.vip/api/downloader/ytmp4?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Ryzendesu returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://api.siputzx.my.id/api/d/ytmp4?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Siputzx returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
-        },
-
-        async () => {
-            const data = await getJson(
-                `https://apiskeith.top/download/video?url=${encoded}`,
-                DOWNLOAD_TIMEOUT
-            );
-
-            const url = extractDownloadUrl(data);
-
-            if (!url) throw new Error('Apiskeith returned no video URL');
-
-            return {
-                url,
-                title: data.title || data.result?.title || 'Video'
-            };
-        }
+    const videoEndpoints = [
+        'ytmp4v2', 'ytvideo', 'ytv', 'ytmp4', 'savetubemp4', 'savemp4'
     ];
 
-    for (const endpoint of endpoints) {
+    // Keep the endpoint paths and response contract from the supplied GiftedTech code.
+    // Sequential fallback also ensures a broken/expired first URL does not block others.
+    for (const endpoint of videoEndpoints) {
         try {
-            const result = await endpoint();
+            const apiUrl =
+                `${apiBase}/api/download/${endpoint}` +
+                `?apikey=${encodeURIComponent(apiKey)}&url=${encoded}`;
+            const data = await getJson(apiUrl, DOWNLOAD_TIMEOUT);
+            const url = extractDownloadUrl(data);
 
-            if (!result?.url) continue;
+            if (!data?.success || !url) {
+                throw new Error(`${endpoint}: API did not return success/download_url`);
+            }
 
-            console.log('[VIDEO PROVIDER] Download URL received');
-
-            const buffer = await downloadBuffer(result.url, 'video');
+            const buffer = await downloadBuffer(url, 'video');
+            console.log(`[VIDEO PROVIDER] GiftedTech ${endpoint} succeeded`);
 
             return {
-                ...result,
+                url,
+                endpoint,
+                title: data.result?.title || data.title || 'YouTube Video',
+                duration: data.result?.duration || data.duration || 0,
                 buffer
             };
         } catch (error) {
             console.error(
-                '[VIDEO PROVIDER FAILED]',
+                `[GIFTEDTECH VIDEO FAILED: ${endpoint}]`,
                 error.response?.status || error.message
             );
         }
@@ -593,7 +477,7 @@ async function sendVideo(ctx, query) {
 
         return ctx.reply(
             `❌ Video download failed for: ${query}\n\n` +
-            `David Cyril and fallback providers could not return a valid video. Check the provider response in Heroku logs, then try another URL.\n\n${FOOTER}`
+            `All available video providers failed. Try another video URL.\n\n${FOOTER}`
         );
     }
 
