@@ -57,6 +57,27 @@ function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
+// Normalize deletion keys from both Baileys revoke protocol messages and
+// the messages.delete event. Some Baileys event payloads omit remoteJid
+// from the nested key, so use the enclosing chat JID as a safe fallback.
+function handleAntiDeleteKey(socket, key, fallbackJid = '') {
+    if (!key?.id) return;
+
+    const normalizedKey = {
+        ...key,
+        remoteJid: key.remoteJid || fallbackJid || ''
+    };
+
+    if (!normalizedKey.remoteJid) {
+        logger.warn('ANTIDELETE', `Skipped deletion ${key.id}: chat JID is missing.`);
+        return;
+    }
+
+    PantherAntiDelete(socket, normalizedKey).catch(err => {
+        logger.error('ANTIDELETE', err.message);
+    });
+}
+
 function toBool(value) {
     if (typeof value === 'boolean') return value;
     return ['true', '1', 'on', 'yes'].includes(String(value).toLowerCase());
@@ -294,10 +315,13 @@ async function startBotInternal() {
 
         for (const msg of upsert.messages) storeMessage(msg);
 
+        // WhatsApp revoke notices arrive as protocolMessage type 0.
+        // Keep the original message key intact and fill missing chat metadata
+        // from the revoke notice itself.
         for (const msg of upsert.messages) {
             const revoke = msg?.message?.protocolMessage;
             if (revoke?.type === 0 && revoke?.key?.id) {
-                PantherAntiDelete(socket, { ...revoke.key, remoteJid: revoke.key.remoteJid || msg.key?.remoteJid }).catch(() => {});
+                handleAntiDeleteKey(socket, revoke.key, msg.key?.remoteJid);
             }
         }
 
@@ -327,8 +351,12 @@ async function startBotInternal() {
     });
 
     socket.ev.on('messages.delete', item => {
-        if (!item?.keys || sock !== socket) return;
-        for (const key of item.keys) PantherAntiDelete(socket, key).catch(() => {});
+        if (sock !== socket || !Array.isArray(item?.keys)) return;
+
+        // Baileys may provide the chat JID on the event rather than on each key.
+        for (const key of item.keys) {
+            handleAntiDeleteKey(socket, key, item.jid);
+        }
     });
 
     socket.ev.on('messages.update', async updates => {
