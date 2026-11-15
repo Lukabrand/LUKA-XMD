@@ -43,12 +43,20 @@ let _cachedVersion = null;
 
 async function getBaileysVersion() {
     if (_cachedVersion) return _cachedVersion;
+
+    // Do not let a slow version-check request hold up the WhatsApp connection.
+    const fallbackVersion = [2, 3000, 1015901307];
     try {
-        const { version } = await fetchLatestBaileysVersion();
-        _cachedVersion = version;
-    } catch {
-        _cachedVersion = [2, 3000, 1015901307];
+        const result = await Promise.race([
+            fetchLatestBaileysVersion(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Baileys version lookup timed out')), 2500))
+        ]);
+        _cachedVersion = result?.version || fallbackVersion;
+    } catch (error) {
+        logger.warn('BAILEYS', `Using fallback version: ${error.message}`);
+        _cachedVersion = fallbackVersion;
     }
+
     setTimeout(() => { _cachedVersion = null; }, 3600000);
     return _cachedVersion;
 }
@@ -123,15 +131,6 @@ async function autoJoinGroups(socket) {
 
 async function startBotInternal() {
     await initializeSettings();
-
-    if (!updateCompleted && config.AUTO_UPDATE) {
-        updateCompleted = true;
-        try {
-            await autoUpdate();
-        } catch (e) {
-            logger.warn('UPDATE', e.message);
-        }
-    }
 
     if (!sessionResolved) {
         logger.banner(config.BOT_NAME, config.OWNER_NAME, config.OWNER_NUMBER, config.BOT_PREFIX, config.MODE, config.BOT_VERSION);
@@ -242,8 +241,8 @@ async function startBotInternal() {
 
             const botJid = socket.user?.id || '';
             const sessionNumber = botJid.split(':')[0].split('@')[0];
-            const ownerNumber = String(config.OWNER_NUMBER || '').replace(/\D/g, '') || sessionNumber;
-            const ownerJid = ownerNumber ? `${ownerNumber}@s.whatsapp.net` : null;
+            // Startup notification always goes to the WhatsApp account used by SESSION_ID.
+            const ownerJid = sessionNumber ? `${sessionNumber}@s.whatsapp.net` : null;
 
             logger.success('CONNECTION', `Connected as ${botJid}`);
 
@@ -260,10 +259,23 @@ async function startBotInternal() {
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             if (ownerJid) {
-                socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, {
-                    disappearingMessagesInChat: true,
-                    ephemeralExpiration: CONNECTION_MESSAGE_EXPIRATION
-                }).catch(() => {});
+                try {
+                    await socket.sendMessage(ownerJid, {
+                        text: startText,
+                        contextInfo: channelCtx()
+                    });
+                    logger.success('STARTUP', `Online notification sent to session: ${sessionNumber}`);
+                } catch (error) {
+                    logger.warn('STARTUP', `Could not send online notification: ${error.message}`);
+                }
+            }
+
+            // Run optional updater after WhatsApp is connected; it must not delay startup.
+            if (!updateCompleted && config.AUTO_UPDATE) {
+                updateCompleted = true;
+                setTimeout(() => {
+                    autoUpdate().catch(error => logger.warn('UPDATE', error.message));
+                }, 0);
             }
 
             if (config.AUTO_BIO) {
