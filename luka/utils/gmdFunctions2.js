@@ -221,12 +221,34 @@ function getOwnerJid(sock) {
     return self ? `${self.split(':')[0].split('@')[0]}@s.whatsapp.net` : null;
 }
 
+function toFeatureBoolean(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    if (value == null) return false;
+    return ['true', '1', 'on', 'yes'].includes(String(value).trim().toLowerCase());
+}
+
 function isFeatureEnabled(feature, from) {
-    const globalEnabled = Boolean(config[feature]);
-    if (globalEnabled) return true;
+    // settings.js uses ANTI_DELETE / ANTI_EDIT (with an underscore),
+    // while the handlers use ANTIDELETE / ANTIEDIT. Support both names
+    // and the persistent database value so the feature is not silently skipped.
+    const aliases = feature === 'ANTIDELETE'
+        ? ['ANTIDELETE', 'ANTI_DELETE']
+        : feature === 'ANTIEDIT'
+            ? ['ANTIEDIT', 'ANTI_EDIT']
+            : [feature];
+
+    for (const name of aliases) {
+        if (Object.prototype.hasOwnProperty.call(config, name) && toFeatureBoolean(config[name])) {
+            return true;
+        }
+        const saved = getSetting(name, null);
+        if (toFeatureBoolean(saved)) return true;
+    }
+
     if (from?.endsWith('@g.us')) {
-        const key = feature === 'ANTIDELETE' ? 'antidelete' : 'antiedit';
-        return Boolean(getGroupSettings(from)?.[key]);
+        const groupKey = feature === 'ANTIDELETE' ? 'antidelete' : 'antiedit';
+        return toFeatureBoolean(getGroupSettings(from)?.[groupKey]);
     }
     return false;
 }
