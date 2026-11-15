@@ -1,8 +1,8 @@
 'use strict';
 /**
- * guru/handlers/plugins/autoviewstatus.js
- * Thin bridge — delegates to the full AutoViewManager in the guruh plugin.
- * This is the version called by guru/handlers/statusManager.js.
+ * luka/handlers/plugins/autoviewstatus.js
+ * Thin bridge — delegates to the full AutoViewManager in the lukah plugin.
+ * This is the version called by luka/handlers/statusManager.js.
  */
 
 let _manager = null;
