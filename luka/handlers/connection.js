@@ -11,7 +11,7 @@ const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults, initPersistentSettings, getSetting } = require('../db/database');
-const { loadPlugins, commands } = require('./loader');
+const { loadPlugins, getAllCmds } = require('./loader');
 const { handleMessage } = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate } = require('../utils/autoUpdate');
@@ -254,7 +254,7 @@ async function startBotInternal() {
 `╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
 ┃ 🟢 Status  : *ONLINE*
 ┃ 👑 Owner   : *${config.OWNER_NAME}*
-┃ 📦 Plugins : *${commands.size}*
+┃ 📦 Plugins : *${getAllCmds().length}*
 ┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;

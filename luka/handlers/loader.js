@@ -85,7 +85,7 @@ async function loadPlugins() {
     // Wait for every ESM subdirectory plugin before the WhatsApp socket starts.
     // This prevents early messages from arriving while the command registry is empty.
     const subdirResult = await loadSubdirPlugins();
-    console.log(`[LOADER] Ready: ${commands.size} command names registered`);
+    console.log(`[LOADER] Ready: ${getAllCmds().length} unique commands registered (${commands.size} names including aliases)`);
     return { flat: loaded, ...subdirResult, commands: commands.size };
 }
 
