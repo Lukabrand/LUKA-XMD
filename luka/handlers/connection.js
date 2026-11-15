@@ -263,6 +263,9 @@ async function startBotInternal() {
                     await socket.sendMessage(ownerJid, {
                         text: startText,
                         contextInfo: channelCtx()
+                    }, {
+                        disappearingMessagesInChat: true,
+                        ephemeralExpiration: CONNECTION_MESSAGE_EXPIRATION
                     });
                     logger.success('STARTUP', `Online notification sent to session: ${sessionNumber}`);
                 } catch (error) {
