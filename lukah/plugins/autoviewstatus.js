@@ -9,7 +9,7 @@ const CONFIG_DB_KEY = 'autoview_config';
 const DEFAULT_VIEW_CONFIG = {
     enabled: true, logs: [], totalViewed: 0, lastViewed: null,
     consecutiveViews: 0, lastSender: null, excludedContacts: [],
-    settings: { rateLimitDelay: 1000, markAsSeen: true }
+    settings: { rateLimitDelay: 500, markAsSeen: true }
 };
 
 const G = '\x1b[32m'; const C = '\x1b[36m'; const Y = '\x1b[33m';
