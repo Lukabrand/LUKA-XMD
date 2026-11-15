@@ -199,7 +199,7 @@ addCmd({
                 'ANTI_VV',
                 'ANTI_EDIT',
                 'AUTO_BIO',
-                'TIME_ZONE',
+                'AUTO_FOLLOW_CHANNEL',
                 'AUTO_JOIN',
                 'AUTO_LIKE_STATUS',
                 'AUTO_REACT',
@@ -260,9 +260,9 @@ addCmd({
             };
 
             let text =
-                `╭══〘〘 *${botName}* 〙〙═⊷\n` +
-                `      *BOT SETTINGS*\n` +
-                `╰══✦ ✦══⊷\n\n`;
+    `╭═══════════⊷\n` +
+    `       *BOT SETTINGS*\n` +
+    `╰═══════════⊷\n\n`;
 
             for (const key of allSettings) {
                 const value = getValue(key);
@@ -284,9 +284,9 @@ addCmd({
             };
 
             text +=
-                `\n╭══〘〘 *${botName}* 〙〙═⊷\n` +
-                `      📋 *GROUP SETTINGS*\n` +
-                `╰══✦ ✦══⊷\n\n`;
+    `\n╭═══════════⊷\n` +
+    `      📋 *GROUP SETTINGS*\n` +
+    `╰═══════════⊷\n\n`;
 
             text += `*🎉 WELCOME MESSAGE:*\n${groupValue('welcomeMessage', 'welcome', 'welcomemsg')}\n\n`;
             text += `*👋 GOODBYE MESSAGE:*\n${groupValue('goodbyeMessage', 'goodbye', 'goodbyemsg')}\n\n`;
