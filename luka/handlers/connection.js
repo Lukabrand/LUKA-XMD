@@ -11,7 +11,7 @@ const config = require('../config/settings');
 const logger = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults, initPersistentSettings, getSetting } = require('../db/database');
-const { loadPlugins, getAllCmds } = require('./loader');
+const { loadPlugins } = require('./loader');
 const { handleMessage } = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate } = require('../utils/autoUpdate');
@@ -29,9 +29,7 @@ seedDefaults({
     AUTO_REACT: String(config.AUTO_REACT),
     AUTO_BIO: String(config.AUTO_BIO),
     AUTO_READ_STATUS: String(config.AUTO_READ_STATUS),
-    AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS),
-    ANTI_DELETE: String(config.ANTI_DELETE),
-    ANTI_EDIT: String(config.ANTI_EDIT)
+    AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS)
 });
 
 let sock = null, startPromise = null, reconnectTimer = null, autoBioInterval = null, reconnectCount = 0;
@@ -67,8 +65,10 @@ function toBool(value) {
 async function initializeSettings() {
     if (settingsInitialized) return;
     await initPersistentSettings();
+    const jsonSettingsDb = await import('../../guruh/database/config.js');
+    await jsonSettingsDb.initPersistentDatabase();
 
-    const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'ANTI_DELETE', 'ANTI_EDIT', 'STATUS_REPLY']);
+    const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'STATUS_REPLY']);
 
     for (const key of Object.keys(config)) {
         const saved = getSetting(key, null);
@@ -158,7 +158,7 @@ async function startBotInternal() {
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, silentLogger) },
         logger: silentLogger,
         printQRInTerminal: false,
-        browser: ['LUKA-XMD', 'Chrome', '121.0.0'],
+        browser: ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
@@ -252,14 +252,21 @@ async function startBotInternal() {
             const now = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
 
-            const startText =
-`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
-┃ 🟢 Status  : *ONLINE*
-┃ 👑 Owner   : *${config.OWNER_NAME}*
-┃ 📦 Plugins : *${getAllCmds().length}*
-┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
-┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
-╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
+            const startText = `╭─❖ *${config.BOT_NAME}* ❖─╮
+│
+├─❖ *Status:* ✅ ONLINE
+├─❖ *Owner:* ${config.OWNER_NAME}
+├─❖ *Phone:* +${ownerNumber}
+├─❖ *Prefix:* [ ${config.BOT_PREFIX} ]
+├─❖ *Mode:* ${config.MODE.toUpperCase()}
+├─❖ *Host:* ${logger.PLATFORM}
+├─❖ *Version:* ${config.BOT_VERSION}
+├─❖ *Time:* ${now}
+├─❖ *Date:* ${today}
+│
+╰─❖ *Powered by ${config.OWNER_NAME}* ❖─╯
+
+> © ${config.BOT_NAME} is awesome 🔥`;
 
             if (ownerJid) {
                 socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, {
