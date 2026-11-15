@@ -1,8 +1,8 @@
 'use strict';
 /**
- * guru/handlers/plugins/autoreactstatus.js
- * Thin bridge — delegates to the full AutoReactManager in the guruh plugin.
- * This is the version called by guru/handlers/statusManager.js.
+ * luka/handlers/plugins/autoreactstatus.js
+ * Thin bridge — delegates to the full AutoReactManager in the lukah plugin.
+ * This is the version called by luka/handlers/statusManager.js.
  */
 
 let _manager = null;
