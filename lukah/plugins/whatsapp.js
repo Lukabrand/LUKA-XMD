@@ -1,8 +1,4 @@
 'use strict';
-// ╔══════════════════════════════════════════════════════════════╗
-//  ⚡LUKA-XMD  —  Advanced WhatsApp Settings
-//  Profile, presence, blocklist, privacy controls
-// ╚══════════════════════════════════════════════════════════════╝
 
 const { addCmd } = require('../../luka/handlers/loader');
 const { cleanJid } = require('../../luka/utils/helpers');
