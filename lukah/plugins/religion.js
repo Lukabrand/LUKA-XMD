@@ -4,9 +4,9 @@ const { addCmd } = require('../../luka/handlers/loader');
 const axios = require('axios');
 const config = require('../../luka/config/settings');
 const { sendButtons } = require('../../luka/utils/gmdFunctions2');
+const { getGiftedApiKeys } = require('../keys');
 
-const API_BASE = config.GIFTED_TECH_API || 'https://api.giftedtech.co.ke';
-const API_KEY = config.GIFTED_API_KEY || '';
+const API_BASE = config.GIFTED_TECH_API || 'https://api.giftedtech.web.id';
 
 addCmd({
     name: 'bible',
@@ -31,25 +31,37 @@ addCmd({
         try {
             if (ctx.react) await ctx.react('⏳');
 
-            const response = await axios.get(
-                `${API_BASE}/api/search/bible`,
-                {
-                    params: {
-                        apikey: API_KEY,
-                        verse
-                    },
-                    timeout: 30000
-                }
-            );
-
-            if (!response.data?.success || !response.data?.result) {
+            const apiKeys = getGiftedApiKeys();
+            if (!apiKeys.length) {
                 if (ctx.react) await ctx.react('❌');
-                return ctx.reply(
-                    '❌ Failed to fetch Bible verse. Please check the reference format.'
-                );
+                return ctx.reply('❌ API key haijawekwa. Weka LUKA_API_KEY kwenye Heroku Config Vars.');
             }
 
-            const r = response.data.result;
+            let result = null;
+            let lastError = null;
+            for (const apikey of apiKeys) {
+                try {
+                    const response = await axios.get(`${API_BASE}/api/search/bible`, {
+                        params: { apikey, verse },
+                        timeout: 30000
+                    });
+                    if (response.data?.success && response.data?.result) {
+                        result = response.data.result;
+                        break;
+                    }
+                    lastError = new Error(response.data?.message || 'No Bible result');
+                } catch (error) {
+                    lastError = error;
+                }
+            }
+
+            if (!result) {
+                if (ctx.react) await ctx.react('❌');
+                console.error('[BIBLE API ERROR]:', lastError?.message || 'No result');
+                return ctx.reply('❌ Failed to fetch Bible verse. Please check the reference format or API key.');
+            }
+
+            const r = result;
 
             let txt = `*${config.BOT_NAME || 'LUKA-XMD'} BIBLE* 📖\n\n`;
 

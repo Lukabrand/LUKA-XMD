@@ -3,6 +3,7 @@
 const { addCmd } = require('../../luka/handlers/loader');
 const axios = require('axios');
 const config = require('../../luka/config/settings');
+const { getGiftedApiKeys } = require('../keys');
 
 async function queryAI(endpoint, query, ctx) {
     const { reply } = ctx;
@@ -12,28 +13,33 @@ async function queryAI(endpoint, query, ctx) {
     }
 
     try {
-        const apiBase = config.GIFTED_TECH_API || config.GiftedTechApi;
-        const apiKey = config.GIFTED_API_KEY || config.GiftedApiKey;
+        const apiBase = config.GIFTED_TECH_API || 'https://api.giftedtech.web.id';
+        const apiKeys = getGiftedApiKeys();
 
-        if (!apiBase || !apiKey) {
-            return reply('❌ Gifted API configuration is missing.');
+        if (!apiKeys.length) {
+            return reply('❌ API key haijawekwa. Weka LUKA_API_KEY kwenye Heroku Config Vars.');
         }
 
-        const apiUrl = `${apiBase}/api/ai/${endpoint}`;
+        let lastError;
+        for (const apiKey of apiKeys) {
+            try {
+                const res = await axios.get(`${apiBase}/api/ai/${encodeURIComponent(endpoint)}`, {
+                    params: { apikey: apiKey, q: query },
+                    timeout: 100000
+                });
 
-        const res = await axios.get(apiUrl, {
-            params: {
-                apikey: apiKey,
-                q: query
-            },
-            timeout: 100000
-        });
-
-        if (!res.data?.success || !res.data?.result) {
-            return reply('❌ Failed to get a response. Try again.');
+                if (res.data?.success && res.data?.result) {
+                    return reply(typeof res.data.result === 'string'
+                        ? res.data.result
+                        : JSON.stringify(res.data.result, null, 2));
+                }
+                lastError = new Error(res.data?.message || res.data?.error || 'No result from GiftedTech');
+            } catch (error) {
+                lastError = error;
+            }
         }
 
-        return reply(res.data.result);
+        throw lastError || new Error('GiftedTech AI request failed');
 
     } catch (err) {
         console.error(`[AI ${endpoint} ERROR]:`, err.message);
