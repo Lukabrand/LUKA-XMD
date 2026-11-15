@@ -25,7 +25,7 @@ lastSender: null,
 lastReactionTime: 0,
 reactedStatuses: [],
 settings: {
-rateLimitDelay: 2000,
+rateLimitDelay: 1000,
 reactToAll: true,
 ignoreConsecutiveLimit: true,
 noHourlyLimit: true
