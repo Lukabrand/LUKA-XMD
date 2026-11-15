@@ -29,7 +29,9 @@ seedDefaults({
     AUTO_REACT: String(config.AUTO_REACT),
     AUTO_BIO: String(config.AUTO_BIO),
     AUTO_READ_STATUS: String(config.AUTO_READ_STATUS),
-    AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS)
+    AUTO_LIKE_STATUS: String(config.AUTO_LIKE_STATUS),
+    ANTI_DELETE: String(config.ANTI_DELETE),
+    ANTI_EDIT: String(config.ANTI_EDIT)
 });
 
 let sock = null, startPromise = null, reconnectTimer = null, autoBioInterval = null, reconnectCount = 0;
@@ -57,27 +59,6 @@ function ensureDir(dir) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-// Normalize deletion keys from both Baileys revoke protocol messages and
-// the messages.delete event. Some Baileys event payloads omit remoteJid
-// from the nested key, so use the enclosing chat JID as a safe fallback.
-function handleAntiDeleteKey(socket, key, fallbackJid = '') {
-    if (!key?.id) return;
-
-    const normalizedKey = {
-        ...key,
-        remoteJid: key.remoteJid || fallbackJid || ''
-    };
-
-    if (!normalizedKey.remoteJid) {
-        logger.warn('ANTIDELETE', `Skipped deletion ${key.id}: chat JID is missing.`);
-        return;
-    }
-
-    PantherAntiDelete(socket, normalizedKey).catch(err => {
-        logger.error('ANTIDELETE', err.message);
-    });
-}
-
 function toBool(value) {
     if (typeof value === 'boolean') return value;
     return ['true', '1', 'on', 'yes'].includes(String(value).toLowerCase());
@@ -87,7 +68,7 @@ async function initializeSettings() {
     if (settingsInitialized) return;
     await initPersistentSettings();
 
-    const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'STATUS_REPLY']);
+    const boolKeys = new Set(['AUTO_REACT', 'AUTO_BIO', 'AUTO_READ_STATUS', 'AUTO_LIKE_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'GHOST_MODE', 'FREEZE_LAST_SEEN', 'ANTI_CALL', 'ANTICALL', 'ANTIDELETE', 'ANTIEDIT', 'ANTI_DELETE', 'ANTI_EDIT', 'STATUS_REPLY']);
 
     for (const key of Object.keys(config)) {
         const saved = getSetting(key, null);
@@ -315,13 +296,10 @@ async function startBotInternal() {
 
         for (const msg of upsert.messages) storeMessage(msg);
 
-        // WhatsApp revoke notices arrive as protocolMessage type 0.
-        // Keep the original message key intact and fill missing chat metadata
-        // from the revoke notice itself.
         for (const msg of upsert.messages) {
             const revoke = msg?.message?.protocolMessage;
             if (revoke?.type === 0 && revoke?.key?.id) {
-                handleAntiDeleteKey(socket, revoke.key, msg.key?.remoteJid);
+                PantherAntiDelete(socket, { ...revoke.key, remoteJid: revoke.key.remoteJid || msg.key?.remoteJid }).catch(() => {});
             }
         }
 
@@ -351,12 +329,8 @@ async function startBotInternal() {
     });
 
     socket.ev.on('messages.delete', item => {
-        if (sock !== socket || !Array.isArray(item?.keys)) return;
-
-        // Baileys may provide the chat JID on the event rather than on each key.
-        for (const key of item.keys) {
-            handleAntiDeleteKey(socket, key, item.jid);
-        }
+        if (!item?.keys || sock !== socket) return;
+        for (const key of item.keys) PantherAntiDelete(socket, key).catch(() => {});
     });
 
     socket.ev.on('messages.update', async updates => {
