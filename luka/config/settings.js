@@ -84,7 +84,7 @@ const CONFIG = {
     MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
     MENU_THEME: process.env.MENU_THEME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
     CHATBOT: parseBoolean(process.env.CHATBOT || 'off'),
-    CHAT_MODE: process.env.CHAT_MODE || 'private',
+    CHAT_MODE: process.env.CHAT_MODE || 'public',
     AUTO_FOLLOW_CHANNEL: parseBoolean(process.env.AUTO_FOLLOW_CHANNEL ?? 'on'),
     CHANNEL_JID: process.env.CHANNEL_JID || process.env.NEWSLETTER_JID || DEFAULT_CHANNEL_JID,
     CHANNEL_URL: process.env.CHANNEL_URL || process.env.NEWSLETTER_URL || DEFAULT_CHANNEL_URL,
