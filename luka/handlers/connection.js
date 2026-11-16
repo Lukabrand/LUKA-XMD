@@ -19,7 +19,7 @@ const config  = require('../config/settings');
 const logger  = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults }               = require('../db/database');
-const { loadPlugins, getAllCmds }     = require('./loader');
+const { loadPlugins, getAllCmds }    = require('./loader');
 const { handleMessage }              = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate }                 = require('../utils/autoUpdate');
@@ -168,7 +168,7 @@ async function startBot() {
     await resolveSession();
 
     logger.info('LOADER', 'Loading plugins...');
-    await loadPlugins();
+    loadPlugins();
 
     ensureDir(SESSION_DIR);
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
@@ -259,19 +259,14 @@ async function startBot() {
         if (connection === 'open') {
             reconnectCount = 0;
             initStatusEngine(sock);
-            const botJid = sock.user?.id || sock.user?.lid || '';
-            // The WhatsApp account used by this SESSION_ID is the bot owner.
-            global.LUKA_SESSION_OWNER = {
-                id: sock.user?.id || '',
-                lid: sock.user?.lid || '',
-                jid: String(sock.user?.id || '').replace(/:[0-9]+(?=@)/, ''),
-            };
+            const botJid = sock.user?.id || '';
             logger.success('CONNECTION', `Connected as ${botJid}`);
             logger.info('BOT', `Prefix: ${config.BOT_PREFIX}  |  Mode: ${config.MODE}`);
             logger.info('BOT', `AutoBio: ${config.AUTO_BIO}  |  AutoLike: ${config.AUTO_LIKE_STATUS}  |  AutoRead: ${config.AUTO_READ_STATUS}`);
             logger.info('BOT', `AntiVV: ${config.ANTI_VV}  |  AutoFollowChannel: ${config.AUTO_FOLLOW_CHANNEL}`);
 
-            const ownerJid = global.LUKA_SESSION_OWNER.jid || botJid;
+            const selfNumber = botJid.split(':')[0].split('@')[0];
+            const ownerJid   = `${selfNumber}@s.whatsapp.net`;
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
             const startText = 
@@ -283,24 +278,25 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Send the online/connect notice to the SESSION_ID account.
-            // Delete it for everyone after 2 minutes.
-            sock.sendMessage(ownerJid, {
-                text: startText,
-                contextInfo: channelCtx()
-            }).then((sentMessage) => {
-                if (!sentMessage?.key) return;
+            // Send the startup notice, then remove this exact message after 2 minutes.
+            // This is message-only deletion; it does not enable disappearing messages
+            // for the entire owner chat.
+            try {
+                const sentStartMessage = await sock.sendMessage(ownerJid, {
+                    text: startText,
+                    contextInfo: channelCtx(),
+                });
 
-                setTimeout(() => {
-                    sock.sendMessage(ownerJid, {
-                        delete: sentMessage.key
-                    }).catch((err) => {
-                        logger.warn('CONNECTION', `Could not delete online notice: ${err.message}`);
-                    });
-                }, 2 * 60 * 1000);
-            }).catch((err) => {
-                logger.warn('CONNECTION', `Could not send online notice: ${err.message}`);
-            });
+                if (sentStartMessage?.key) {
+                    setTimeout(() => {
+                        sock.sendMessage(ownerJid, {
+                            delete: sentStartMessage.key,
+                        }).catch(err => logger.warn('CONNECTION', `Could not delete startup message: ${err.message}`));
+                    }, 120_000).unref?.();
+                }
+            } catch (err) {
+                logger.warn('CONNECTION', `Startup message failed: ${err.message}`);
+            }
 
             // Auto Bio
             if (config.AUTO_BIO) {
@@ -369,19 +365,46 @@ async function startBot() {
     });
 
     // ── Anti-delete ────────────────────────────────────────────
-    sock.ev.on('messages.delete', (item) => {
-        if (item?.keys) {
-            for (const key of item.keys) {
-                PantherAntiDelete(sock, key).catch(() => {});
-            }
-        }
-    });
+    // Baileys normally emits { keys }, but tolerate a single key too.
+    const handleDeletedMessageKeys = (item) => {
+        const keys = Array.isArray(item?.keys)
+            ? item.keys
+            : (item?.id && item?.remoteJid ? [item] : []);
 
-    // ── Anti-edit ──────────────────────────────────────────────
-    sock.ev.on('messages.update', async (updates) => {
+        for (const key of keys) {
+            if (!key?.id || !key?.remoteJid) continue;
+            PantherAntiDelete(sock, key).catch(err =>
+                logger.warn('ANTIDELETE', err.message)
+            );
+        }
+    };
+
+    sock.ev.on('messages.delete', handleDeletedMessageKeys);
+
+    // Some Baileys builds report revoke events through messages.update.
+    // Keep edit recovery separate so a revoke is not mistaken for an edit.
+    sock.ev.on('messages.update', async (updates = []) => {
         for (const update of updates) {
-            if (update?.update?.message?.protocolMessage?.editedMessage) {
-                PantherAntiEdit(sock, update).catch(() => {});
+            const proto = update?.update?.message?.protocolMessage;
+            if (!proto) continue;
+
+            const protoType = String(proto.type ?? '').toUpperCase();
+            const isRevoke = protoType === 'REVOKE' || proto.type === 0;
+
+            if (isRevoke && proto.key?.id) {
+                const deletedKey = {
+                    ...proto.key,
+                    remoteJid: proto.key.remoteJid || update?.key?.remoteJid,
+                    participant: proto.key.participant || update?.key?.participant,
+                };
+                handleDeletedMessageKeys(deletedKey);
+                continue;
+            }
+
+            if (proto.editedMessage) {
+                PantherAntiEdit(sock, update).catch(err =>
+                    logger.warn('ANTIEDIT', err.message)
+                );
             }
         }
     });
