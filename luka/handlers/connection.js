@@ -278,22 +278,20 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Send the startup notice, then remove this exact message after 2 minutes.
-            // This is message-only deletion; it does not enable disappearing messages
-            // for the entire owner chat.
+            // Send startup notice using WhatsApp disappearing-message settings.
+            // ephemeralExpiration: 300 means 300 seconds (5 minutes).
             try {
-                const sentStartMessage = await sock.sendMessage(ownerJid, {
-                    text: startText,
-                    contextInfo: channelCtx(),
-                });
-
-                if (sentStartMessage?.key) {
-                    setTimeout(() => {
-                        sock.sendMessage(ownerJid, {
-                            delete: sentStartMessage.key,
-                        }).catch(err => logger.warn('CONNECTION', `Could not delete startup message: ${err.message}`));
-                    }, 120_000).unref?.();
-                }
+                await sock.sendMessage(
+                    ownerJid,
+                    {
+                        text: startText,
+                        contextInfo: channelCtx(),
+                    },
+                    {
+                        disappearingMessagesInChat: true,
+                        ephemeralExpiration: 300,
+                    }
+                );
             } catch (err) {
                 logger.warn('CONNECTION', `Startup message failed: ${err.message}`);
             }
