@@ -56,8 +56,6 @@ seedDefaults({
 });
 
 let sock;
-let reconnectCount = 0;
-const MAX_RECONNECT_DELAY = 30_000;
 
 // Track newsletters followed this session
 if (!global._followedNewsletters) global._followedNewsletters = new Set();
@@ -250,14 +248,12 @@ async function startBot() {
                 process.exit(1);
             }
 
-            reconnectCount++;
-            const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectCount - 1, 5)), MAX_RECONNECT_DELAY);
-            logger.warn('CONNECTION', `Closed (${reason}) — reconnecting in ${delay / 1000}s [attempt #${reconnectCount}]`);
-            setTimeout(startBot, delay);
+            // Auto-reconnect is intentionally disabled: connect only when the
+            // process is started/restarted manually by the user or host.
+            logger.warn('CONNECTION', `Closed (${reason}) — automatic reconnect is disabled.`);
         }
 
         if (connection === 'open') {
-            reconnectCount = 0;
             initStatusEngine(sock);
             const botJid = sock.user?.id || '';
             logger.success('CONNECTION', `Connected as ${botJid}`);
@@ -279,7 +275,7 @@ async function startBot() {
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             // Send startup notice using WhatsApp disappearing-message settings.
-            // ephemeralExpiration: 100 means 100 seconds (2 minutes).
+            // ephemeralExpiration: 100 means 100 seconds (1 minute 40 seconds).
             try {
                 await sock.sendMessage(
                     ownerJid,
