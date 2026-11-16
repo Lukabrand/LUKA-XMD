@@ -221,7 +221,6 @@ addCmd({
                 'OWNER_NUMBER',
                 'GITHUB_REPO',
                 'PACK_NAME',
-                'STARTING_MESSAGE',
                 'STATUS_LIKE_EMOJIS',
                 'SUDO_NUMBERS',
                 'TIME_ZONE',
