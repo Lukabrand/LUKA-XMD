@@ -19,7 +19,7 @@ const config  = require('../config/settings');
 const logger  = require('../utils/logger');
 const { resolveSession, SESSION_DIR } = require('../utils/session');
 const { seedDefaults }               = require('../db/database');
-const { loadPlugins }                = require('./loader');
+const { loadPlugins, getAllCmds }     = require('./loader');
 const { handleMessage }              = require('./message');
 const { handleGroupUpdate, handleGroupSettingsUpdate } = require('./group');
 const { autoUpdate }                 = require('../utils/autoUpdate');
@@ -168,7 +168,7 @@ async function startBot() {
     await resolveSession();
 
     logger.info('LOADER', 'Loading plugins...');
-    loadPlugins();
+    await loadPlugins();
 
     ensureDir(SESSION_DIR);
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
@@ -259,14 +259,19 @@ async function startBot() {
         if (connection === 'open') {
             reconnectCount = 0;
             initStatusEngine(sock);
-            const botJid = sock.user?.id || '';
+            const botJid = sock.user?.id || sock.user?.lid || '';
+            // The WhatsApp account used by this SESSION_ID is the bot owner.
+            global.LUKA_SESSION_OWNER = {
+                id: sock.user?.id || '',
+                lid: sock.user?.lid || '',
+                jid: String(sock.user?.id || '').replace(/:[0-9]+(?=@)/, ''),
+            };
             logger.success('CONNECTION', `Connected as ${botJid}`);
             logger.info('BOT', `Prefix: ${config.BOT_PREFIX}  |  Mode: ${config.MODE}`);
             logger.info('BOT', `AutoBio: ${config.AUTO_BIO}  |  AutoLike: ${config.AUTO_LIKE_STATUS}  |  AutoRead: ${config.AUTO_READ_STATUS}`);
             logger.info('BOT', `AntiVV: ${config.ANTI_VV}  |  AutoFollowChannel: ${config.AUTO_FOLLOW_CHANNEL}`);
 
-            const selfNumber = botJid.split(':')[0].split('@')[0];
-            const ownerJid   = `${selfNumber}@s.whatsapp.net`;
+            const ownerJid = global.LUKA_SESSION_OWNER.jid || botJid;
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
             const startText = 
@@ -278,7 +283,24 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            sock.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }).catch(() => {});
+            // Send the online/connect notice to the SESSION_ID account.
+            // Delete it for everyone after 2 minutes.
+            sock.sendMessage(ownerJid, {
+                text: startText,
+                contextInfo: channelCtx()
+            }).then((sentMessage) => {
+                if (!sentMessage?.key) return;
+
+                setTimeout(() => {
+                    sock.sendMessage(ownerJid, {
+                        delete: sentMessage.key
+                    }).catch((err) => {
+                        logger.warn('CONNECTION', `Could not delete online notice: ${err.message}`);
+                    });
+                }, 2 * 60 * 1000);
+            }).catch((err) => {
+                logger.warn('CONNECTION', `Could not send online notice: ${err.message}`);
+            });
 
             // Auto Bio
             if (config.AUTO_BIO) {
