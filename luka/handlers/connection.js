@@ -274,11 +274,11 @@ async function startBot() {
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             // Enable disappearing messages in the connected session's own inbox,
-            // then send the startup notice with a requested 60-second expiration.
+            // then send the startup notice with a requested 120-second expiration.
             try {
                 await sock.sendMessage(ownerJid, {
                     disappearingMessagesInChat: true,
-                    ephemeralExpiration: 60,
+                    ephemeralExpiration: 120,
                 });
                 await sock.sendMessage(
                     ownerJid,
@@ -287,7 +287,7 @@ async function startBot() {
                         contextInfo: channelCtx(),
                     },
                     {
-                        ephemeralExpiration: 60,
+                        ephemeralExpiration: 120,
                     }
                 );
             } catch (err) {
