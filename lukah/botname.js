@@ -1,12 +1,5 @@
 'use strict';
 
-// ╭═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╮
-// ║  LUKA-XMD  ·  lukah/botname.js                              ║
-// ║  Provides getBotName() helper used by plugins that need the         ║
-// ║  bot's display name without a circular import back into the        ║
-// ║  full config tree.                                                  ║
-// ╰═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╯
-
 const config = require('../luka/config/settings');
 
 /**
