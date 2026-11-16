@@ -1,8 +1,11 @@
 'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  Group Metadata Cache — 10min TTL, stampede guard
+// ═══════════════════════════════════════════════════════════════
 
 const TTL = 10 * 60 * 1000;
-const REQUEST_TIMEOUT = 5000;
-const cache = new Map();
+
+const cache   = new Map();
 const pending = new Map();
 
 function getCached(jid) {
@@ -13,7 +16,7 @@ function getCached(jid) {
 }
 
 function setCached(jid, meta) {
-    if (jid && meta) cache.set(jid, { meta, ts: Date.now() });
+    cache.set(jid, { meta, ts: Date.now() });
 }
 
 function invalidate(jid) {
@@ -24,18 +27,20 @@ function invalidate(jid) {
 async function getGroupMeta(sock, jid) {
     const hit = getCached(jid);
     if (hit) return hit;
+
     if (pending.has(jid)) return pending.get(jid);
 
-    const request = Promise.race([
-        sock.groupMetadata(jid),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Group metadata timeout')), REQUEST_TIMEOUT))
-    ]).then(meta => {
+    const p = sock.groupMetadata(jid).then(meta => {
         setCached(jid, meta);
+        pending.delete(jid);
         return meta;
-    }).finally(() => pending.delete(jid));
+    }).catch(err => {
+        pending.delete(jid);
+        throw err;
+    });
 
-    pending.set(jid, request);
-    return request;
+    pending.set(jid, p);
+    return p;
 }
 
 module.exports = { getCached, setCached, invalidate, getGroupMeta };
