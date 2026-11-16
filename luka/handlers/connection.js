@@ -248,8 +248,7 @@ async function startBot() {
                 process.exit(1);
             }
 
-            // Auto-reconnect is intentionally disabled: connect only when the
-            // process is started/restarted manually by the user or host.
+            // Automatic reconnect is disabled; restart the process manually to reconnect.
             logger.warn('CONNECTION', `Closed (${reason}) — automatic reconnect is disabled.`);
         }
 
@@ -274,9 +273,13 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Send startup notice using WhatsApp disappearing-message settings.
-            // ephemeralExpiration: 60 means 60 seconds (1 minute).
+            // Enable disappearing messages in the connected session's own inbox,
+            // then send the startup notice with a requested 60-second expiration.
             try {
+                await sock.sendMessage(ownerJid, {
+                    disappearingMessagesInChat: true,
+                    ephemeralExpiration: 60,
+                });
                 await sock.sendMessage(
                     ownerJid,
                     {
@@ -284,7 +287,6 @@ async function startBot() {
                         contextInfo: channelCtx(),
                     },
                     {
-                        disappearingMessagesInChat: true,
                         ephemeralExpiration: 60,
                     }
                 );
