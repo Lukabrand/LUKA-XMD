@@ -275,7 +275,7 @@ async function startBot() {
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             // Send startup notice using WhatsApp disappearing-message settings.
-            // ephemeralExpiration: 100 means 100 seconds (1 minute 40 seconds).
+            // ephemeralExpiration: 60 means 60 seconds (1 minute).
             try {
                 await sock.sendMessage(
                     ownerJid,
@@ -285,7 +285,7 @@ async function startBot() {
                     },
                     {
                         disappearingMessagesInChat: true,
-                        ephemeralExpiration: 100,
+                        ephemeralExpiration: 60,
                     }
                 );
             } catch (err) {
