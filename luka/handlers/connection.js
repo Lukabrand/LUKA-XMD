@@ -1,5 +1,6 @@
 
 'use strict';
+
 const { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, makeCacheableSignalKeyStore } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const pino = require('pino');
@@ -31,7 +32,7 @@ seedDefaults({
 
 let sock = null, startPromise = null, autoBioInterval = null;
 let settingsInitialized = false, pluginsLoaded = false, sessionResolved = false, updateCompleted = false, hasStarted = false;
-const CONNECTION_MESSAGE_EXPIRATION = 180;
+const CONNECTION_MESSAGE_EXPIRATION = 60;
 if (!global._followedNewsletters) global._followedNewsletters = new Set();
 const silentLogger = pino({ level: 'silent', enabled: false });
 let _cachedVersion = null;
@@ -69,7 +70,7 @@ async function initializeSettings() {
     for (const key of Object.keys(config)) {
         const saved = getSetting(key, null);
         if (saved === null) continue;
-        config[key] = boolKeys.has(key) ? toBool(saved) : (typeof config[key] === 'number' ? Number(saved) : saved);
+        config[key] = boolKeys.has(key) ? toBool(saved) : typeof config[key] === 'number' ? Number(saved) : saved;
     }
     global.autoPresenceFlags = {
         typing: toBool(getSetting('AUTO_TYPING', config.AUTO_TYPING)),
@@ -138,7 +139,7 @@ async function startBotInternal() {
         auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys, silentLogger) },
         logger: silentLogger,
         printQRInTerminal: false,
-        browser: ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
+        browser: ['LUKA-XMD', 'Chrome', '121.0.0'],
         markOnlineOnConnect: true,
         syncFullHistory: false,
         shouldSyncHistoryMessage: () => false,
@@ -211,6 +212,7 @@ async function startBotInternal() {
             const sessionNumber = botJid.split(':')[0].split('@')[0];
             const ownerJid = sessionNumber ? `${sessionNumber}@s.whatsapp.net` : null;
             logger.success('CONNECTION', `Connected as ${botJid}`);
+
             const startText = `╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
 ┃ 🟢 Status  : *ONLINE*
 ┃ 👑 Owner   : *${config.OWNER_NAME}*
@@ -218,23 +220,23 @@ async function startBotInternal() {
 ┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
+
             if (ownerJid) {
                 try {
-                    await socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, {
-                        disappearingMessagesInChat: true,
-                        ephemeralExpiration: CONNECTION_MESSAGE_EXPIRATION
-                    });
+                    await socket.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }, { ephemeralExpiration: CONNECTION_MESSAGE_EXPIRATION });
                     logger.success('STARTUP', `Online notification sent to session: ${sessionNumber}`);
                 } catch (error) {
                     logger.warn('STARTUP', `Could not send online notification: ${error.message}`);
                 }
             }
+
             if (!updateCompleted && config.AUTO_UPDATE) {
                 updateCompleted = true;
                 setTimeout(() => {
                     autoUpdate().catch(error => logger.warn('UPDATE', error.message));
                 }, 0);
             }
+
             if (config.AUTO_BIO) {
                 if (autoBioInterval) clearInterval(autoBioInterval);
                 PantherAutoBio(socket).catch(() => {});
@@ -242,9 +244,11 @@ async function startBotInternal() {
                     if (sock === socket) PantherAutoBio(socket).catch(() => {});
                 }, 600000);
             }
+
             setTimeout(() => {
                 if (sock === socket) autoFollowChannel(socket).catch(() => {});
             }, 5000);
+
             setTimeout(() => {
                 if (sock === socket) autoJoinGroups(socket).catch(() => {});
             }, 8000);
@@ -330,4 +334,3 @@ function getSocket() {
 }
 
 module.exports = { startBot, getSocket };
-            
