@@ -1,4 +1,11 @@
 'use strict';
+// ╔══════════════════════════════════════════════════════════════╗
+//  🐾  BLACK PANTHER MD  —  Message Handler (High-Speed)
+//  • Concurrent message processing (Promise.allSettled)
+//  • De-dup Set with auto-expiry
+//  • Non-blocking command dispatch
+//  • SILENT MODE — No message spam logs
+// ╚══════════════════════════════════════════════════════════════╝
 
 const { serialize }                   = require('../utils/serialize');
 const { findCmd, triggers }           = require('./loader');
@@ -11,7 +18,7 @@ const { REACT_EMOJIS, channelCtx,
 
 // AFK map — lazy-loaded so it doesn't hard-fail if extras not yet loaded
 function getAfkMap() {
-    try { return require('../../lukah/plugins/extras').AFK_MAP; } catch { return null; }
+    try { return require('../../guruh/plugins/extras').AFK_MAP; } catch { return null; }
 }
 
 // De-dup: prevent the same message being processed twice

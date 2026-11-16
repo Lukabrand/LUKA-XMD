@@ -3,32 +3,21 @@ const fs     = require('fs');
 const path   = require('path');
 const config = require('../config/settings');
 
-const PLUGINS_DIR = path.join(__dirname, '../../lukah/plugins');
+const PLUGINS_DIR = path.join(__dirname, '../../guruh/plugins');
 
 const commands = new Map();
 const triggers  = [];
 
 function addCmd({ name, aliases = [], handler, desc = '', usage = '', category = 'misc', ownerOnly = false, groupOnly = false, adminOnly = false }) {
-    const commandName = String(name || '').trim().toLowerCase();
-    if (!commandName || typeof handler !== 'function') {
-        console.warn('[LOADER] Skipped invalid command:', commandName || '(empty name)');
-        return false;
+    const entry = { name, aliases, handler, desc, usage, category, ownerOnly, groupOnly, adminOnly };
+    if (!commands.has(name.toLowerCase())) {
+        commands.set(name.toLowerCase(), entry);
     }
-
-    const cleanAliases = [...new Set((Array.isArray(aliases) ? aliases : [])
-        .map(alias => String(alias).trim().toLowerCase())
-        .filter(alias => alias && alias !== commandName))];
-    const entry = { name: commandName, aliases: cleanAliases, handler, desc, usage, category, ownerOnly, groupOnly, adminOnly };
-
-    for (const key of [commandName, ...cleanAliases]) {
-        const existing = commands.get(key);
-        if (existing && existing !== entry) {
-            console.warn(`[LOADER] Duplicate command/alias "${key}" ignored (owner: ${existing.name})`);
-            continue;
+    for (const alias of aliases) {
+        if (!commands.has(alias.toLowerCase())) {
+            commands.set(alias.toLowerCase(), entry);
         }
-        commands.set(key, entry);
     }
-    return true;
 }
 
 function addTrigger({ pattern, handler }) {
@@ -36,7 +25,7 @@ function addTrigger({ pattern, handler }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CONTEXT BRIDGE — maps LUKA-XMD ctx → plugin ctx
+//  CONTEXT BRIDGE — maps BLACK PANTHER MD ctx → plugin ctx
 // ═══════════════════════════════════════════════════════════
 
 function buildPluginCtx(ctx) {
@@ -80,7 +69,7 @@ function buildPluginCtx(ctx) {
 //  FLAT PLUGIN LOADER — CJS files in guruh/plugins/ root
 // ═══════════════════════════════════════════════════════════
 
-async function loadPlugins() {
+function loadPlugins() {
     const files = fs.readdirSync(PLUGINS_DIR).filter(f => f.endsWith('.js'));
     let loaded = 0;
     for (const file of files) {
@@ -93,11 +82,8 @@ async function loadPlugins() {
     }
     console.log(`[LOADER] ${loaded}/${files.length} flat plugins loaded`);
 
-    // Wait for every ESM subdirectory plugin before the WhatsApp socket starts.
-    // This prevents early messages from arriving while the command registry is empty.
-    const subdirResult = await loadSubdirPlugins();
-    console.log(`[LOADER] Ready: ${getAllCmds().length} unique commands registered (${commands.size} names including aliases)`);
-    return { flat: loaded, ...subdirResult, commands: commands.size };
+    // Fire-and-forget: load ESM subdirectory plugins after CJS plugins are done
+    loadSubdirPlugins().catch(e => console.error('[LOADER] Subdir load error:', e.message));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -164,7 +150,6 @@ async function loadSubdirPlugins() {
     }
 
     console.log(`[LOADER] Subdir plugins: ${loaded} loaded, ${failed} failed, ${skipped} skipped`);
-    return { subdirLoaded: loaded, failed, skipped };
 }
 
 function findCmd(name) {
