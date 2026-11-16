@@ -174,14 +174,30 @@ function cleanMessageStore() {
     }
 }
 
+function unwrapStoredMessage(message) {
+    let current = message;
+    // Baileys may wrap message content in ephemeral/view-once containers.
+    for (let i = 0; i < 5; i++) {
+        const next =
+            current?.ephemeralMessage?.message ||
+            current?.viewOnceMessage?.message ||
+            current?.viewOnceMessageV2?.message ||
+            current?.viewOnceMessageV2Extension?.message;
+        if (!next) break;
+        current = next;
+    }
+    return current;
+}
+
 function storeMessage(msg) {
     try {
         if (!msg?.key?.id || !msg?.message) return;
+        const remoteJid = msg.key.remoteJid || '';
         msgStore.set(msg.key.id, {
             msg,
             key: msg.key,
-            from: msg.key.remoteJid || '',
-            sender: msg.key.participant || msg.key.remoteJid || '',
+            from: remoteJid,
+            sender: msg.key.participant || remoteJid,
             timestamp: Date.now(),
         });
         if (msgStore.size > MAX_STORED_MESSAGES) {
@@ -204,13 +220,14 @@ function getStoredMessage(id) {
 }
 
 function getMessageText(message) {
-    return message?.conversation ||
-        message?.extendedTextMessage?.text ||
-        message?.imageMessage?.caption ||
-        message?.videoMessage?.caption ||
-        message?.documentMessage?.caption ||
-        message?.buttonsResponseMessage?.selectedDisplayText ||
-        message?.listResponseMessage?.title ||
+    const content = unwrapStoredMessage(message);
+    return content?.conversation ||
+        content?.extendedTextMessage?.text ||
+        content?.imageMessage?.caption ||
+        content?.videoMessage?.caption ||
+        content?.documentMessage?.caption ||
+        content?.buttonsResponseMessage?.selectedDisplayText ||
+        content?.listResponseMessage?.title ||
         '[Media / Non-text message]';
 }
 
@@ -311,10 +328,11 @@ async function PantherAntiDelete(sock, key) {
             ? 'Group'
             : 'Private';
 
-        const messageType = Object.keys(original.message)[0]
+        const messageContent = unwrapStoredMessage(original.message);
+        const messageType = Object.keys(messageContent || {})[0]
             ?.replace('Message', '') || 'Unknown';
 
-        const deletedText = getMessageText(original.message);
+        const deletedText = getMessageText(messageContent);
 
         const text =
             `🗑️ *ANTI-DELETE*\n\n` +
