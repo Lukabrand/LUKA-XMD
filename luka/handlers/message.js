@@ -20,7 +20,7 @@ const processed = new Set();
 setInterval(() => { if (processed.size > 500) processed.clear(); }, 10 * 60 * 1000);
 
 // Silence mode - toggle via env var (set SILENT=true to disable message logs)
-const SILENT_MODE = process.env.SILENT_MODE === 'true' || true; // Default to silent
+const SILENT_MODE = process.env.SILENT_MODE !== 'false'; // Default to silent
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIN DISPATCHER
@@ -128,7 +128,7 @@ async function processOne(raw, sock) {
             if (matchedTriggers.length > 0) {
                 Promise.allSettled(
                     matchedTriggers.map(({ handler }) =>
-                        handler(ctx).catch(e => logger.error('TRIGGER', e.message))
+                        Promise.resolve().then(() => handler(ctx)).catch(e => logger.error('TRIGGER', e.message))
                     )
                 );
             }
@@ -139,6 +139,25 @@ async function processOne(raw, sock) {
 
         const cmd = findCmd(m.command);
         if (!cmd) return;
+
+        // Fetch metadata only when an admin-only command actually needs it.
+        // Normal commands remain fast even when WhatsApp group metadata is slow.
+        if (cmd.adminOnly && m.isGroup && !m.groupMeta) {
+            try {
+                m.groupMeta = await getGroupMeta(sock, m.from);
+                m.participants = m.groupMeta.participants || [];
+                m.admins = m.participants.filter(p => p.admin).map(p => cleanJid(p.id));
+                m.isBotAdmin = m.admins.includes(m.botId);
+                m.isAdmin = m.admins.includes(m.sender);
+                ctx.groupMeta = m.groupMeta;
+                ctx.participants = m.participants;
+                ctx.admins = m.admins;
+                ctx.isAdmin = m.isAdmin;
+                ctx.isBotAdmin = m.isBotAdmin;
+            } catch (e) {
+                logger.warn('GROUP_META', `Could not verify group admins: ${e.message}`);
+            }
+        }
 
         // Permission gates
         const ownerJid    = config.OWNER_NUMBER + '@s.whatsapp.net';
@@ -177,7 +196,7 @@ async function processOne(raw, sock) {
         trackCmd(cmd.name);
 
         // Run command — fire-and-forget so other messages aren't blocked
-        cmd.handler(ctx).catch(e => logger.error('CMD_ERR', `${m.command}: ${e.message}`));
+        Promise.resolve().then(() => cmd.handler(ctx)).catch(e => logger.error('CMD_ERR', `${m.command}: ${e.message}`));
 
     } catch (err) {
         logger.error('MESSAGE', err.message);

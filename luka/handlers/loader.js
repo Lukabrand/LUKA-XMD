@@ -9,15 +9,26 @@ const commands = new Map();
 const triggers  = [];
 
 function addCmd({ name, aliases = [], handler, desc = '', usage = '', category = 'misc', ownerOnly = false, groupOnly = false, adminOnly = false }) {
-    const entry = { name, aliases, handler, desc, usage, category, ownerOnly, groupOnly, adminOnly };
-    if (!commands.has(name.toLowerCase())) {
-        commands.set(name.toLowerCase(), entry);
+    const commandName = String(name || '').trim().toLowerCase();
+    if (!commandName || typeof handler !== 'function') {
+        console.warn('[LOADER] Skipped invalid command:', commandName || '(empty name)');
+        return false;
     }
-    for (const alias of aliases) {
-        if (!commands.has(alias.toLowerCase())) {
-            commands.set(alias.toLowerCase(), entry);
+
+    const cleanAliases = [...new Set((Array.isArray(aliases) ? aliases : [])
+        .map(alias => String(alias).trim().toLowerCase())
+        .filter(alias => alias && alias !== commandName))];
+    const entry = { name: commandName, aliases: cleanAliases, handler, desc, usage, category, ownerOnly, groupOnly, adminOnly };
+
+    for (const key of [commandName, ...cleanAliases]) {
+        const existing = commands.get(key);
+        if (existing && existing !== entry) {
+            console.warn(`[LOADER] Duplicate command/alias "${key}" ignored (owner: ${existing.name})`);
+            continue;
         }
+        commands.set(key, entry);
     }
+    return true;
 }
 
 function addTrigger({ pattern, handler }) {
