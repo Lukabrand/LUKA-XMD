@@ -2,7 +2,7 @@
 
 const { getContentType } = require('@whiskeysockets/baileys');
 const { getBody, cleanJid } = require('./helpers');
-const { getCached, getGroupMeta } = require('./groupCache');
+const { getGroupMeta } = require('./groupCache');
 const { getSetting } = require('../db/database');
 const config = require('../config/settings');
 
@@ -134,29 +134,45 @@ const config = require('../config/settings');
   }
   : null;
   
-  // Group information: never block every incoming message on network metadata.
-  // Use cache immediately; refresh in background when cache is cold.
+  // Group information
   let groupMeta = null;
   let groupName = '';
   let participants = [];
   let admins = [];
   let isBotAdmin = false;
   let isAdmin = false;
-
+  
   if (isGroup) {
-      groupMeta = getCached(from);
-      if (groupMeta) {
-          groupName = groupMeta.subject || '';
-          participants = groupMeta.participants || [];
-          admins = participants.filter(p => p.admin).map(p => cleanJid(p.id));
-          isBotAdmin = admins.includes(botId);
-          isAdmin = admins.includes(sender);
-      } else {
-          // Warm cache without holding up command dispatch.
-          getGroupMeta(sock, from).catch(() => {});
-      }
-  }
+  try {
+  groupMeta = await getGroupMeta(sock, from);
+  
+       groupName = groupMeta.subject || '';
+     participants = groupMeta.participants || [];
 
+     admins = participants
+         .filter(p => p.admin)
+         .map(p => cleanJid(p.id));
+
+     isBotAdmin = admins.includes(botId);
+     isAdmin = admins.includes(sender);
+ } catch {
+     try {
+         groupMeta = await sock.groupMetadata(from);
+
+         groupName = groupMeta.subject || '';
+         participants = groupMeta.participants || [];
+
+         admins = participants
+             .filter(p => p.admin)
+             .map(p => cleanJid(p.id));
+
+         isBotAdmin = admins.includes(botId);
+         isAdmin = admins.includes(sender);
+     } catch {}
+ }
+  
+  }
+  
   // Push name
   const pushName = m.pushName || 'User';
   
