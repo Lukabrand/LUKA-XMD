@@ -75,8 +75,6 @@ const CONFIG = {
     AUTO_RECORDING: parseBoolean(process.env.AUTO_RECORDING || 'off'),
     STATUS_LIKE_EMOJIS: process.env.STATUS_LIKE_EMOJIS || '💚,💜,💙',
     DM_PRESENCE: process.env.DM_PRESENCE || '',
-    GRP_PRESENCE: process.env.GRP_PRESENCE || '',
-    USER_LID: parseLids(process.env.USER_LID || ''),
     OWNER_NUMBER: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
     OWNER_NAME: process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
     BOT_NAME: process.env.BOT_NAME || 'LUKA-XMD',
