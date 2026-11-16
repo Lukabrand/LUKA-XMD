@@ -265,7 +265,8 @@ async function startBot() {
             logger.info('BOT', `AutoBio: ${config.AUTO_BIO}  |  AutoLike: ${config.AUTO_LIKE_STATUS}  |  AutoRead: ${config.AUTO_READ_STATUS}`);
             logger.info('BOT', `AntiVV: ${config.ANTI_VV}  |  AutoFollowChannel: ${config.AUTO_FOLLOW_CHANNEL}`);
 
-            const inboxJid = botJid;
+            const selfNumber = botJid.split(':')[0].split('@')[0];
+            const ownerJid   = `${selfNumber}@s.whatsapp.net`;
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
             const startText = 
@@ -277,18 +278,18 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Send startup notice to the connected session's own WhatsApp inbox.
-            // Request disappearing-message behavior for 120 seconds (2 minutes).
+            // Send startup notice using WhatsApp disappearing-message settings.
+            // ephemeralExpiration: 300 means 300 seconds (5 minutes).
             try {
                 await sock.sendMessage(
-                    inboxJid,
+                    ownerJid,
                     {
                         text: startText,
                         contextInfo: channelCtx(),
                     },
                     {
                         disappearingMessagesInChat: true,
-                        ephemeralExpiration: 120,
+                        ephemeralExpiration: 300,
                     }
                 );
             } catch (err) {
