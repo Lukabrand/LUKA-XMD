@@ -56,6 +56,8 @@ seedDefaults({
 });
 
 let sock;
+let reconnectCount = 0;
+const MAX_RECONNECT_DELAY = 30_000;
 
 // Track newsletters followed this session
 if (!global._followedNewsletters) global._followedNewsletters = new Set();
@@ -248,11 +250,14 @@ async function startBot() {
                 process.exit(1);
             }
 
-            // Automatic reconnect is disabled; restart the process manually to reconnect.
-            logger.warn('CONNECTION', `Closed (${reason}) — automatic reconnect is disabled.`);
+            reconnectCount++;
+            const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectCount - 1, 5)), MAX_RECONNECT_DELAY);
+            logger.warn('CONNECTION', `Closed (${reason}) — reconnecting in ${delay / 1000}s [attempt #${reconnectCount}]`);
+            setTimeout(startBot, delay);
         }
 
         if (connection === 'open') {
+            reconnectCount = 0;
             initStatusEngine(sock);
             const botJid = sock.user?.id || '';
             logger.success('CONNECTION', `Connected as ${botJid}`);
@@ -260,8 +265,7 @@ async function startBot() {
             logger.info('BOT', `AutoBio: ${config.AUTO_BIO}  |  AutoLike: ${config.AUTO_LIKE_STATUS}  |  AutoRead: ${config.AUTO_READ_STATUS}`);
             logger.info('BOT', `AntiVV: ${config.ANTI_VV}  |  AutoFollowChannel: ${config.AUTO_FOLLOW_CHANNEL}`);
 
-            const selfNumber = botJid.split(':')[0].split('@')[0];
-            const ownerJid   = `${selfNumber}@s.whatsapp.net`;
+            const inboxJid = botJid;
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
             const startText = 
@@ -273,20 +277,17 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Enable disappearing messages in the connected session's own inbox,
-            // then send the startup notice with a requested 120-second expiration.
+            // Send startup notice to the connected session's own WhatsApp inbox.
+            // Request disappearing-message behavior for 120 seconds (2 minutes).
             try {
-                await sock.sendMessage(ownerJid, {
-                    disappearingMessagesInChat: true,
-                    ephemeralExpiration: 120,
-                });
                 await sock.sendMessage(
-                    ownerJid,
+                    inboxJid,
                     {
                         text: startText,
                         contextInfo: channelCtx(),
                     },
                     {
+                        disappearingMessagesInChat: true,
                         ephemeralExpiration: 120,
                     }
                 );
