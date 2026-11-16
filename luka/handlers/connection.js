@@ -1,6 +1,5 @@
 'use strict';
 
-
 const {
     makeWASocket,
     useMultiFileAuthState,
