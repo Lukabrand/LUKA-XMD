@@ -323,7 +323,28 @@ async function startBot() {
             if (nonStatus.length) enqueueAll(nonStatus);
         }
 
-        for (const msg of upsert.messages) storeMessage(msg);
+        // Store original messages before processing revoke notifications.
+        // WhatsApp may deliver a revoke as a protocolMessage inside messages.upsert,
+        // not only through the messages.delete event.
+        for (const msg of upsert.messages) {
+            storeMessage(msg);
+
+            const protocol = msg?.message?.protocolMessage;
+            const protocolType = String(protocol?.type ?? '').toUpperCase();
+            const isRevoke = protocolType === 'REVOKE' || protocol?.type === 0;
+
+            if (isRevoke && protocol?.key?.id) {
+                const deletedKey = {
+                    ...protocol.key,
+                    remoteJid: protocol.key.remoteJid || msg?.key?.remoteJid,
+                    participant: protocol.key.participant || msg?.key?.participant,
+                };
+
+                PantherAntiDelete(sock, deletedKey).catch(err =>
+                    logger.warn('ANTIDELETE', err.message)
+                );
+            }
+        }
 
         for (const msg of upsert.messages) {
             const jid = msg?.key?.remoteJid || '';
@@ -365,9 +386,16 @@ async function startBot() {
     // ── Anti-delete ────────────────────────────────────────────
     // Baileys normally emits { keys }, but tolerate a single key too.
     const handleDeletedMessageKeys = (item) => {
-        const keys = Array.isArray(item?.keys)
+        // Baileys versions generally emit { keys: [...] }; tolerate the
+        // alternate single-key shape as well.
+        const rawKeys = Array.isArray(item?.keys)
             ? item.keys
-            : (item?.id && item?.remoteJid ? [item] : []);
+            : (item?.key ? [item.key] : (item?.id ? [item] : []));
+
+        const keys = rawKeys.map(key => ({
+            ...key,
+            remoteJid: key?.remoteJid || item?.jid || item?.remoteJid,
+        }));
 
         for (const key of keys) {
             if (!key?.id || !key?.remoteJid) continue;
