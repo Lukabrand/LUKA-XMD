@@ -124,11 +124,14 @@ async function processOne(raw, sock) {
 
         // Body triggers (non-command patterns) — run concurrently
         if (triggers.length > 0) {
-            const matchedTriggers = triggers.filter(({ pattern }) => pattern.test(m.body));
+            const matchedTriggers = triggers.filter(({ pattern }) => {
+                pattern.lastIndex = 0;
+                return pattern.test(m.body);
+            });
             if (matchedTriggers.length > 0) {
                 Promise.allSettled(
                     matchedTriggers.map(({ handler }) =>
-                        handler(ctx).catch(e => logger.error('TRIGGER', e.message))
+                        Promise.resolve().then(() => handler(ctx)).catch(e => logger.error('TRIGGER', e.message))
                     )
                 );
             }
@@ -141,8 +144,13 @@ async function processOne(raw, sock) {
         if (!cmd) return;
 
         // Permission gates
-        const ownerJid    = config.OWNER_NUMBER + '@s.whatsapp.net';
-        const isOwner     = m.sender === cleanJid(ownerJid) || m.fromMe;
+        // Owner identity comes from the WhatsApp account authenticated by SESSION_ID.
+        // This avoids requiring OWNER_NUMBER to match the session account.
+        const sessionOwner = global.LUKA_SESSION_OWNER || {};
+        const ownerJids = [sessionOwner.id, sessionOwner.lid, sessionOwner.jid]
+            .filter(Boolean).map(jid => cleanJid(String(jid)));
+        const isOwner = Boolean(m.fromMe || m.isOwner || ownerJids.includes(cleanJid(m.sender)));
+        m.isOwner = isOwner;
         const isSudoUser  = isSudo(m.sender);
         const isSuperUser = isOwner || isSudoUser;
 
@@ -177,7 +185,9 @@ async function processOne(raw, sock) {
         trackCmd(cmd.name);
 
         // Run command — fire-and-forget so other messages aren't blocked
-        cmd.handler(ctx).catch(e => logger.error('CMD_ERR', `${m.command}: ${e.message}`));
+        Promise.resolve().then(() => cmd.handler(ctx)).catch(e =>
+            logger.error('CMD_ERR', `${m.command}: ${e.stack || e.message}`)
+        );
 
     } catch (err) {
         logger.error('MESSAGE', err.message);
@@ -219,7 +229,7 @@ function buildCtx(m, sock) {
         isGroup:      m.isGroup,
         isAdmin:      m.isAdmin,
         isBotAdmin:   m.isBotAdmin,
-        isOwner:      m.isOwner,
+        isOwner:      Boolean(m.isOwner || m.fromMe),
         groupMeta:    m.groupMeta,
         groupName:    m.groupName,
         participants: m.participants,
