@@ -1,14 +1,5 @@
 'use strict';
-// ╔══════════════════════════════════════════════════════════════╗
-//  🐾  BLACK PANTHER MD  —  Connection Handler (Baileys v7)
-//  Owner : GuruTech  |  +254105521300
-//  • Auto-update from GitHub on every restart
-//  • Auto-follow CHANNEL_JID newsletter on connect
-//  • Auto-join groups from AUTO_JOIN_GROUPS env
-//  • Anti-ViewOnce: deep unwrap + forward to owner DM
-//  • Channel tag (forwardedNewsletterMessageInfo) on every msg
-//  • Smart exponential backoff reconnect
-// ╚══════════════════════════════════════════════════════════════╝
+
 
 const {
     makeWASocket,
@@ -196,7 +187,7 @@ async function startBot() {
         },
         logger:                         silentLogger,
         printQRInTerminal:              false,
-        browser:                        ['BLACK PANTHER MD', 'Chrome', '121.0.0'],
+        browser:                        ['LUKA-XMD', 'Chrome', '121.0.0'],
         markOnlineOnConnect:            true,
         syncFullHistory:                false,
         shouldSyncHistoryMessage:       () => false,
@@ -279,22 +270,14 @@ async function startBot() {
             const ownerJid   = `${selfNumber}@s.whatsapp.net`;
             const now        = new Date().toLocaleTimeString('en-KE', { timeZone: config.TIME_ZONE });
             const today      = new Date().toLocaleDateString('en-KE', { timeZone: config.TIME_ZONE });
-            const startText =
-`╭─❖ *${config.BOT_NAME}* ❖─╮
-│
-├─❖ *Status:* ✅ ONLINE
-├─❖ *Owner:*  ${config.OWNER_NAME}
-├─❖ *Phone:*  +${config.OWNER_NUMBER}
-├─❖ *Prefix:* [ ${config.BOT_PREFIX} ]
-├─❖ *Mode:*   ${config.MODE.toUpperCase()}
-├─❖ *Host:*   ${logger.PLATFORM}
-├─❖ *Version:* ${config.BOT_VERSION}
-├─❖ *Time:*   ${now}
-├─❖ *Date:*   ${today}
-│
-╰─❖ *Powered by ${config.OWNER_NAME}* ❖─╯
-
-> © ${config.BOT_NAME} is awesome 🔥`;
+            const startText = 
+`╭══〘〘 *${config.BOT_NAME}* 〙〙═⊷
+┃ 🟢 Status  : *ONLINE*
+┃ 👑 Owner   : *${config.OWNER_NAME}*
+┃ 📦 Plugins : *${getAllCmds().length}*
+┃ ⚡ Prefix  : *${config.BOT_PREFIX}*
+┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
+╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             sock.sendMessage(ownerJid, { text: startText, contextInfo: channelCtx() }).catch(() => {});
 
