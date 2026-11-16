@@ -3,7 +3,7 @@ const fs     = require('fs');
 const path   = require('path');
 const config = require('../config/settings');
 
-const PLUGINS_DIR = path.join(__dirname, '../../guruh/plugins');
+const PLUGINS_DIR = path.join(__dirname, '../../lukah/plugins');
 
 const commands = new Map();
 const triggers  = [];
@@ -25,7 +25,7 @@ function addTrigger({ pattern, handler }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  CONTEXT BRIDGE — maps BLACK PANTHER MD ctx → plugin ctx
+//  CONTEXT BRIDGE — maps LUKA-XMD ctx → plugin ctx
 // ═══════════════════════════════════════════════════════════
 
 function buildPluginCtx(ctx) {
@@ -66,7 +66,7 @@ function buildPluginCtx(ctx) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  FLAT PLUGIN LOADER — CJS files in guruh/plugins/ root
+//  FLAT PLUGIN LOADER — CJS files in lukah/plugins/ root
 // ═══════════════════════════════════════════════════════════
 
 function loadPlugins() {
@@ -87,7 +87,7 @@ function loadPlugins() {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  SUBDIR PLUGIN LOADER — ESM files in guruh/plugins/*/
+//  SUBDIR PLUGIN LOADER — ESM files in lukah/plugins/*/
 // ═══════════════════════════════════════════════════════════
 
 async function loadSubdirPlugins() {
