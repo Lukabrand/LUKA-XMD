@@ -627,7 +627,7 @@ async function sendVideo(ctx, query) {
 // PLAY
 addCmd({
     name: 'play',
-    aliases: ['music', 'song', 'yta', 'audio', 'ply', 'ytmp3', 'ytaudio'],
+    aliases: ['music', 'song', 'yta', 'audio', 'ply', 'ytaudio'],
     desc: 'Search and download a YouTube song',
     usage: 'play <song name or YouTube URL>',
     category: 'downloader',
