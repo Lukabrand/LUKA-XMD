@@ -168,7 +168,11 @@ async function startBot() {
     await resolveSession();
 
     logger.info('LOADER', 'Loading plugins...');
-    loadPlugins();
+    const pluginLoadResult = await loadPlugins();
+    logger.info(
+        'LOADER',
+        `Plugins ready: ${pluginLoadResult.loaded} loaded, ${pluginLoadResult.failed} failed, ${pluginLoadResult.commands} commands registered.`
+    );
 
     ensureDir(SESSION_DIR);
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_DIR);
@@ -279,7 +283,7 @@ async function startBot() {
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
             // Send startup notice using WhatsApp disappearing-message settings.
-            // ephemeralExpiration: 120 means 120 seconds (2 minutes).
+            // ephemeralExpiration: 100 means 100 seconds (2 minutes).
             try {
                 await sock.sendMessage(
                     ownerJid,
@@ -289,7 +293,7 @@ async function startBot() {
                     },
                     {
                         disappearingMessagesInChat: true,
-                        ephemeralExpiration: 120,
+                        ephemeralExpiration: 100,
                     }
                 );
             } catch (err) {
