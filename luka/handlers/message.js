@@ -20,14 +20,13 @@ const processed = new Set();
 setInterval(() => { if (processed.size > 500) processed.clear(); }, 10 * 60 * 1000);
 
 // Silence mode - toggle via env var (set SILENT=true to disable message logs)
-const SILENT_MODE = process.env.SILENT_MODE === 'true' || true; // Default to silent
+const SILENT_MODE = process.env.SILENT_MODE === 'true'; // Set SILENT_MODE=true to suppress incoming message logs
 
 // ═══════════════════════════════════════════════════════════════
 //  MAIN DISPATCHER
 // ═══════════════════════════════════════════════════════════════
 
 function handleMessage({ messages, type }, sock) {
-    if (type === 'append') return;
     if (!messages?.length) return;
 
     // Process all messages in the batch concurrently — no sequential bottleneck
