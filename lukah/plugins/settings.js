@@ -200,7 +200,6 @@ addCmd({
                 'ANTI_EDIT',
                 'AUTO_BIO',
                 'AUTO_FOLLOW_CHANNEL',
-                'AUTO_JOIN',
                 'AUTO_LIKE_STATUS',
                 'AUTO_REACT',
                 'AUTO_READ_STATUS',
