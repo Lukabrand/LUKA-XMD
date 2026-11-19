@@ -1,11 +1,5 @@
 'use strict';
 
-// ╭═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╮
-// ║  🐾  LUKA-XMD  —  gmdFunctions.js  (Core Utilities)           ║
-// ║  👑  Owner : Lukabrand  |  📞 +255768619068                           ║
-// ║  🔧  Rich formatting · Media tools · Upload helpers                 ║
-// ╰═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╯ 
-
 const fs        = require('fs');
 const path      = require('path');
 const axios     = require('axios');
