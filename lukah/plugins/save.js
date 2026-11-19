@@ -8,19 +8,70 @@ const {
 
 
 function getQuotedMessage(ctx) {
-    return ctx.m?.message?.extendedTextMessage
-        ?.contextInfo?.quotedMessage || null;
+    // serialize.js already extracts quotedMessage from all supported
+    // contextInfo locations. Prefer that normalized value, then fall back
+    // to the raw Baileys message for older/edge-case message shapes.
+    if (ctx?.quoted) return ctx.quoted;
+    if (ctx?.m?.quoted) return ctx.m.quoted;
+
+    const message = ctx?.m?.message;
+    if (!message) return null;
+
+    const wrappers = [
+        'ephemeralMessage',
+        'viewOnceMessage',
+        'viewOnceMessageV2',
+        'viewOnceMessageV2Extension',
+        'documentWithCaptionMessage',
+    ];
+
+    let current = message;
+    const visited = new Set();
+
+    while (current && typeof current === 'object' && !visited.has(current)) {
+        visited.add(current);
+
+        for (const value of Object.values(current)) {
+            if (value?.contextInfo?.quotedMessage) {
+                return value.contextInfo.quotedMessage;
+            }
+        }
+
+        let next = null;
+        for (const wrapper of wrappers) {
+            if (current[wrapper]?.message) {
+                next = current[wrapper].message;
+                break;
+            }
+        }
+        if (!next) break;
+        current = next;
+    }
+
+    return null;
 }
 
 function unwrapMessage(message) {
     let msg = message;
+    const wrappers = [
+        'ephemeralMessage',
+        'viewOnceMessage',
+        'viewOnceMessageV2',
+        'viewOnceMessageV2Extension',
+        'documentWithCaptionMessage',
+    ];
+    const visited = new Set();
 
-    while (msg) {
-        const next =
-            msg.ephemeralMessage?.message ||
-            msg.viewOnceMessage?.message ||
-            msg.viewOnceMessageV2?.message ||
-            msg.viewOnceMessageV2Extension?.message;
+    while (msg && typeof msg === 'object' && !visited.has(msg)) {
+        visited.add(msg);
+        let next = null;
+
+        for (const wrapper of wrappers) {
+            if (msg[wrapper]?.message) {
+                next = msg[wrapper].message;
+                break;
+            }
+        }
 
         if (!next) break;
         msg = next;
