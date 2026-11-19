@@ -180,34 +180,6 @@ addCmd({
     }
 });
 
-addCmd({
-    name: 'vv', aliases: ['viewonce'], desc: 'Retrieve a supported view-once message', category: 'media',
-    handler: async (ctx) => {
-        const quoted = getQuotedMessage(ctx);
-        if (!quoted) return replyText(ctx, `Reply to a view-once message with ${ctx.prefix || '.'}vv`);
-        const viewOnce = quoted.viewOnceMessage?.message || quoted.viewOnceMessageV2?.message || quoted.viewOnceMessageV2Extension?.message;
-        if (!viewOnce) return replyText(ctx, 'The quoted message is not a recognized view-once message.');
-        try {
-            const mediaEntry = Object.entries(viewOnce).find(([key]) => ['imageMessage','videoMessage'].includes(key));
-            if (!mediaEntry) return replyText(ctx, 'This view-once media type is not supported.');
-            const [key, message] = mediaEntry;
-            const type = key.replace('Message', '');
-            const baileys = require('@whiskeysockets/baileys');
-            const stream = await baileys.downloadContentFromMessage(message, type);
-            const chunks = [];
-            for await (const chunk of stream) chunks.push(chunk);
-            const buffer = Buffer.concat(chunks);
-            if (type === 'image') {
-                await ctx.sock.sendMessage(ctx.from, { image: buffer, caption: FOOTER }, { quoted: ctx.m });
-            } else {
-                await ctx.sock.sendMessage(ctx.from, { video: buffer, caption: FOOTER }, { quoted: ctx.m });
-            }
-        } catch (error) {
-            console.error('[VV]', error);
-            return replyText(ctx, 'Unable to retrieve this message with the current connection.');
-        }
-    }
-});
 
 addCmd({
     name: 'tourl', aliases: ['upload'], desc: 'Upload quoted media and return a URL', category: 'media',
