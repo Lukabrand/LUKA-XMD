@@ -78,6 +78,7 @@ const CONFIG = {
     OWNER_NUMBER: (process.env.OWNER_NUMBER || '').replace(/\D/g, ''),
     OWNER_NAME: process.env.OWNER_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
     BOT_NAME: process.env.BOT_NAME || 'LUKA-XMD',
+    PACK_NAME: process.env.PACK_NAME || 'ʟᴜᴋᴀʙʀᴀɴᴅ',
     BOT_PIC: botPic,
     BOT_VERSION: process.env.BOT_VERSION || '5.0.0',
     MENU_IMAGES: parseMenuImages(process.env.MENU_IMAGES || '', botPic),
@@ -98,7 +99,7 @@ const CONFIG = {
     GiftedApiKey: process.env.LUKA_API_KEY || process.env.GIFTED_API_KEY || '',
     HOSTING_PROVIDER: process.env.HOSTING_PROVIDER || '',
     GITHUB_REPO: process.env.GITHUB_REPO || 'Lukabrand/LUKA-XMD',
-    AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://chat.whatsapp.com/LvzOybevMoU3zyhk29bweM?s=cl&p=a&iam=2'
+    AUTO_JOIN_GROUP_LINK: process.env.AUTO_JOIN_GROUP_LINK || process.env.GROUP_INVITE_LINK || 'https://whatsapp.com/channel/0029Vb9cTL57z4kh6oBTcr3h?s=cl&p=a&iam=2'
 };
 
 module.exports = CONFIG;
