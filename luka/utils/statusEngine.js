@@ -1,26 +1,5 @@
 'use strict';
 
-// ╭═══════════════════════════════════════════════════════════════════════════════
-// ║  ╭══〘〘 ⚡ LUKA-XMD — STATUS ENGINE 〙〙═⊷
-// ║  ┃
-// ║  ┃ 🐾 Queue-Based Status System
-// ║  ┃ 👑 Owner : Lukabrand
-// ║  ┃
-// ║  ┃ ✦ Features
-// ║  ┃ ├─ ✅ Queue-Based Processing
-// ║  ┃ ├─ ✅ Rate-Limited Status Reads
-// ║  ┃ ├─ ✅ Retry with Backoff (3×)
-// ║  ┃ ├─ ✅ Status De-duplication
-// ║  ┃ ├─ ✅ Batch readMessages
-// ║  ┃ ├─ ✅ Contact-Aware Processing
-// ║  ┃ ├─ ✅ Random Emoji Status Likes
-// ║  ┃ ├─ ✅ Per-Contact Statistics
-// ║  ┃ ├─ ✅ Notify & Append Upserts
-// ║  ┃ └─ ✅ Edge-Case Handling
-// ║  ┃
-// ║  ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷
-// ╰═══════════════════════════════════════════════════════════════════════════════
-
 const config = require('../config/settings');
 const logger = require('./logger');
 const { pickRandom, sleep } = require('./gmdFunctions');
