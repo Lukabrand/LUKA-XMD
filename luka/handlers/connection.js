@@ -307,7 +307,7 @@ async function startBot() {
                         },
                         {
                             disappearingMessagesInChat: true,
-                            ephemeralExpiration: 100,
+                            ephemeralExpiration: 120,
                         }
                     );
                     startupNoticeSent = true;
