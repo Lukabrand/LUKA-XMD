@@ -37,6 +37,7 @@ const path     = require('path');
 const config   = require('./luka/config/settings');
 const logger   = require('./luka/utils/logger');
 const { startBot }                              = require('./luka/handlers/connection');
+const { initPersistentSettings }                 = require('./luka/db/database');
 const { checkExpiry, startExpiryWatchdog, scheduleHardExpiry, fmtDate, fmtCountdown } = require('./luka/utils/expiry');
 
 let expiryInfo = { active: true, daysLeft: null, expiryDate: null };
@@ -102,6 +103,25 @@ process.on('unhandledRejection', (err) => logger.error('UNHANDLED', err?.message
             } catch {}
         },
     });
+
+    // Initialize durable settings before startBot() loads plugins.
+    // This ensures plugins read the latest PostgreSQL values instead of
+    // falling back to the temporary SQLite cache on Heroku.
+    try {
+        const dbStatus = await initPersistentSettings();
+        if (dbStatus.persistent) {
+            logger.success('DATABASE', 'PostgreSQL settings persistence is ready.');
+        } else {
+            logger.warn('DATABASE', `${dbStatus.reason || 'PostgreSQL unavailable'}. Settings are using local SQLite and may reset after a dyno restart.`);
+        }
+    } catch (err) {
+        logger.error('DATABASE', `PostgreSQL initialization failed: ${err.message}`);
+        if (process.env.DATABASE_URL) {
+            logger.error('FATAL', 'DATABASE_URL is configured but PostgreSQL could not be initialized. Bot startup stopped to prevent settings loss.');
+            process.exit(1);
+            return;
+        }
+    }
 
     await startBot().catch(err => {
         logger.error('FATAL', `Bot failed to start: ${err.message}`);
