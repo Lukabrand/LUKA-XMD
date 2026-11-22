@@ -57,6 +57,11 @@ seedDefaults({
 
 let sock;
 let reconnectCount = 0;
+let reconnectTimer = null;
+let startupNoticeSent = false;
+let startupNoticeInProgress = false;
+let autoBioInterval = null;
+let autoUpdateChecked = false;
 const MAX_RECONNECT_DELAY = 30_000;
 
 // Track newsletters followed this session
@@ -146,8 +151,9 @@ async function autoJoinGroups(sock) {
 // ═══════════════════════════════════════════════════════════════
 
 async function startBot() {
-    // ── Auto-update on every (re)start ───────────────────────
-    if (config.AUTO_UPDATE) {
+    // Run the updater once per process, not on every WhatsApp reconnect.
+    if (config.AUTO_UPDATE && !autoUpdateChecked) {
+        autoUpdateChecked = true;
         try {
             await autoUpdate();
         } catch (e) {
@@ -254,10 +260,16 @@ async function startBot() {
                 process.exit(1);
             }
 
+            // Baileys may emit more than one close update for the same socket.
+            // Schedule only one reconnect timer to avoid duplicate connections.
+            if (reconnectTimer) return;
             reconnectCount++;
             const delay = Math.min(1000 * Math.pow(2, Math.min(reconnectCount - 1, 5)), MAX_RECONNECT_DELAY);
             logger.warn('CONNECTION', `Closed (${reason}) — reconnecting in ${delay / 1000}s [attempt #${reconnectCount}]`);
-            setTimeout(startBot, delay);
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                startBot().catch(err => logger.error('CONNECTION', `Reconnect failed: ${err.message}`));
+            }, delay);
         }
 
         if (connection === 'open') {
@@ -282,28 +294,34 @@ async function startBot() {
 ┃ 🌐 Mode    : *${config.MODE.toUpperCase()}*
 ╰══✦ ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ ✦══⊷`;
 
-            // Send startup notice using WhatsApp disappearing-message settings.
-            // ephemeralExpiration: 100 means 100 seconds (2 minutes).
-            try {
-                await sock.sendMessage(
-                    ownerJid,
-                    {
-                        text: startText,
-                        contextInfo: channelCtx(),
-                    },
-                    {
-                        disappearingMessagesInChat: true,
-                        ephemeralExpiration: 100,
-                    }
-                );
-            } catch (err) {
-                logger.warn('CONNECTION', `Startup message failed: ${err.message}`);
+            // Send the online notice only once per deployment/process.
+            // A temporary WhatsApp reconnect must not send the same SMS again.
+            if (!startupNoticeSent && !startupNoticeInProgress) {
+                startupNoticeInProgress = true;
+                try {
+                    await sock.sendMessage(
+                        ownerJid,
+                        {
+                            text: startText,
+                            contextInfo: channelCtx(),
+                        },
+                        {
+                            disappearingMessagesInChat: true,
+                            ephemeralExpiration: 100,
+                        }
+                    );
+                    startupNoticeSent = true;
+                } catch (err) {
+                    logger.warn('CONNECTION', `Startup message failed: ${err.message}`);
+                } finally {
+                    startupNoticeInProgress = false;
+                }
             }
 
-            // Auto Bio
-            if (config.AUTO_BIO) {
+            // Keep one Auto Bio interval across reconnects.
+            if (config.AUTO_BIO && !autoBioInterval) {
                 PantherAutoBio(sock).catch(() => {});
-                setInterval(() => PantherAutoBio(sock).catch(() => {}), 10 * 60 * 1000);
+                autoBioInterval = setInterval(() => PantherAutoBio(sock).catch(() => {}), 10 * 60 * 1000);
                 logger.success('AUTOBIO', 'Auto Bio started (every 10 min)');
             }
 
