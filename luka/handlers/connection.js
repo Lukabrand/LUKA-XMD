@@ -26,6 +26,7 @@ const { autoUpdate }                 = require('../utils/autoUpdate');
 
 const {
     PantherAntiCall,
+    PantherAntiViewOnce,
     PantherAutoBio,
     PantherAntiDelete,
     PantherAntiEdit,
@@ -350,6 +351,9 @@ async function startBot() {
         // not only through the messages.delete event.
         for (const msg of upsert.messages) {
             storeMessage(msg);
+            PantherAntiViewOnce(sock, msg).catch(err =>
+                logger.warn('ANTIVIEWONCE', err.message)
+            );
 
             const protocol = msg?.message?.protocolMessage;
             const protocolType = String(protocol?.type ?? '').toUpperCase();
