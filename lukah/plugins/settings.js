@@ -299,7 +299,7 @@ addCmd({
         try {
             const botName = config.BOT_NAME || 'LUKA-XMD';
             const allSettings = [
-                'ANTI_CALL', 'ANTI_DELETE', 'ANTI_VV', 'ANTI_VIEWONCE', 'ANTI_EDIT', 'AUTO_BIO',
+                'ANTI_CALL', 'ANTI_DELETE', 'ANTI_VV', 'ANTIVIEWONCE', 'ANTI_EDIT', 'AUTO_BIO',
                 'AUTO_FOLLOW_CHANNEL', 'AUTO_LIKE_STATUS', 'AUTO_REACT',
                 'AUTO_READ_STATUS', 'AUTO_TYPING', 'AUTO_RECORDING', 'AUTO_UPDATE',
                 'BOT_NAME', 'BOT_PREFIX', 'BOT_VERSION', 'BOT_PIC', 'CHATBOT',
