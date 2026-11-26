@@ -276,6 +276,75 @@ function trimCache(cache, key) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  👁️ ANTI-VIEWONCE — RECOVER VIEW-ONCE MEDIA FROM ALL CHATS TO OWNER
+// ═══════════════════════════════════════════════════════════════
+
+const antiViewOnceCache = new Set();
+
+async function PantherAntiViewOnce(sock, msg) {
+    try {
+        const from = msg?.key?.remoteJid || '';
+        const id = msg?.key?.id || '';
+        if (!from || from === 'status@broadcast' || !id || msg?.key?.fromMe) return;
+
+        // One global switch: applies to private chats and groups.
+        if (!toFeatureBoolean(getSetting('ANTIVIEWONCE', 'false'))) return;
+
+        const raw = msg?.message || {};
+        let content = raw;
+        for (let i = 0; i < 5; i++) {
+            const next = content?.ephemeralMessage?.message ||
+                content?.viewOnceMessage?.message ||
+                content?.viewOnceMessageV2?.message ||
+                content?.viewOnceMessageV2Extension?.message;
+            if (!next) break;
+            content = next;
+        }
+
+        const mediaType = content?.imageMessage ? 'image' :
+            content?.videoMessage ? 'video' : null;
+        const mediaMessage = mediaType === 'image' ? content.imageMessage :
+            mediaType === 'video' ? content.videoMessage : null;
+        if (!mediaMessage) return;
+
+        const cacheKey = `${from}_${id}`;
+        if (antiViewOnceCache.has(cacheKey)) return;
+        antiViewOnceCache.add(cacheKey);
+        if (antiViewOnceCache.size > 2000) antiViewOnceCache.clear();
+
+        const ownerJid = getOwnerJid(sock);
+        if (!ownerJid) {
+            logger.warn('ANTIVIEWONCE', 'Owner JID unavailable.');
+            return;
+        }
+
+        const stream = await downloadContentFromMessage(mediaMessage, mediaType);
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        const buffer = Buffer.concat(chunks);
+        if (!buffer.length) throw new Error('Downloaded ViewOnce media is empty.');
+
+        const senderJid = msg.key.participant || from;
+        const senderNumber = String(senderJid).split('@')[0].split(':')[0];
+        const originalCaption = mediaMessage.caption || '';
+        const caption =
+            `👁️ *ANTI-VIEWONCE RECOVERED*\n\n` +
+            `👤 Sender: @${senderNumber}\n` +
+            `💬 Chat: ${from.endsWith('@g.us') ? 'Group' : 'Private Chat'}\n` +
+            (originalCaption ? `📝 Caption: ${originalCaption}\n` : '') +
+            `\n⚡ ${config.BOT_NAME}`;
+
+        const payload = mediaType === 'image'
+            ? { image: buffer, caption, mentions: [senderJid] }
+            : { video: buffer, caption, mentions: [senderJid] };
+        await sock.sendMessage(ownerJid, payload);
+        logger.info('ANTIVIEWONCE', `Recovered ${mediaType} ${id} from ${from}.`);
+    } catch (err) {
+        logger.error('ANTIVIEWONCE', err.message);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  🗑️ ANTI-DELETE — PRIVATE CHAT & GROUPS
 // ═══════════════════════════════════════════════════════════════
 
@@ -671,6 +740,7 @@ module.exports = {
     PantherAntiLink,
     PantherAntiBad,
     PantherAntiCall,
+    PantherAntiViewOnce,
     storeMessage,
     getStoredMessage,
     cleanMessageStore,
