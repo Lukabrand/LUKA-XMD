@@ -723,34 +723,34 @@ addCmd({
     category: 'owner',
 
     handler: async (ctx) => {
-        const sep = '✦ ───────────── ✦';
+        const repoUrl = 'https://github.com/Lukabrand/LUKA-XMD';
+
+        const stats = await fetch('https://api.github.com/repos/Lukabrand/LUKA-XMD', {
+            headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'LUKA-XMD-Bot' },
+            signal: AbortSignal.timeout(10000)
+        }).then(async r => {
+            if (!r.ok) throw new Error('GitHub API error');
+            return r.json();
+        }).catch(() => null);
+
+        const stars = stats?.stargazers_count ?? 'N/A';
+        const forks = stats?.forks_count ?? 'N/A';
+        const size = stats ? (stats.size >= 1024
+            ? `${(stats.size / 1024).toFixed(2)} MB`
+            : `${stats.size} KB`) : 'N/A';
 
         const card =
-            `🐾 *${safeConfig('BOT_NAME', 'LUKA-XMD')}* 🐾\n` +
-            `✦ *Open-Source WhatsApp Bot* ✦\n` +
-            `_Lukabrand · Built with ❤️_\n\n` +
-            `${sep}\n\n` +
-            `🌿 *Branch* · main\n` +
-            `⚡ *Engine* · Node.js + Baileys\n` +
-            `🔒 *License* · Open-Source\n\n` +
-            `${sep}\n\n` +
-            `✨ *FEATURES*\n\n` +
-            `🤖 Commands and automation\n` +
-            `🛡️ Group protection tools\n` +
-            `🎵 Music, downloads and AI\n` +
-            `🔄 Auto-Bio and Auto-Status\n` +
-            `👑 Owner administration\n` +
-            `🎭 Sticker and media tools\n\n` +
-            `${sep}\n\n` +
-            `👨‍💻 *DEVELOPER*\n\n` +
-            `🏷️ ${safeConfig('OWNER_NAME', 'Owner')}\n` +
-            `📞 +${safeConfig('OWNER_NUMBER')}\n\n` +
-            `${sep}\n\n` +
-            `⭐ Star it · Fork it · Build yours!\n\n` +
+            `✧ *Name* : ${safeConfig('BOT_NAME', 'LUKA-XMD')}\n` +
+            `✧ *Owner* : ${safeConfig('OWNER_NAME', 'Owner')}\n` +
+            `✧ *Stars* : ${stars} ⭐\n` +
+            `✧ *Forks* : ${forks} 🍴\n` +
+            `✧ *Size* : ${size}\n\n` +
+            `✧_*Don't forget*_ 🎉\n` +
+            `*to fork and star the repo!* ⭐\n\n` +
             `_${FOOTER}_`;
 
         await sendButtons(ctx.sock, ctx.from, {
-            title: `🐾 ${safeConfig('BOT_NAME', 'LUKA-XMD')} — Source Code`,
+            title: `⚡ ${safeConfig('BOT_NAME', 'LUKA-XMD')} — Source Code`,
             text: card,
             footer: FOOTER,
             image: { url: REPO_IMAGE },
@@ -759,39 +759,37 @@ addCmd({
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: '🌐 View on GitHub',
-                        url: 'https://github.com/Lukabrand/LUKA-XMD',
-                        merchant_url: 'https://github.com/Lukabrand/LUKA-XMD',
-                    }),
+                        url: repoUrl,
+                        merchant_url: repoUrl
+                    })
                 },
                 {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: '💬 Chat with Owner',
                         url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`,
-                        merchant_url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`,
-                    }),
+                        merchant_url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`
+                    })
                 },
                 {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: '📡 Join Channel',
                         url: safeConfig('CHANNEL_URL'),
-                        merchant_url: safeConfig('CHANNEL_URL'),
-                    }),
-                },
-            ],
+                        merchant_url: safeConfig('CHANNEL_URL')
+                    })
+                }
+            ]
         }, { quoted: ctx.m }).catch(async () => {
             await ctx.sock.sendMessage(ctx.from, {
                 image: { url: REPO_IMAGE },
                 caption: card,
-                contextInfo: channelCtx(),
-            }, { quoted: ctx.m }).catch(async () => {
-                await ctx.reply(card);
-            });
+                contextInfo: channelCtx()
+            }, { quoted: ctx.m }).catch(() => ctx.reply(card));
         });
 
-        await ctx.react('🐾');
-    },
+        await ctx.react('⚡');
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1664,3 +1662,4 @@ addCmd({
 console.log(
     `✅ Owner and group commands loaded — ${safeConfig('BOT_NAME', 'LUKA-XMD')}`
 );
+
