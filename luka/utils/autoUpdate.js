@@ -1,19 +1,5 @@
  'use strict';
 
-// ╭═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╮
-// ║  🐾  LUKA-XMD  —  Auto-Updater                                      ║
-// ║  Pulls latest commits from origin/main on every restart.                    ║
-// ║  Uses GITHUB_PERSONAL_ACCESS_TOKEN for authenticated access.                ║
-// ║                                                                              ║
-// ║  Skipped automatically when:                                                 ║
-// ║   • Running inside a Docker/Heroku/cloud container (DYNO, K_SERVICE,        ║
-// ║     RAILWAY_ENVIRONMENT, etc.) — images are immutable; git reset            ║
-// ║     would be wiped on next deploy anyway.                                    ║
-// ║   • git binary is not in PATH                                                ║
-// ║   • No git remote "origin" configured                                        ║
-// ║   • GITHUB_PERSONAL_ACCESS_TOKEN secret not set                              ║
-// ╰═══〘〘━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━〙〙═══╯
-
 const { spawnSync } = require('child_process');
 const path   = require('path');
 const logger = require('./logger');
