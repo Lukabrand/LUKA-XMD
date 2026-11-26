@@ -1,24 +1,16 @@
+
 'use strict';
 
 const { addCmd, addTrigger } = require('../../luka/handlers/loader');
-
 const { getStatusReport } = require('../../luka/utils/statusEngine');
 
 const {
-    addSudo,
-    removeSudo,
-    getSudoList,
-    isSudo,
-    setSetting,
-    getSetting,
-    getGroupSettings,
-    setGroupSetting,
+    addSudo, removeSudo, getSudoList, isSudo,
+    setSetting, getSetting, getGroupSettings, setGroupSetting,
 } = require('../../luka/db/database');
 
 const { numberToJid, cleanJid } = require('../../luka/utils/helpers');
-
 const config = require('../../luka/config/settings');
-
 const { channelCtx, sendButtons } = require('../../luka/utils/gmdFunctions2');
 
 const { execSync } = require('child_process');
@@ -26,36 +18,22 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-// ═══════════════════════════════════════════════════════════════
-// GITHUB UPDATE CONFIGURATION
-// ═══════════════════════════════════════════════════════════════
-
 const GH_REPO = 'Lukabrand/LUKA-XMD';
 const GH_BRANCH = 'main';
-
 const SHA_FILE = path.join(process.cwd(), '.local', 'last_sha.txt');
-
 const REPO_IMAGE = 'https://i.imgur.com/YbnhBIV.png';
-
 const FOOTER = 'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ';
-
-// ═══════════════════════════════════════════════════════════════
-// GITHUB API HELPER
-// ═══════════════════════════════════════════════════════════════
 
 function ghRequest(method, apiPath, body = null) {
     return new Promise((resolve, reject) => {
         const token = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || '';
-
         const headers = {
             Accept: 'application/vnd.github.v3+json',
             'User-Agent': 'LUKA-XMD-Bot',
             'Content-Type': 'application/json',
         };
 
-        if (token) {
-            headers.Authorization = `token ${token}`;
-        }
+        if (token) headers.Authorization = `token ${token}`;
 
         const req = https.request({
             hostname: 'api.github.com',
@@ -64,22 +42,16 @@ function ghRequest(method, apiPath, body = null) {
             headers,
         }, (res) => {
             let data = '';
-
-            res.on('data', chunk => {
-                data += chunk;
-            });
+            res.on('data', chunk => data += chunk);
 
             res.on('end', () => {
                 try {
                     const parsed = JSON.parse(data);
 
                     if (res.statusCode < 200 || res.statusCode >= 300) {
-                        return reject(
-                            new Error(
-                                parsed.message ||
-                                `GitHub returned HTTP ${res.statusCode}`
-                            )
-                        );
+                        return reject(new Error(
+                            parsed.message || `GitHub returned HTTP ${res.statusCode}`
+                        ));
                     }
 
                     resolve(parsed);
@@ -90,15 +62,11 @@ function ghRequest(method, apiPath, body = null) {
         });
 
         req.on('error', reject);
+        req.setTimeout(30000, () => req.destroy(
+            new Error('GitHub API request timed out')
+        ));
 
-        req.setTimeout(30000, () => {
-            req.destroy(new Error('GitHub API request timed out'));
-        });
-
-        if (body) {
-            req.write(JSON.stringify(body));
-        }
-
+        if (body) req.write(JSON.stringify(body));
         req.end();
     });
 }
@@ -117,26 +85,17 @@ function getLocalGitSha() {
 }
 
 function storesha(sha) {
-    fs.mkdirSync(path.dirname(SHA_FILE), {
-        recursive: true,
-    });
-
+    fs.mkdirSync(path.dirname(SHA_FILE), { recursive: true });
     fs.writeFileSync(SHA_FILE, sha, 'utf8');
 }
 
 function readStoredSha() {
     try {
         const stored = fs.readFileSync(SHA_FILE, 'utf8').trim();
-
-        if (stored) {
-            return stored;
-        }
-    } catch {
-        // SHA file does not exist yet.
-    }
+        if (stored) return stored;
+    } catch {}
 
     const gitSha = getLocalGitSha();
-
     if (gitSha) {
         storesha(gitSha);
         return gitSha;
@@ -151,8 +110,7 @@ function safeConfig(key, fallback = '') {
 
 function groupSetting(ctx, key) {
     try {
-        const settings = getGroupSettings(ctx.from) || {};
-        return Boolean(settings[key]);
+        return Boolean((getGroupSettings(ctx.from) || {})[key]);
     } catch {
         return false;
     }
@@ -167,6 +125,11 @@ function getQuotedParticipant(ctx) {
     );
 }
 
+function getAntiDeleteStatus() {
+    const mode = String(getSetting('ANTIDELETE', 'false') || 'false').toLowerCase();
+    return !['false', 'off', '0', ''].includes(mode);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // ADD SUDO
 // ═══════════════════════════════════════════════════════════════
@@ -177,7 +140,6 @@ addCmd({
     desc: 'Add a sudo user',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const target = ctx.args[0]
             ? numberToJid(ctx.args[0])
@@ -186,18 +148,12 @@ addCmd({
                 : null;
 
         if (!target) {
-            return ctx.reply(
-                '❌ Tag a user or provide their number.\n\n' +
-                'Example: .addsudo 255712345678'
-            );
+            return ctx.reply('❌ Tag a user or provide their number.\n\nExample: .addsudo 255712345678');
         }
 
-        if (isSudo(target)) {
-            return ctx.reply('⚠️ That user is already a sudo user.');
-        }
+        if (isSudo(target)) return ctx.reply('⚠️ That user is already a sudo user.');
 
         addSudo(target);
-
         await ctx.reply(
             `✅ *@${target.split('@')[0]}* has been added as a sudo user.`,
             { mentions: [target] }
@@ -215,7 +171,6 @@ addCmd({
     desc: 'Remove a sudo user',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const target = ctx.args[0]
             ? numberToJid(ctx.args[0])
@@ -223,18 +178,10 @@ addCmd({
                 ? cleanJid(getQuotedParticipant(ctx))
                 : null;
 
-        if (!target) {
-            return ctx.reply(
-                '❌ Tag a user or provide their number.'
-            );
-        }
-
-        if (!isSudo(target)) {
-            return ctx.reply('⚠️ That user is not a sudo user.');
-        }
+        if (!target) return ctx.reply('❌ Tag a user or provide their number.');
+        if (!isSudo(target)) return ctx.reply('⚠️ That user is not a sudo user.');
 
         removeSudo(target);
-
         await ctx.reply(
             `✅ *@${target.split('@')[0]}* has been removed from sudo users.`,
             { mentions: [target] }
@@ -252,25 +199,16 @@ addCmd({
     desc: 'List all sudo users',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const list = getSudoList() || [];
-
-        if (!list.length) {
-            return ctx.reply('📭 No sudo users have been added yet.');
-        }
+        if (!list.length) return ctx.reply('📭 No sudo users have been added yet.');
 
         const text =
             `👑 *Sudo Users* (${list.length})\n\n` +
-            list.map((jid, index) =>
-                `${index + 1}. @${jid.split('@')[0]}`
-            ).join('\n') +
+            list.map((jid, i) => `${i + 1}. @${jid.split('@')[0]}`).join('\n') +
             `\n\n${FOOTER}`;
 
-        await ctx.send({
-            text,
-            mentions: list,
-        });
+        await ctx.send({ text, mentions: list });
     },
 });
 
@@ -283,22 +221,16 @@ addCmd({
     desc: 'Set bot mode',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const mode = ctx.args[0]?.toLowerCase();
         const valid = ['public', 'private', 'groups', 'dm'];
 
         if (!mode || !valid.includes(mode)) {
-            return ctx.reply(
-                `❌ Invalid mode.\n\n` +
-                `Valid modes: ${valid.join(', ')}\n\n` +
-                `Example: .setmode public`
-            );
+            return ctx.reply(`❌ Invalid mode.\n\nValid modes: ${valid.join(', ')}\n\nExample: .setmode public`);
         }
 
         setSetting('MODE', mode);
         config.MODE = mode;
-
         await ctx.reply(`✅ Bot mode set to *${mode}*`);
     },
 });
@@ -312,19 +244,12 @@ addCmd({
     desc: 'Change the bot command prefix',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const prefix = ctx.args[0];
-
-        if (!prefix) {
-            return ctx.reply(
-                '❌ Provide a new prefix.\n\nExample: .setprefix !'
-            );
-        }
+        if (!prefix) return ctx.reply('❌ Provide a new prefix.\n\nExample: .setprefix !');
 
         setSetting('BOT_PREFIX', prefix);
         config.BOT_PREFIX = prefix;
-
         await ctx.reply(`✅ Prefix changed to *${prefix}*`);
     },
 });
@@ -338,17 +263,12 @@ addCmd({
     desc: 'Change the bot name',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const name = ctx.text?.trim();
-
-        if (!name) {
-            return ctx.reply('❌ Provide a new bot name.');
-        }
+        if (!name) return ctx.reply('❌ Provide a new bot name.');
 
         setSetting('BOT_NAME', name);
         config.BOT_NAME = name;
-
         await ctx.reply(`✅ Bot name updated to *${name}*`);
     },
 });
@@ -363,25 +283,14 @@ addCmd({
     desc: 'Broadcast a message to all groups',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
-        if (!ctx.text) {
-            return ctx.reply('❌ Provide a message to broadcast.');
-        }
+        if (!ctx.text) return ctx.reply('❌ Provide a message to broadcast.');
 
-        const groups = await ctx.sock
-            .groupFetchAllParticipating()
-            .catch(() => ({}));
-
+        const groups = await ctx.sock.groupFetchAllParticipating().catch(() => ({}));
         const ids = Object.keys(groups);
+        if (!ids.length) return ctx.reply('⚠️ No groups found.');
 
-        if (!ids.length) {
-            return ctx.reply('⚠️ No groups found.');
-        }
-
-        await ctx.reply(
-            `📡 Broadcasting to *${ids.length}* groups...`
-        );
+        await ctx.reply(`📡 Broadcasting to *${ids.length}* groups...`);
 
         let sent = 0;
         let failed = 0;
@@ -394,7 +303,6 @@ addCmd({
                         `${ctx.text}\n\n` +
                         `_${safeConfig('BOT_NAME', 'LUKA-XMD')}_`,
                 });
-
                 sent++;
             } catch {
                 failed++;
@@ -403,11 +311,7 @@ addCmd({
             await new Promise(resolve => setTimeout(resolve, 500));
         }
 
-        await ctx.reply(
-            `✅ *Broadcast completed*\n\n` +
-            `📨 Sent: ${sent}\n` +
-            `❌ Failed: ${failed}`
-        );
+        await ctx.reply(`✅ *Broadcast completed*\n\n📨 Sent: ${sent}\n❌ Failed: ${failed}`);
     },
 });
 
@@ -420,12 +324,8 @@ addCmd({
     desc: 'Restart the bot',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
-        await ctx.reply(
-            `♻️ Restarting *${safeConfig('BOT_NAME', 'LUKA-XMD')}*...`
-        );
-
+        await ctx.reply(`♻️ Restarting *${safeConfig('BOT_NAME', 'LUKA-XMD')}*...`);
         setTimeout(() => process.exit(0), 2000);
     },
 });
@@ -440,12 +340,8 @@ addCmd({
     desc: 'Shut down the bot',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
-        await ctx.reply(
-            `🛑 *${safeConfig('BOT_NAME', 'LUKA-XMD')}* is shutting down. Goodbye!`
-        );
-
+        await ctx.reply(`🛑 *${safeConfig('BOT_NAME', 'LUKA-XMD')}* is shutting down. Goodbye!`);
         setTimeout(() => process.exit(1), 2000);
     },
 });
@@ -460,7 +356,6 @@ addCmd({
     desc: 'Show auto-status engine statistics',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         await ctx.reply(getStatusReport());
     },
@@ -476,32 +371,19 @@ addCmd({
     desc: 'Check for and apply updates from GitHub',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         await ctx.react('🔄');
 
         const sep = '✦ ───────────── ✦';
-
-        await ctx.reply(
-            '🔍 *Checking for updates...*\n\n⏳ Contacting GitHub...'
-        );
+        await ctx.reply('🔍 *Checking for updates...*\n\n⏳ Contacting GitHub...');
 
         let latestCommit;
 
         try {
-            const refData = await ghRequest(
-                'GET',
-                `/repos/${GH_REPO}/git/ref/heads/${GH_BRANCH}`
-            );
+            const refData = await ghRequest('GET', `/repos/${GH_REPO}/git/ref/heads/${GH_BRANCH}`);
+            if (!refData?.object?.sha) throw new Error('Could not retrieve the latest commit SHA.');
 
-            if (!refData?.object?.sha) {
-                throw new Error('Could not retrieve the latest commit SHA.');
-            }
-
-            const commitData = await ghRequest(
-                'GET',
-                `/repos/${GH_REPO}/git/commits/${refData.object.sha}`
-            );
+            const commitData = await ghRequest('GET', `/repos/${GH_REPO}/git/commits/${refData.object.sha}`);
 
             latestCommit = {
                 sha: refData.object.sha,
@@ -509,24 +391,18 @@ addCmd({
                 message: commitData?.message?.split('\n')[0] || '—',
                 author: commitData?.author?.name || 'unknown',
                 date: commitData?.author?.date
-                    ? new Date(commitData.author.date).toLocaleDateString(
-                        'en-GB',
-                        {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric',
-                        }
-                    )
+                    ? new Date(commitData.author.date).toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                    })
                     : '—',
             };
         } catch (error) {
             await ctx.react('❌');
-
             return ctx.reply(
-                `❌ *Could not reach GitHub*\n\n` +
-                `${sep}\n\n` +
-                `${error.message.slice(0, 200)}\n\n` +
-                `Check your internet connection and repository access.`
+                `❌ *Could not reach GitHub*\n\n${sep}\n\n` +
+                `${error.message.slice(0, 200)}\n\nCheck your internet connection and repository access.`
             );
         }
 
@@ -534,15 +410,11 @@ addCmd({
 
         if (storedSha === latestCommit.sha) {
             await ctx.react('✅');
-
             return ctx.reply(
                 `✅ *${safeConfig('BOT_NAME', 'LUKA-XMD')} is up to date!*\n\n` +
-                `${sep}\n\n` +
-                `📌 Version: \`${latestCommit.shortSha}\`\n` +
-                `🌿 Branch: ${GH_BRANCH}\n` +
-                `👤 Author: ${latestCommit.author}\n` +
-                `📅 Date: ${latestCommit.date}\n\n` +
-                `_No new updates available._`
+                `${sep}\n\n📌 Version: \`${latestCommit.shortSha}\`\n` +
+                `🌿 Branch: ${GH_BRANCH}\n👤 Author: ${latestCommit.author}\n` +
+                `📅 Date: ${latestCommit.date}\n\n_No new updates available._`
             );
         }
 
@@ -550,9 +422,7 @@ addCmd({
         let commitLog = '';
 
         try {
-            if (!storedSha) {
-                throw new Error('No previous SHA available.');
-            }
+            if (!storedSha) throw new Error('No previous SHA available.');
 
             const compare = await ghRequest(
                 'GET',
@@ -564,13 +434,9 @@ addCmd({
                 status: file.status,
             }));
 
-            commitLog = (compare.commits || [])
-                .slice(-10)
-                .reverse()
-                .map(commit =>
-                    `• ${commit.commit?.message?.split('\n')[0]?.slice(0, 60) || '—'}`
-                )
-                .join('\n');
+            commitLog = (compare.commits || []).slice(-10).reverse().map(commit =>
+                `• ${commit.commit?.message?.split('\n')[0]?.slice(0, 60) || '—'}`
+            ).join('\n');
         } catch {
             try {
                 const treeData = await ghRequest(
@@ -580,41 +446,24 @@ addCmd({
 
                 changedFiles = (treeData.tree || [])
                     .filter(file => file.type === 'blob')
-                    .map(file => ({
-                        path: file.path,
-                        status: 'modified',
-                    }));
+                    .map(file => ({ path: file.path, status: 'modified' }));
             } catch (error) {
                 await ctx.react('❌');
-
-                return ctx.reply(
-                    `❌ Failed to retrieve repository files.\n${error.message}`
-                );
+                return ctx.reply(`❌ Failed to retrieve repository files.\n${error.message}`);
             }
         }
 
         const totalFiles = changedFiles.length;
-        const pkgChanged = changedFiles.some(
-            file => file.path === 'package.json'
-        );
-
-        const toUpdate = changedFiles.filter(
-            file => file.status !== 'removed'
-        );
-
-        const toRemove = changedFiles.filter(
-            file => file.status === 'removed'
-        );
+        const pkgChanged = changedFiles.some(file => file.path === 'package.json');
+        const toUpdate = changedFiles.filter(file => file.status !== 'removed');
+        const toRemove = changedFiles.filter(file => file.status === 'removed');
 
         await ctx.reply(
-            `🆕 *Update Available!*\n\n` +
-            `${sep}\n\n` +
-            `📦 Latest: \`${latestCommit.shortSha}\`\n` +
-            `📅 Date: ${latestCommit.date}\n` +
+            `🆕 *Update Available!*\n\n${sep}\n\n` +
+            `📦 Latest: \`${latestCommit.shortSha}\`\n📅 Date: ${latestCommit.date}\n` +
             `👤 By: ${latestCommit.author}\n\n` +
             (commitLog ? `📝 *Recent changes:*\n${commitLog}\n\n` : '') +
-            `${sep}\n\n` +
-            `📁 ${totalFiles} file(s) found. Downloading...`
+            `${sep}\n\n📁 ${totalFiles} file(s) found. Downloading...`
         );
 
         let written = 0;
@@ -622,11 +471,7 @@ addCmd({
 
         for (const file of toUpdate) {
             try {
-                const encodedPath = file.path
-                    .split('/')
-                    .map(encodeURIComponent)
-                    .join('/');
-
+                const encodedPath = file.path.split('/').map(encodeURIComponent).join('/');
                 const raw = await ghRequest(
                     'GET',
                     `/repos/${GH_REPO}/contents/${encodedPath}?ref=${latestCommit.sha}`
@@ -646,10 +491,7 @@ addCmd({
                     continue;
                 }
 
-                fs.mkdirSync(path.dirname(dest), {
-                    recursive: true,
-                });
-
+                fs.mkdirSync(path.dirname(dest), { recursive: true });
                 fs.writeFileSync(dest, content);
                 written++;
             } catch {
@@ -662,22 +504,14 @@ addCmd({
                 const dest = path.resolve(process.cwd(), file.path);
                 const root = path.resolve(process.cwd());
 
-                if (
-                    dest.startsWith(root + path.sep) &&
-                    fs.existsSync(dest) &&
-                    fs.statSync(dest).isFile()
-                ) {
+                if (dest.startsWith(root + path.sep) && fs.existsSync(dest) && fs.statSync(dest).isFile()) {
                     fs.unlinkSync(dest);
                 }
-            } catch {
-                // Best effort.
-            }
+            } catch {}
         }
 
         if (pkgChanged) {
-            await ctx.reply(
-                '📦 package.json changed. Reinstalling dependencies...'
-            );
+            await ctx.reply('📦 package.json changed. Reinstalling dependencies...');
 
             try {
                 execSync('npm install --legacy-peer-deps', {
@@ -687,27 +521,21 @@ addCmd({
                     stdio: 'pipe',
                 });
             } catch (error) {
-                await ctx.reply(
-                    `⚠️ Dependency installation reported an issue:\n` +
-                    `${String(error.message).slice(0, 200)}`
-                );
+                await ctx.reply(`⚠️ Dependency installation reported an issue:\n${String(error.message).slice(0, 200)}`);
             }
         }
 
         storesha(latestCommit.sha);
 
         await ctx.reply(
-            `✅ *Update Applied!*\n\n` +
-            `${sep}\n\n` +
+            `✅ *Update Applied!*\n\n${sep}\n\n` +
             `📌 New version: \`${latestCommit.shortSha}\`\n` +
-            `📁 Files written: ${written}\n` +
-            `⚠️ Files failed: ${failed}\n` +
+            `📁 Files written: ${written}\n⚠️ Files failed: ${failed}\n` +
             `🔁 Dependencies changed: ${pkgChanged ? 'Yes' : 'No'}\n\n` +
             `♻️ Restarting ${safeConfig('BOT_NAME', 'LUKA-XMD')}...`
         );
 
         await ctx.react('✅');
-
         setTimeout(() => process.exit(0), 2500);
     },
 });
@@ -721,13 +549,15 @@ addCmd({
     aliases: ['github', 'source', 'sourcecode'],
     desc: 'Show the bot GitHub repository link',
     category: 'owner',
-
     handler: async (ctx) => {
         const repoUrl = 'https://github.com/Lukabrand/LUKA-XMD';
 
         const stats = await fetch('https://api.github.com/repos/Lukabrand/LUKA-XMD', {
-            headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'LUKA-XMD-Bot' },
-            signal: AbortSignal.timeout(10000)
+            headers: {
+                Accept: 'application/vnd.github+json',
+                'User-Agent': 'LUKA-XMD-Bot',
+            },
+            signal: AbortSignal.timeout(10000),
         }).then(async r => {
             if (!r.ok) throw new Error('GitHub API error');
             return r.json();
@@ -735,9 +565,11 @@ addCmd({
 
         const stars = stats?.stargazers_count ?? 'N/A';
         const forks = stats?.forks_count ?? 'N/A';
-        const size = stats ? (stats.size >= 1024
-            ? `${(stats.size / 1024).toFixed(2)} MB`
-            : `${stats.size} KB`) : 'N/A';
+        const size = stats
+            ? (stats.size >= 1024
+                ? `${(stats.size / 1024).toFixed(2)} MB`
+                : `${stats.size} KB`)
+            : 'N/A';
 
         const card =
             `✧ *Name* : ${safeConfig('BOT_NAME', 'LUKA-XMD')}\n` +
@@ -746,7 +578,7 @@ addCmd({
             `✧ *Forks* : ${forks} 🍴\n` +
             `✧ *Size* : ${size}\n\n` +
             `✧_*Don't forget*_ 🎉\n` +
-            `*to fork and star the repo!* ⭐\n\n` +
+            `*to fork and star the repo!* ⭐`;
 
         await sendButtons(ctx.sock, ctx.from, {
             title: `⚡ ${safeConfig('BOT_NAME', 'LUKA-XMD')} — Source Code`,
@@ -759,36 +591,36 @@ addCmd({
                     buttonParamsJson: JSON.stringify({
                         display_text: '🌐 View on GitHub',
                         url: repoUrl,
-                        merchant_url: repoUrl
-                    })
+                        merchant_url: repoUrl,
+                    }),
                 },
                 {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: '💬 Chat with Owner',
                         url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`,
-                        merchant_url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`
-                    })
+                        merchant_url: `https://wa.me/${safeConfig('OWNER_NUMBER')}`,
+                    }),
                 },
                 {
                     name: 'cta_url',
                     buttonParamsJson: JSON.stringify({
                         display_text: '📡 Join Channel',
                         url: safeConfig('CHANNEL_URL'),
-                        merchant_url: safeConfig('CHANNEL_URL')
-                    })
-                }
-            ]
+                        merchant_url: safeConfig('CHANNEL_URL'),
+                    }),
+                },
+            ],
         }, { quoted: ctx.m }).catch(async () => {
             await ctx.sock.sendMessage(ctx.from, {
                 image: { url: REPO_IMAGE },
-                caption: card,
-                contextInfo: channelCtx()
-            }, { quoted: ctx.m }).catch(() => ctx.reply(card));
+                caption: `${card}\n\n_${FOOTER}_`,
+                contextInfo: channelCtx(),
+            }, { quoted: ctx.m }).catch(() => ctx.reply(`${card}\n\n_${FOOTER}_`));
         });
 
         await ctx.react('⚡');
-    }
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -800,7 +632,6 @@ addCmd({
     aliases: ['developer', 'dev', 'creator', 'contact'],
     desc: 'Show bot owner contact information',
     category: 'general',
-
     handler: async (ctx) => {
         let ppUrl = null;
 
@@ -809,9 +640,7 @@ addCmd({
                 `${safeConfig('OWNER_NUMBER')}@s.whatsapp.net`,
                 'image'
             );
-        } catch {
-            // Use the repository image as fallback.
-        }
+        } catch {}
 
         const ownerCard =
             `👑 *OWNER INFORMATION* 👑\n` +
@@ -823,17 +652,13 @@ addCmd({
             `📞 Number: +${safeConfig('OWNER_NUMBER')}\n` +
             `💬 WhatsApp: wa.me/${safeConfig('OWNER_NUMBER')}\n\n` +
             `✦ ───────────── ✦\n\n` +
-            `📡 *OFFICIAL CHANNEL*\n` +
-            `${safeConfig('CHANNEL_URL')}\n\n` +
+            `📡 *OFFICIAL CHANNEL*\n${safeConfig('CHANNEL_URL')}\n\n` +
             `✦ ───────────── ✦\n\n` +
             `🌐 *GITHUB REPOSITORY*\n` +
             `github.com/Lukabrand/LUKA-XMD\n\n` +
-            `⭐ Star the repository if you love the bot!\n\n` +
-            `_${FOOTER}_`;
+            `⭐ Star the repository if you love the bot!`;
 
-        const ownerImage = ppUrl
-            ? { url: ppUrl }
-            : { url: REPO_IMAGE };
+        const ownerImage = ppUrl ? { url: ppUrl } : { url: REPO_IMAGE };
 
         await sendButtons(ctx.sock, ctx.from, {
             title: `👑 ${safeConfig('OWNER_NAME', 'Owner')} — Owner Info`,
@@ -869,11 +694,9 @@ addCmd({
         }, { quoted: ctx.m }).catch(async () => {
             await ctx.sock.sendMessage(ctx.from, {
                 image: ownerImage,
-                caption: ownerCard,
+                caption: `${ownerCard}\n\n_${FOOTER}_`,
                 contextInfo: channelCtx(),
-            }, { quoted: ctx.m }).catch(async () => {
-                await ctx.reply(ownerCard);
-            });
+            }, { quoted: ctx.m }).catch(() => ctx.reply(`${ownerCard}\n\n_${FOOTER}_`));
         });
 
         await ctx.react('👑');
@@ -891,16 +714,13 @@ addCmd({
     category: 'group',
     groupOnly: true,
     adminOnly: true,
-
     handler: async (ctx) => {
         const newVal = !groupSetting(ctx, 'antimention');
-
         setGroupSetting(ctx.from, 'antimention', newVal);
 
-        await ctx.reply(
-            newVal
-                ? '🔕 *Anti-Mention ON*\n\nMass-mentions (5+ tags) by non-admins will be deleted.'
-                : '🔔 *Anti-Mention OFF*\n\nMass-mention protection disabled.'
+        await ctx.reply(newVal
+            ? '🔕 *Anti-Mention ON*\n\nMass-mentions (5+ tags) by non-admins will be deleted.'
+            : '🔔 *Anti-Mention OFF*\n\nMass-mention protection disabled.'
         );
     },
 });
@@ -908,8 +728,7 @@ addCmd({
 addTrigger({
     pattern: /.*/,
     handler: async (ctx) => {
-        if (!ctx.isGroup) return;
-        if (!groupSetting(ctx, 'antimention')) return;
+        if (!ctx.isGroup || !groupSetting(ctx, 'antimention')) return;
         if (ctx.isAdmin || ctx.isOwner || ctx.m?.fromMe) return;
 
         const mentionedJids =
@@ -920,7 +739,6 @@ addTrigger({
         if (mentionedJids.length < 5) return;
 
         await ctx.deleteMsg().catch(() => {});
-
         await ctx.send({
             text:
                 `🔕 *Anti-Mention*\n\n` +
@@ -941,7 +759,6 @@ addCmd({
     desc: 'Toggle Anti-ViewOnce in all chats',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const newVal = getSetting('ANTIVIEWONCE', 'false') !== 'true';
         setSetting('ANTIVIEWONCE', String(newVal));
@@ -960,16 +777,13 @@ addCmd({
     category: 'group',
     groupOnly: true,
     adminOnly: true,
-
     handler: async (ctx) => {
         const newVal = !groupSetting(ctx, 'antisticker');
-
         setGroupSetting(ctx.from, 'antisticker', newVal);
 
-        await ctx.reply(
-            newVal
-                ? '🚫 *Anti-Sticker ON*\n\nStickers from non-admins will be deleted.'
-                : '✅ *Anti-Sticker OFF*\n\nSticker restriction disabled.'
+        await ctx.reply(newVal
+            ? '🚫 *Anti-Sticker ON*\n\nStickers from non-admins will be deleted.'
+            : '✅ *Anti-Sticker OFF*\n\nSticker restriction disabled.'
         );
     },
 });
@@ -977,13 +791,11 @@ addCmd({
 addTrigger({
     pattern: /.*/,
     handler: async (ctx) => {
-        if (!ctx.isGroup) return;
-        if (!groupSetting(ctx, 'antisticker')) return;
+        if (!ctx.isGroup || !groupSetting(ctx, 'antisticker')) return;
         if (ctx.isAdmin || ctx.isOwner || ctx.m?.fromMe) return;
         if (!ctx.m?.message?.stickerMessage) return;
 
         await ctx.deleteMsg().catch(() => {});
-
         await ctx.send({
             text:
                 `🚫 *Anti-Sticker*\n\n` +
@@ -1005,20 +817,15 @@ addCmd({
     category: 'group',
     groupOnly: true,
     adminOnly: true,
-
     handler: async (ctx) => {
-        if (!ctx.isBotAdmin) {
-            return ctx.reply('❌ I need to be an admin to remove members.');
-        }
+        if (!ctx.isBotAdmin) return ctx.reply('❌ I need to be an admin to remove members.');
 
         const newVal = !groupSetting(ctx, 'antiforeign');
-
         setGroupSetting(ctx.from, 'antiforeign', newVal);
 
-        await ctx.reply(
-            newVal
-                ? '🌍 *Anti-Foreign ON*\n\nForeign numbers will be removed automatically when they join.'
-                : '🌍 *Anti-Foreign OFF*\n\nForeign number restriction disabled.'
+        await ctx.reply(newVal
+            ? '🌍 *Anti-Foreign ON*\n\nForeign numbers will be removed automatically when they join.'
+            : '🌍 *Anti-Foreign OFF*\n\nForeign number restriction disabled.'
         );
     },
 });
@@ -1033,11 +840,9 @@ addCmd({
     desc: "Freeze or unfreeze the bot's last seen",
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const current = getSetting('FREEZE_LAST_SEEN', 'false') === 'true';
         const newVal = !current;
-
         setSetting('FREEZE_LAST_SEEN', String(newVal));
 
         try {
@@ -1046,22 +851,14 @@ addCmd({
                 await ctx.sock.updateOnlinePrivacy('match_last_seen');
 
                 return ctx.reply(
-                    `❄️ *Last Seen Frozen!*\n\n` +
-                    `The bot's last seen is now hidden.\n\n` +
-                    `Use .freezelastseen again to unfreeze.`
+                    `❄️ *Last Seen Frozen!*\n\nThe bot's last seen is now hidden.\n\nUse .freezelastseen again to unfreeze.`
                 );
             }
 
             await ctx.sock.updateLastSeenPrivacy('contacts');
-
-            return ctx.reply(
-                '✅ *Last Seen Unfrozen!*\n\n' +
-                'The bot last seen is visible to contacts.'
-            );
+            return ctx.reply('✅ *Last Seen Unfrozen!*\n\nThe bot last seen is visible to contacts.');
         } catch {
-            return ctx.reply(
-                '⚠️ Setting saved, but WhatsApp did not confirm the privacy change.'
-            );
+            return ctx.reply('⚠️ Setting saved, but WhatsApp did not confirm the privacy change.');
         }
     },
 });
@@ -1076,11 +873,9 @@ addCmd({
     desc: 'Toggle privacy settings',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const current = getSetting('GHOST_MODE', 'false') === 'true';
         const newVal = !current;
-
         setSetting('GHOST_MODE', String(newVal));
 
         try {
@@ -1093,11 +888,7 @@ addCmd({
                 ]);
 
                 return ctx.reply(
-                    `👻 *Ghost Mode ON!*\n\n` +
-                    `• Last Seen: Hidden\n` +
-                    `• Profile Photo: Hidden\n` +
-                    `• Status: Hidden\n\n` +
-                    `Use .ghostmode again to turn it off.`
+                    `👻 *Ghost Mode ON!*\n\n• Last Seen: Hidden\n• Profile Photo: Hidden\n• Status: Hidden\n\nUse .ghostmode again to turn it off.`
                 );
             }
 
@@ -1107,22 +898,16 @@ addCmd({
                 ctx.sock.updateStatusPrivacy('contacts'),
             ]);
 
-            return ctx.reply(
-                '✅ *Ghost Mode OFF!*\n\nPrivacy settings restored to contacts-only.'
-            );
+            return ctx.reply('✅ *Ghost Mode OFF!*\n\nPrivacy settings restored to contacts-only.');
         } catch {
-            return ctx.reply(
-                '⚠️ Some privacy settings could not be changed by this Baileys version.'
-            );
+            return ctx.reply('⚠️ Some privacy settings could not be changed by this Baileys version.');
         }
     },
 });
 
-
-
-// ═══════════════════════════════════════════════════════════
-// ANTI-DELETE
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ANTI-DELETE MODE
+// ═══════════════════════════════════════════════════════════════
 
 addCmd({
     name: 'setantidelete',
@@ -1130,10 +915,8 @@ addCmd({
     desc: 'Set anti-delete mode (inchat/indm/off)',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const q = String(ctx.args?.join(' ') || '').trim().toLowerCase();
-
         const valid = ['inchat', 'indm', 'false'];
         const value = q === 'off' ? 'false' : q;
 
@@ -1143,46 +926,31 @@ addCmd({
                 '• `.setantidelete inchat` — Report in the same chat\n' +
                 '• `.setantidelete indm` — Send reports to owner inbox\n' +
                 '• `.setantidelete off` — Disable anti-delete\n\n' +
-                'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ'
+                FOOTER
             );
         }
 
         try {
-            const current = String(
-                await getSetting('ANTIDELETE') || 'false'
-            ).toLowerCase();
+            const current = String(await getSetting('ANTIDELETE') || 'false').toLowerCase();
 
             if (current === value) {
-                const display = value === 'false' ? 'OFF' : value.toUpperCase();
-
-                return ctx.reply(
-                    `⚠️ Anti-delete is already set to: *${display}*`
-                );
+                return ctx.reply(`⚠️ Anti-delete is already set to: *${value === 'false' ? 'OFF' : value.toUpperCase()}*`);
             }
 
             await setSetting('ANTIDELETE', value);
-
-            const display = value === 'false' ? 'OFF' : value.toUpperCase();
-
             return ctx.reply(
-                `✅ *ANTI-DELETE UPDATED*\n\n` +
-                `Mode: *${display}*\n\n` +
-                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
+                `✅ *ANTI-DELETE UPDATED*\n\nMode: *${value === 'false' ? 'OFF' : value.toUpperCase()}*\n\n${FOOTER}`
             );
         } catch (error) {
             console.error('[ANTIDELETE]', error);
-
-            return ctx.reply(
-                `❌ Failed to update anti-delete: ${error.message}`
-            );
+            return ctx.reply(`❌ Failed to update anti-delete: ${error.message}`);
         }
-    }
+    },
 });
 
-
-// ═══════════════════════════════════════════════════════════
-// ANTI-EDIT
-// ═══════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// ANTI-EDIT MODE
+// ═══════════════════════════════════════════════════════════════
 
 addCmd({
     name: 'setantiedit',
@@ -1190,10 +958,8 @@ addCmd({
     desc: 'Set anti-edit mode (on/off/indm/inchat)',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const q = String(ctx.args?.join(' ') || '').trim().toLowerCase();
-
         const valid = ['on', 'off', 'indm', 'inchat'];
 
         if (!valid.includes(q)) {
@@ -1203,36 +969,21 @@ addCmd({
                 '• `.setantiedit inchat` — Alert in the same chat\n' +
                 '• `.setantiedit on` — Enable anti-edit\n' +
                 '• `.setantiedit off` — Disable anti-edit\n\n' +
-                'ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ'
+                FOOTER
             );
         }
 
         try {
-            const current = String(
-                await getSetting('ANTI_EDIT') || 'off'
-            ).toLowerCase();
-
-            if (current === q) {
-                return ctx.reply(
-                    `⚠️ Anti-edit is already set to: *${q.toUpperCase()}*`
-                );
-            }
+            const current = String(await getSetting('ANTI_EDIT') || 'off').toLowerCase();
+            if (current === q) return ctx.reply(`⚠️ Anti-edit is already set to: *${q.toUpperCase()}*`);
 
             await setSetting('ANTI_EDIT', q);
-
-            return ctx.reply(
-                `✅ *ANTI-EDIT UPDATED*\n\n` +
-                `Mode: *${q.toUpperCase()}*\n\n` +
-                `ᴘᴏᴡᴇʀᴇᴅ ʙʏ ʟᴜᴋᴀʙʀᴀɴᴅ`
-            );
+            return ctx.reply(`✅ *ANTI-EDIT UPDATED*\n\nMode: *${q.toUpperCase()}*\n\n${FOOTER}`);
         } catch (error) {
             console.error('[ANTIEDIT]', error);
-
-            return ctx.reply(
-                `❌ Failed to update anti-edit: ${error.message}`
-            );
+            return ctx.reply(`❌ Failed to update anti-edit: ${error.message}`);
         }
-    }
+    },
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1245,30 +996,24 @@ addCmd({
     desc: 'Check global anti-delete status',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         try {
             const enabled = getAntiDeleteStatus();
-
             await ctx.reply(
                 `🛡️ *ANTI-DELETE STATUS*\n\n` +
                 `Status: ${enabled ? '✅ ON' : '❌ OFF'}\n` +
                 `Destination: Owner WhatsApp inbox\n` +
-                `Coverage: Groups and private chats\n\n` +
-                `${FOOTER}`
+                `Coverage: Groups and private chats\n\n${FOOTER}`
             );
         } catch (error) {
             console.error('[ANTIDELETE STATUS]', error);
-
-            await ctx.reply(
-                `❌ Could not read Anti-Delete status.\n\n${FOOTER}`
-            );
+            await ctx.reply(`❌ Could not read Anti-Delete status.\n\n${FOOTER}`);
         }
     },
 });
 
 // ═══════════════════════════════════════════════════════════════
-// ANTI-EDIT
+// GROUP ANTI-EDIT
 // ═══════════════════════════════════════════════════════════════
 
 addCmd({
@@ -1278,21 +1023,17 @@ addCmd({
     category: 'group',
     groupOnly: true,
     adminOnly: true,
-
     handler: async (ctx) => {
         const newVal = !groupSetting(ctx, 'antiedit');
-
         setGroupSetting(ctx.from, 'antiedit', newVal);
 
         await ctx.sock.sendMessage(ctx.from, {
             text:
                 `*ANTI-EDIT ${newVal ? 'ON' : 'OFF'}*\n` +
                 `${safeConfig('BOT_NAME', 'LUKA-XMD')}\n\n` +
-                (
-                    newVal
-                        ? 'Anti-edit setting enabled. Edited-message detection also requires a working message-update handler.'
-                        : 'Anti-edit setting disabled.'
-                ) +
+                (newVal
+                    ? 'Anti-edit setting enabled. Edited-message detection also requires a working message-update handler.'
+                    : 'Anti-edit setting disabled.') +
                 `\n\n◈ ${safeConfig('CHANNEL_NAME', safeConfig('CHANNEL_URL'))}`,
             contextInfo: channelCtx(),
         }, { quoted: ctx.m });
@@ -1309,7 +1050,6 @@ addCmd({
     desc: 'Get a WhatsApp profile picture',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         try {
             const jid =
@@ -1317,12 +1057,9 @@ addCmd({
                 ctx.m?.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0] ||
                 ctx.sender;
 
-            if (!jid) {
-                return ctx.reply('❌ Reply to or tag a user first.');
-            }
+            if (!jid) return ctx.reply('❌ Reply to or tag a user first.');
 
             const url = await ctx.sock.profilePictureUrl(jid, 'image');
-
             await ctx.send({
                 image: { url },
                 caption: `Profile Picture\nJID: ${jid}`,
@@ -1344,15 +1081,10 @@ addCmd({
     category: 'owner',
     ownerOnly: true,
     groupOnly: true,
-
     handler: async (ctx) => {
         try {
             const url = await ctx.sock.profilePictureUrl(ctx.from, 'image');
-
-            await ctx.send({
-                image: { url },
-                caption: 'Group Profile Picture',
-            });
+            await ctx.send({ image: { url }, caption: 'Group Profile Picture' });
         } catch {
             return ctx.reply('❌ Group profile picture not available.');
         }
@@ -1369,16 +1101,9 @@ addCmd({
     desc: 'Set disappearing messages',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const value = (ctx.args?.[0] || '').toLowerCase();
-
-        const times = {
-            off: 0,
-            '24h': 86400,
-            '7d': 604800,
-            '90d': 7776000,
-        };
+        const times = { off: 0, '24h': 86400, '7d': 604800, '90d': 7776000 };
 
         if (!Object.prototype.hasOwnProperty.call(times, value)) {
             return ctx.reply('Usage: .disapp off/24h/7d/90d');
@@ -1388,14 +1113,9 @@ addCmd({
             await ctx.sock.sendMessage(ctx.from, {
                 disappearingMessagesInChat: times[value],
             });
-
-            return ctx.reply(
-                `✅ Disappearing messages setting requested: ${value}`
-            );
+            return ctx.reply(`✅ Disappearing messages setting requested: ${value}`);
         } catch {
-            return ctx.reply(
-                '❌ Failed to update disappearing messages. Check your Baileys version.'
-            );
+            return ctx.reply('❌ Failed to update disappearing messages. Check your Baileys version.');
         }
     },
 });
@@ -1410,24 +1130,15 @@ addCmd({
     desc: 'Delete a replied message',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         try {
             const quoted = ctx.quoted;
-
-            if (!quoted) {
-                return ctx.reply('Reply to a message to delete it.');
-            }
+            if (!quoted) return ctx.reply('Reply to a message to delete it.');
 
             const key = quoted.key || quoted;
-
             const remoteJid = key.remoteJid || ctx.from;
 
-            if (!key.id) {
-                return ctx.reply(
-                    '❌ Could not identify the replied message.'
-                );
-            }
+            if (!key.id) return ctx.reply('❌ Could not identify the replied message.');
 
             await ctx.sock.sendMessage(remoteJid, {
                 delete: {
@@ -1438,9 +1149,7 @@ addCmd({
                 },
             });
         } catch {
-            return ctx.reply(
-                '❌ Could not delete that message. Check the quoted message key.'
-            );
+            return ctx.reply('❌ Could not delete that message. Check the quoted message key.');
         }
     },
 });
@@ -1455,18 +1164,14 @@ addCmd({
     desc: 'List groups the bot belongs to',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         try {
             const groups = await ctx.sock.groupFetchAllParticipating();
-
             const list = Object.entries(groups).map(([jid, group], index) =>
                 `${index + 1}. ${group.subject || 'Unnamed Group'}\n${jid}`
             );
 
-            return ctx.reply(
-                list.length ? list.join('\n\n') : 'No groups found.'
-            );
+            return ctx.reply(list.length ? list.join('\n\n') : 'No groups found.');
         } catch {
             return ctx.reply('❌ Failed to fetch groups.');
         }
@@ -1483,15 +1188,12 @@ addCmd({
     desc: 'Forward a replied message',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const target = ctx.args?.[0];
         const quoted = ctx.quoted;
 
         if (!target || !quoted) {
-            return ctx.reply(
-                'Reply to a message and use: .forward 255712345678'
-            );
+            return ctx.reply('Reply to a message and use: .forward 255712345678');
         }
 
         try {
@@ -1500,17 +1202,9 @@ addCmd({
                 : `${target.replace(/\D/g, '')}@s.whatsapp.net`;
 
             const message = quoted.message || quoted.msg;
+            if (!message) return ctx.reply('❌ Could not read the replied message.');
 
-            if (!message) {
-                return ctx.reply(
-                    '❌ Could not read the replied message.'
-                );
-            }
-
-            await ctx.sock.sendMessage(jid, {
-                forward: message,
-            });
-
+            await ctx.sock.sendMessage(jid, { forward: message });
             return ctx.reply('✅ Forward request sent.');
         } catch {
             return ctx.reply('❌ Failed to forward message.');
@@ -1528,21 +1222,12 @@ addCmd({
     desc: 'Post text to WhatsApp status',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const text = ctx.args?.join(' ').trim();
-
-        if (!text) {
-            return ctx.reply(
-                'Usage: .tostatus Your status text'
-            );
-        }
+        if (!text) return ctx.reply('Usage: .tostatus Your status text');
 
         try {
-            await ctx.sock.sendMessage('status@broadcast', {
-                text,
-            });
-
+            await ctx.sock.sendMessage('status@broadcast', { text });
             return ctx.reply('✅ Status posting request sent.');
         } catch {
             return ctx.reply('❌ Failed to post status.');
@@ -1560,28 +1245,17 @@ addCmd({
     desc: 'Join a group using invite link',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const link = ctx.args?.[0];
+        const code = link?.match(/chat\.whatsapp\.com\/([0-9A-Za-z]+)/i)?.[1];
 
-        const code = link?.match(
-            /chat\.whatsapp\.com\/([0-9A-Za-z]+)/i
-        )?.[1];
-
-        if (!code) {
-            return ctx.reply(
-                'Usage: .join https://chat.whatsapp.com/INVITECODE'
-            );
-        }
+        if (!code) return ctx.reply('Usage: .join https://chat.whatsapp.com/INVITECODE');
 
         try {
             const result = await ctx.sock.groupAcceptInvite(code);
-
             return ctx.reply(`✅ Joined group: ${result}`);
         } catch {
-            return ctx.reply(
-                '❌ Could not join group. The link may be invalid or expired.'
-            );
+            return ctx.reply('❌ Could not join group. The link may be invalid or expired.');
         }
     },
 });
@@ -1596,11 +1270,8 @@ addCmd({
     desc: 'Show current chat JID',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
-        return ctx.reply(
-            `📌 Chat JID: ${ctx.from || ctx.m?.key?.remoteJid || 'Unknown'}`
-        );
+        return ctx.reply(`📌 Chat JID: ${ctx.from || ctx.m?.key?.remoteJid || 'Unknown'}`);
     },
 });
 
@@ -1615,22 +1286,16 @@ addCmd({
     category: 'owner',
     ownerOnly: true,
     groupOnly: true,
-
     handler: async (ctx) => {
         try {
-            const meta =
-                ctx.groupMeta ||
-                await ctx.sock.groupMetadata(ctx.from);
-
+            const meta = ctx.groupMeta || await ctx.sock.groupMetadata(ctx.from);
             return ctx.reply(
                 `Group: ${meta.subject || 'Unknown'}\n` +
                 `JID: ${meta.id || ctx.from}\n` +
                 `Members: ${meta.participants?.length || 0}`
             );
         } catch {
-            return ctx.reply(
-                '❌ Group metadata is unavailable.'
-            );
+            return ctx.reply('❌ Group metadata is unavailable.');
         }
     },
 });
@@ -1645,7 +1310,6 @@ addCmd({
     desc: 'Show sender LID if available',
     category: 'owner',
     ownerOnly: true,
-
     handler: async (ctx) => {
         const sender = ctx.sender || ctx.m?.sender || '';
         const chat = ctx.from || '';
@@ -1658,7 +1322,4 @@ addCmd({
     },
 });
 
-console.log(
-    `✅ Owner and group commands loaded — ${safeConfig('BOT_NAME', 'LUKA-XMD')}`
-);
-
+console.log(`✅ Owner and group commands loaded — ${safeConfig('BOT_NAME', 'LUKA-XMD')}`);
