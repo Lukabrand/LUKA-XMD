@@ -747,7 +747,6 @@ addCmd({
             `✧ *Size* : ${size}\n\n` +
             `✧_*Don't forget*_ 🎉\n` +
             `*to fork and star the repo!* ⭐\n\n` +
-            `_${FOOTER}_`;
 
         await sendButtons(ctx.sock, ctx.from, {
             title: `⚡ ${safeConfig('BOT_NAME', 'LUKA-XMD')} — Source Code`,
