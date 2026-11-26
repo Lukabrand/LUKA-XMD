@@ -941,54 +941,23 @@ addTrigger({
 addCmd({
     name: 'antiviewonce',
     aliases: ['antiview', 'avo'],
-    desc: 'Detect view-once media in groups',
-    category: 'group',
-    groupOnly: true,
-    adminOnly: true,
+    desc: 'Enable or disable Anti-ViewOnce in all chats',
+    category: 'owner',
+    ownerOnly: true,
 
     handler: async (ctx) => {
-        const newVal = !groupSetting(ctx, 'antiviewonce');
-
-        setGroupSetting(ctx.from, 'antiviewonce', newVal);
+        const newVal = getSetting('ANTIVIEWONCE', 'false') !== 'true';
+        setSetting('ANTIVIEWONCE', String(newVal));
 
         await ctx.reply(
             newVal
-                ? '👁️ *Anti-ViewOnce ON*\n\nView-once media detection is enabled.'
-                : '👁️ *Anti-ViewOnce OFF*\n\nView-once media detection is disabled.'
+                ? '👁️ *Anti-ViewOnce ON*\n\nViewOnce ya picha na video itafuatiliwa kwenye private chats na groups zote.'
+                : '👁️ *Anti-ViewOnce OFF*\n\nAnti-ViewOnce imezimwa kwenye chats zote.'
         );
     },
 });
 
-addTrigger({
-    pattern: /.*/,
-    handler: async (ctx) => {
-        if (!ctx.isGroup) return;
-        if (!groupSetting(ctx, 'antiviewonce')) return;
-        if (ctx.m?.fromMe) return;
 
-        const raw = ctx.m?.message || {};
-
-        const inner =
-            raw.viewOnceMessage?.message ||
-            raw.viewOnceMessageV2?.message ||
-            raw.viewOnceMessageV2Extension?.message;
-
-        if (!inner) return;
-
-        const caption =
-            inner.imageMessage?.caption ||
-            inner.videoMessage?.caption ||
-            '';
-
-        await ctx.reply(
-            `👁️ *Anti-ViewOnce detected*\n\n` +
-            `Sender: @${(ctx.sender || '').split('@')[0]}\n` +
-            (caption ? `Caption: ${caption}\n` : '') +
-            `\n_${safeConfig('BOT_NAME', 'LUKA-XMD')}_`,
-            { mentions: ctx.sender ? [ctx.sender] : [] }
-        ).catch(() => {});
-    },
-});
 
 // ═══════════════════════════════════════════════════════════════
 // ANTI-STICKER
