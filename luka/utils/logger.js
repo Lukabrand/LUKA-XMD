@@ -1,11 +1,5 @@
 'use strict';
 
-// ╭══〘〘  LUKA-XMD — SMART LOGGER 〙〙══⊷
-// ┃
-// ┃  ⚡ Auto-detects: Heroku · Panel/VPS · Railway · Render · Local
-// ┃
-// ╰═══════════════════════════════════════════════════════════════════════════════╯ 
-
 const moment = require('moment-timezone');
 const TZ     = process.env.TIME_ZONE || 'Africa/Nairobi';
 
