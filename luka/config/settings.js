@@ -63,6 +63,7 @@ const CONFIG = {
     TIME_ZONE: process.env.TIME_ZONE || 'Africa/Nairobi',
     ANTI_CALL: parseBoolean(process.env.ANTI_CALL ?? process.env.ANTICALL ?? 'off'),
     ANTI_VV: parseBoolean(process.env.ANTI_VV || 'on'),
+    ANTI_VIEWONCE: parseBoolean(process.env.ANTI_VIEWONCE || 'on'),
     ANTI_DELETE: parseBoolean(process.env.ANTI_DELETE || 'on'),
     ANTI_EDIT: parseBoolean(process.env.ANTI_EDIT || 'on'),
     AUTO_READ: parseBoolean(process.env.AUTO_READ || 'off'),
