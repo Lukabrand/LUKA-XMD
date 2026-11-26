@@ -941,23 +941,16 @@ addTrigger({
 addCmd({
     name: 'antiviewonce',
     aliases: ['antiview', 'avo'],
-    desc: 'Enable or disable Anti-ViewOnce in all chats',
+    desc: 'Toggle Anti-ViewOnce in all chats',
     category: 'owner',
     ownerOnly: true,
 
     handler: async (ctx) => {
         const newVal = getSetting('ANTIVIEWONCE', 'false') !== 'true';
         setSetting('ANTIVIEWONCE', String(newVal));
-
-        await ctx.reply(
-            newVal
-                ? '👁️ *Anti-ViewOnce ON*\n\nViewOnce ya picha na video itafuatiliwa kwenye private chats na groups zote.'
-                : '👁️ *Anti-ViewOnce OFF*\n\nAnti-ViewOnce imezimwa kwenye chats zote.'
-        );
+        await ctx.reply(newVal ? '👁️ Anti-ViewOnce: ON' : '👁️ Anti-ViewOnce: OFF');
     },
 });
-
-
 
 // ═══════════════════════════════════════════════════════════════
 // ANTI-STICKER
